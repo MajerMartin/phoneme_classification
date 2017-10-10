@@ -49,27 +49,29 @@ class BaseExtractor(object):
 
         padding = [(0, 0)] * matrix.ndim
         padding[axis] = (order, 0)
-        deltas = np.pad(deltas, padding, mode='constant')
+        deltas = np.pad(deltas, padding, mode="constant")
 
         return deltas
 
-    def _extract_features(self, frames):
+    def _extract_features(self, frames, rate):
         """
         Extract features for every frame - implemented in inherited classes.
         :param frames: (ndarray) signal split into frames
+        :param rate: (int) frame rate of audio signal
         :return: (ndarray) features per frame
         """
         raise NotImplementedError("Implemented in inherited classes.")
 
-    def extract_features(self, frames, normalize=True, deltas=False):
+    def extract_features(self, frames, rate, normalize=True, deltas=False):
         """
         Extract features, possibly calculate delta and delta-delta coefficients and normalize.
         :param frames: (ndarray) signal split into frames
+        :param rate: (int) frame rate of audio signal
         :param normalize: (boolean) normalize features column-wise
         :param deltas: (boolean) compute delta and delta-delta coefficients
         :return: (ndarray) features
         """
-        features = self._extract_features(frames)
+        features = self._extract_features(frames, rate)
 
         dim = features.shape
 
@@ -96,6 +98,8 @@ class BaseExtractor(object):
         output = ""
 
         for key, value in self.__dict__.iteritems():
+            if type(value) == str:
+                value = "'{}'".format(value)
             output += "{{'{0}': {1}}}, ".format(key, value)
 
         return output[:-2]
