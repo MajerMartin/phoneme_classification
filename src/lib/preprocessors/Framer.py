@@ -12,7 +12,7 @@ class Framer(object):
         Initialize framer.
         :param frame_length: (float) length of single frame in seconds
         :param frame_step: (float) length of frame step in seconds
-        :param window_function: (function) window function to be applied to every frame (default = np.hamming)
+        :param window_function: (function) window function to be applied to every frame
         """
         self.frame_length = frame_length
         self.frame_step = frame_step
