@@ -93,6 +93,7 @@ class LogFilterbankEnergies(BaseExtractor):
 
         # replace zeroes with machine epsilon to prevent errors in log operation
         filterbank_energies = np.where(filterbank_energies == 0, np.finfo(float).eps, filterbank_energies)
+
         return np.log(filterbank_energies)
 
     def _extract_features(self, frames, rate):
