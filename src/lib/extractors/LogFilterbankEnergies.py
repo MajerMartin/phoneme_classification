@@ -7,11 +7,13 @@ class LogFilterbankEnergies(BaseExtractor):
     Compute log filterbank energies.
     """
 
-    def __init__(self, filters_count=26):
+    def __init__(self, filters_count=26, **kwargs):
         """
         Initialize log filterbank energies.
         :param filters_count: (int) number of filters
+        :param kwargs: (dict) keyword arguments passed to inherited classes
         """
+        super(LogFilterbankEnergies, self).__init__(**kwargs)
         self.filters_count = filters_count
         self.feature_type = "log filterbank energies"
         self.fft_size = 512

@@ -7,16 +7,15 @@ class MFCC(LogFilterbankEnergies):
     Compute Mel-frequency cepstral coefficients.
     """
 
-    def __init__(self, filters_count=26, coeffs_count=13):
+    def __init__(self, coeffs_count=13, **kwargs):
         """
         Initialize MFCC.
-        :param filters_count: (int) number of filters
         :param coeffs_count: (int) number of coefficients to keep
+        :param kwargs: (dict) keyword arguments passed to inherited classes
         """
-        self.filters_count = filters_count
+        super(MFCC, self).__init__(**kwargs)
         self.coeffs_count = coeffs_count
         self.feature_type = "mfcc"
-        self.fft_size = 512
 
     def _extract_features(self, frames, rate):
         """

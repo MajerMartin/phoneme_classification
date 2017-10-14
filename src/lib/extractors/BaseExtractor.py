@@ -6,11 +6,16 @@ class BaseExtractor(object):
     Implements interface for feature extraction, delta and delta-delta coefficients computation and normalization.
     """
 
-    def __init__(self):
+    def __init__(self, normalize=True, deltas=False, **kwargs):
         """
-        Initialize extractor - implemented in inherited classes.
+        Initialize extractor.
+        :param normalize: (boolean) normalize features column-wise
+        :param deltas: (boolean) compute delta and delta-delta coefficients
+        :param kwargs: (dict) keyword arguments passed to inherited classes
         """
-        pass
+        super(BaseExtractor, self).__init__(**kwargs)
+        self.normalize = normalize
+        self.deltas = deltas
 
     def _normalize(self, x):
         """
@@ -62,13 +67,11 @@ class BaseExtractor(object):
         """
         raise NotImplementedError("Implemented in inherited classes.")
 
-    def extract_features(self, frames, rate, normalize=True, deltas=False):
+    def extract_features(self, frames, rate):
         """
         Extract features, possibly calculate delta and delta-delta coefficients and normalize.
         :param frames: (ndarray) signal split into frames
         :param rate: (int) frame rate of audio signal
-        :param normalize: (boolean) normalize features column-wise
-        :param deltas: (boolean) compute delta and delta-delta coefficients
         :return: (ndarray) features
         """
         features = self._extract_features(frames, rate)
@@ -80,12 +83,12 @@ class BaseExtractor(object):
         elif dim[0] == 1:
             features = features.reshape(dim[1], 1)
 
-        if deltas:
+        if self.deltas:
             deltas = self._compute_deltas(features, order=1)
             delta_deltas = self._compute_deltas(features, order=2)
             features = np.hstack([features, deltas, delta_deltas])
 
-        if normalize:
+        if self.normalize:
             features = self._normalize_columns(features)
 
         return features
