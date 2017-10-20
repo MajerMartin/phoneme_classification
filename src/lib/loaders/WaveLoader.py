@@ -58,7 +58,7 @@ class WaveLoader(object):
             os.path.basename(input_dir_path),
             str(self.framer.frame_length * ms_to_s),
             str(self.framer.frame_step * ms_to_s),
-            self.extractor.feature_type,
+            sep.join(self.extractor.feature_type.split(" ")),
             "deltas" if self.extractor.deltas else ""
         ]).replace(".", "") + ".").replace(sep + ".", ".")
 
