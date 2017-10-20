@@ -253,7 +253,7 @@ class WaveLoader(object):
                         last_label = labels_per_sample[-1]
                         labels_per_sample = np.concatenate([labels_per_sample,
                                                             np.repeat(last_label,
-                                                                      max_signal_len - last_index + 1).astype("|S8")])
+                                                                      last_index - max_signal_len + 1).astype("|S8")])
 
                     labels = self.framer.get_frames_labels(labels_per_sample, indexes)
 
