@@ -220,6 +220,7 @@ class WaveLoader(object):
 
         with h5py.File(features_file_path, "a") as fw:
             total = len(wav_files)
+            max_frames_count = 0
 
             for i, wav_file in enumerate(wav_files):
                 speaker, utterance = regex.findall(os.path.basename(wav_file))[0]
@@ -257,6 +258,12 @@ class WaveLoader(object):
 
                     labels = self.framer.get_frames_labels(labels_per_sample, indexes)
 
+                    # keep track of largest frame count
+                    labels_len = len(labels)
+
+                    if labels_len > max_frames_count:
+                        max_frames_count = labels_len
+
                     # compute feature per frame
                     features = self.extractor.extract_features(frames, rate)
 
@@ -274,6 +281,9 @@ class WaveLoader(object):
                     group = fw[group_key]
                     dset = group.create_dataset("words", (len(current_words),), dtype=h5py.special_dtype(vlen=str))
                     dset[:] = current_words
+
+            # store largest frame count for padding in RNN
+            fw["/max_frames_count"] = np.asarray([max_frames_count])
 
             # save all phonemes for OHE
             group = fw["/"]
