@@ -75,6 +75,12 @@ class BaseFeeder(object):
 
         return context_features
 
+    def _process_speakers(self):
+        """
+        Process speakers - implemented in inherited classes.
+        """
+        raise NotImplementedError("Implemented in inherited classes.")
+
     def _train_val_test_split(self, ratio, test_speakers=[]):
         """
         Split dataset into train, validation and test set.
