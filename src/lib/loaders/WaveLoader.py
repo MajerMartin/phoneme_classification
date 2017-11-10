@@ -276,11 +276,17 @@ class WaveLoader(object):
                     fw[labels_key] = labels
 
                     # strings in h5py are not that straightforward
+                    group = fw[group_key]
+
                     current_words = words[speaker][utterance]
 
-                    group = fw[group_key]
-                    dset = group.create_dataset("words", (len(current_words),), dtype=h5py.special_dtype(vlen=str))
-                    dset[:] = current_words
+                    dset_words = group.create_dataset("words", (len(current_words),),
+                                                      dtype=h5py.special_dtype(vlen=str))
+                    dset_words[:] = current_words
+
+                    dset_transcription = group.create_dataset("transcription", (len(transcription),),
+                                                              dtype=h5py.special_dtype(vlen=str))
+                    dset_transcription[:] = transcription
 
             # store largest frame count for padding in RNN
             fw["/max_frames_count"] = np.asarray([max_frames_count])

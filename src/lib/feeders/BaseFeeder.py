@@ -27,6 +27,7 @@ class BaseFeeder(object):
         self.X_prefix = "X_"
         self.y_prefix = "y_"
         self.bounds_prefix = "bounds_"
+        self.transcription_prefix = "transcription_"
 
         self.encoder = LabelBinarizer()
 
@@ -225,6 +226,17 @@ class BaseFeeder(object):
 
         with h5py.File(self.tmp_storage_path) as fr:
             return fr[prefix[type] + split_type].shape[axis]
+
+    def get_transcriptions(self, split_type):
+        """
+        Yield transcriptions for utterances in set (generator).
+        :param split_type: (string) set to get transcriptions for (train/val/test)
+        :return: (ndarray) transcription
+        """
+        with h5py.File(self.features_path, "r") as fr_features:
+            with h5py.File(self.tmp_storage_path, "r") as fr_storage:
+                for (speaker, utterance) in fr_storage[self.transcription_prefix + split_type][:]:
+                    yield fr_features[speaker][utterance]["transcription"][:]
 
     def __str__(self):
         """
