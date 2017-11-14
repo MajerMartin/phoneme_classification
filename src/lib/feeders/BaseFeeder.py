@@ -24,6 +24,10 @@ class BaseFeeder(object):
         self.val_speakers = None
         self.test_speakers = None
 
+        self.left_context = None
+        self.right_context = None
+        self.time_steps = None
+
         self.X_prefix = "X_"
         self.y_prefix = "y_"
         self.bounds_prefix = "bounds_"
@@ -65,6 +69,9 @@ class BaseFeeder(object):
         :param right_context: (int) number of future frames
         :return: (ndarray) padded features for all applicable frames
         """
+        self.left_context = left_context
+        self.right_context = right_context
+
         context_count = left_context + right_context
         rows, cols = features.shape
 

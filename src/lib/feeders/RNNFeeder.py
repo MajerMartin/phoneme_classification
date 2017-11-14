@@ -22,6 +22,8 @@ class RNNFeeder(BaseFeeder):
         :param time_steps: (int) number of time steps in phoneme time series
         :return: (ndarray) phoneme time series
         """
+        self.time_steps = time_steps
+
         rows, cols = features.shape
 
         time_series = np.zeros((rows - time_steps, time_steps, cols))
