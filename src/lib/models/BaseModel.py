@@ -41,9 +41,6 @@ class BaseModel(object):
         self.callbacks = self._set_callbacks(callbacks)
         self.model = self._compile_model()
 
-        self._create_dirs()
-        self._save_model_metadata()
-
     def _create_dirs(self):
         """
         Create directories for model checkpoints and tensorboard log if they do not exists.
@@ -99,6 +96,9 @@ class BaseModel(object):
         """
         Train model on train set and validate on validation set.
         """
+        self._create_dirs()
+        self._save_model_metadata()
+
         self.model.fit_generator(self.feeder.yield_batches(self.batch_size, "train"),
                                  steps_per_epoch=self.feeder.get_steps_per_epoch(self.batch_size, "train"),
                                  nb_epoch=self.epochs,
