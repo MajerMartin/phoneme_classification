@@ -27,10 +27,8 @@ parser.add_argument("--frame_length", help="length of single frame in seconds", 
 parser.add_argument("--frame_step", help="length of frame step in seconds", type=float)
 
 # add argument for normalization and delta coefficients
-parser.add_argument("--normalize", choices=["True", "False"], help="normalize features column-wise",
-                    default=False)
-parser.add_argument("--deltas", choices=["True", "False"], help="compute delta and delta-delta coefficients",
-                    default=True)
+parser.add_argument("--normalize", help="normalize features column-wise", action="store_true", default=False)
+parser.add_argument("--deltas", help="compute delta and delta-delta coefficients", action="store_true", default=False)
 
 # add log filterbank energies and MFCC arguments
 parser.add_argument("--filters_count", help="number of filters", type=int, default=26)
