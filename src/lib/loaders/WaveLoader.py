@@ -219,7 +219,7 @@ class WaveLoader(object):
             pass
 
         with h5py.File(features_file_path, "a") as fw:
-            total = len(wav_files)
+            total = len(wav_files) - 1
             max_frames_count = 0
 
             for i, wav_file in enumerate(wav_files):
@@ -227,7 +227,8 @@ class WaveLoader(object):
                 transcription = transcriptions.get(speaker, {}).get(utterance, None)
 
                 if transcription:
-                    print "\r{}-{} ({}/{})".format(speaker, utterance, i + 1, total),
+                    if i % 100 == 0 or i == total:
+                        print "\r{}-{} ({}/{})".format(speaker, utterance, i, total),
 
                     rate, signal = wav_read(wav_file)
                     alignment = alignments[speaker][utterance]
