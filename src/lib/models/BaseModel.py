@@ -123,7 +123,7 @@ class BaseModel(object):
 
         return predictions_by_utterance, [t for t in transcriptions]
 
-    def load_model_weights(self):
+    def load_weights(self):
         """
         Load saved model weights.
         """
