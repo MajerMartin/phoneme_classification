@@ -1,2 +1,3 @@
-from .TestModelMLP import *
-from .TestModelRNN import *
+from .PyramidDropoutMLP import *
+from .DropoutLSTM import *
+from .DropoutGRU import *
