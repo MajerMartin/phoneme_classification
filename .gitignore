@@ -2,6 +2,7 @@
 .svn/*
 data/*
 weights/*
+results/*
 logs/*
 .svnignore
 *.pyc
