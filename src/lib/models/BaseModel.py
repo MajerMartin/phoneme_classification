@@ -1,5 +1,5 @@
 import os
-from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
+from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, LambdaCallback
 
 
 class BaseModel(object):
@@ -15,6 +15,7 @@ class BaseModel(object):
         :param batch_size: (int) batch size
         :param callbacks: (list) model callbacks to use
         """
+        # TODO: support multiple feeders - train, validation, test
         self.feeder = feeder
         self.epochs = epochs
         self.batch_size = batch_size
@@ -77,11 +78,20 @@ class BaseModel(object):
         :param callbacks: (list) model callbacks to use
         :return: (list) initialized callbacks
         """
+        batches_count = int(self.feeder.get_steps_per_epoch(self.batch_size, "train"))
+
+        def batch_print(batch, logs):
+            if batch % 5000 == 0:
+                print "\r  Batch: {}/{}".format(batch, batches_count - 1),
+            elif batch == batches_count - 1:
+                print "\r  Batch: {}/{}\n".format(batch, batches_count - 1),
+
         callbacks_init = {
             "tensorboard": TensorBoard(log_dir=self.tensorboard_log_path, write_graph=True),
             "modelCheckpoint": ModelCheckpoint(self.model_checkpoint_path, save_best_only=True, save_weights_only=True),
             "reduceLROnPlateau": ReduceLROnPlateau(patience=5, min_lr=0.0001),
-            "earlyStopping": EarlyStopping(patience=5),
+            "earlyStopping": EarlyStopping(patience=10),
+            "batchPrint": LambdaCallback(on_batch_begin=batch_print)
         }
 
         return [callbacks_init[cb] for cb in callbacks]
@@ -112,16 +122,25 @@ class BaseModel(object):
         Predict on test set.
         :return: (tuple) ndarray of predicted phonemes per utterance, list of ndarrays with transcriptions
         """
-        predictions_ohe = self.model.predict_generator(self.feeder.yield_batches(self.batch_size, "test", False),
-                                                       steps=self.feeder.get_steps_per_epoch(self.batch_size, "test"),
-                                                       verbose=1)
+        predictions = self.model.predict_generator(self.feeder.yield_batches(self.batch_size, "test", False),
+                                                   steps=self.feeder.get_steps_per_epoch(self.batch_size, "test"),
+                                                   verbose=1)
 
-        predictions = self.feeder.one_hot_decode(predictions_ohe)
         predictions_by_utterance = self.feeder.split_by_utterance(predictions, "test")
 
         transcriptions = self.feeder.get_transcriptions("test")
 
         return predictions_by_utterance, [t for t in transcriptions]
+
+    def evaluate(self):
+        """
+        Evaluate on test set.
+        :return: (dict) scores of metrics
+        """
+        scores = self.model.evaluate_generator(self.feeder.yield_batches(self.batch_size, "test", False),
+                                               steps=self.feeder.get_steps_per_epoch(self.batch_size, "test"))
+
+        return {metric: score for score, metric in zip(scores, self.model.metrics_names)}
 
     def load_weights(self):
         """
