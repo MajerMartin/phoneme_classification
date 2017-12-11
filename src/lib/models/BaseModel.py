@@ -1,5 +1,5 @@
 import os
-from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, LambdaCallback
+from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, LambdaCallback, CSVLogger
 
 
 class BaseModel(object):
@@ -28,7 +28,8 @@ class BaseModel(object):
         self.model_checkpoint_path = os.path.join(models_path_prefix,
                                                   model_name + ".hdf5")
         self.metadata_path = os.path.join(models_path_prefix, model_name + "_metadata.txt")
-        self.tensorboard_log_path = os.path.join("..", "logs", features_name, model_name)
+        self.tensorboard_log_path = os.path.join("..", "logs", "tensorboard", features_name, model_name)
+        self.csv_log_path = os.path.join("..", "logs", "csv", features_name, model_name + ".csv")
 
         # define input and output shapes
         if self.feeder.time_steps:
@@ -46,7 +47,7 @@ class BaseModel(object):
         """
         Create directories for model checkpoints and tensorboard log if they do not exists.
         """
-        for filename in [self.model_checkpoint_path, self.tensorboard_log_path]:
+        for filename in [self.model_checkpoint_path, self.tensorboard_log_path, self.csv_log_path]:
             dirname = os.path.dirname(filename)
 
             if not os.path.exists(dirname):
@@ -91,6 +92,7 @@ class BaseModel(object):
             "modelCheckpoint": ModelCheckpoint(self.model_checkpoint_path, save_best_only=True, save_weights_only=True),
             "reduceLROnPlateau": ReduceLROnPlateau(patience=5, min_lr=0.0001),
             "earlyStopping": EarlyStopping(patience=10),
+            "CSVLogger": CSVLogger(self.csv_log_path),
             "batchPrint": LambdaCallback(on_batch_begin=batch_print)
         }
 
