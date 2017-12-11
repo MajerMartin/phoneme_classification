@@ -37,6 +37,17 @@ class BaseFeeder(object):
 
         self._fit_encoder()
 
+    def _sample_speakers(self, max_train, max_val, max_test):
+        """
+        Limit number of speakers in train, validation a test sets.
+        :param max_train: (int) maximum count of train speakers
+        :param max_val: (int) maximum count of validation speakers
+        :param max_test: (int) maximum count of test speakers
+        """
+        self.train_speakers = self.train_speakers[:min(max_train, len(self.train_speakers))] if not None else None
+        self.val_speakers = self.val_speakers[:min(max_val, len(self.val_speakers))] if not None else None
+        self.test_speakers = self.test_speakers[:min(max_test, len(self.test_speakers))] if not None else None
+
     def _rebuild_path(self, path):
         """
         Rebuild path for current operating system.

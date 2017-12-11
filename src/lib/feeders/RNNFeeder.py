@@ -109,7 +109,7 @@ class RNNFeeder(BaseFeeder):
 
         print "\n\t{{'{0}': {1}}}, {{'{2}': {3}}}".format("X.shape", X.shape, "y.shape", y.shape)
 
-    def create_datasets(self, ratio, time_steps, test_speakers=[], left_context=0, right_context=0):
+    def create_datasets(self, ratio, time_steps, test_speakers=[], left_context=0, right_context=0, sample=[]):
         """
         Create train, validation and test datasets.
         :param ratio: (tuple) ratio between train, validation and test size
@@ -117,8 +117,12 @@ class RNNFeeder(BaseFeeder):
         :param test_speakers: (list) predefined test speakers
         :param left_context: (int) number of previous frames
         :param right_context: (int) number of future frames
+        :param sample: (list) train, validation and test size limits
         """
         self._train_val_test_split(ratio, test_speakers)
+
+        if sample:
+            self._sample_speakers(*sample)
 
         with h5py.File(self.features_path, "r") as fr:
             with h5py.File(self.tmp_storage_path, "a") as fw:
