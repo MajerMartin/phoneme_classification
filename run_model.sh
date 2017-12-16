@@ -10,9 +10,9 @@ python run_model_cli.py \
 --right_context 0 \
 --time_steps 10 \
 --model DropoutLSTM \
---epochs 10 \
+--epochs 100 \
 --batch_size 32 \
---sample 2 2 2 \
---callbacks tensorboard modelCheckpoint earlyStopping batchPrint reduceLROnPlateau CSVLogger # \
+--gpu \
+--callbacks tensorboard modelCheckpoint reduceLROnPlateau CSVLogger # \
 #--test_speakers_path test_speakers.txt
 #--load

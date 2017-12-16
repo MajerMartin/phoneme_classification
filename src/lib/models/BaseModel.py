@@ -7,14 +7,20 @@ class BaseModel(object):
     Compile model, train and predict on data provided by feeder.
     """
 
-    def __init__(self, feeder, epochs, batch_size, callbacks=[]):
+    def __init__(self, feeder, epochs, batch_size, callbacks=[], gpu=False):
         """
         Initialize base model.
         :param feeder: (object) feeder object
         :param epochs: (int) number of epochs
         :param batch_size: (int) batch size
         :param callbacks: (list) model callbacks to use
+        :param gpu: (boolean) run on GPU
         """
+        if gpu:
+            import theano
+            theano.config.device = "gpu"
+            theano.config.floatX = "float32"
+
         # TODO: support multiple feeders - train, validation, test
         self.feeder = feeder
         self.epochs = epochs
