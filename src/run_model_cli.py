@@ -36,7 +36,6 @@ parser.add_argument("--load", help="load saved model weights", action="store_tru
 parser.add_argument("--epochs", help="number of epochs", type=int)
 parser.add_argument("--batch_size", help="batch size", type=int)
 parser.add_argument("--callbacks", help="model callbacks to use", nargs="+", default=[])
-parser.add_argument("--gpu", help="run on GPU", action="store_true", default=False)
 
 # add language model arguments
 parser.add_argument("--ngram", help="ngram order", default=0, type=int)
@@ -72,7 +71,7 @@ else:
 # train/load weights and predict
 print "\nCompiling model..."
 
-model = selected_model.model(feeder, args.epochs, args.batch_size, callbacks=args.callbacks, gpu=args.gpu)
+model = selected_model.model(feeder, args.epochs, args.batch_size, callbacks=args.callbacks)
 
 print model.model.summary()
 
