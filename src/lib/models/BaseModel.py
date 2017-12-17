@@ -1,5 +1,6 @@
 import os
-from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, LambdaCallback, CSVLogger
+from keras.backend import backend
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, LambdaCallback, CSVLogger
 
 
 class BaseModel(object):
@@ -88,13 +89,16 @@ class BaseModel(object):
                 print "\r  Batch: {}/{}\n".format(batch, batches_count - 1),
 
         callbacks_init = {
-            "tensorboard": TensorBoard(log_dir=self.tensorboard_log_path, write_graph=True),
             "modelCheckpoint": ModelCheckpoint(self.model_checkpoint_path, save_best_only=True, save_weights_only=True),
             "reduceLROnPlateau": ReduceLROnPlateau(patience=5, min_lr=0.0001),
             "earlyStopping": EarlyStopping(patience=10),
             "CSVLogger": CSVLogger(self.csv_log_path),
             "batchPrint": LambdaCallback(on_batch_begin=batch_print)
         }
+
+        if backend() == "tensorflow":
+            from keras.callbacks import TensorBoard
+            callbacks_init["tensorboard"] = TensorBoard(log_dir=self.tensorboard_log_path, write_graph=True)
 
         return [callbacks_init[cb] for cb in callbacks]
 
