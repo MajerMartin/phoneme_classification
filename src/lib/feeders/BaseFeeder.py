@@ -18,7 +18,7 @@ class BaseFeeder(object):
         :param features_path: (string) path to file with features
         """
         self.features_path = self._rebuild_path(features_path)
-        self.tmp_storage_path = self.features_path + "_tmp_storage.hdf5"
+        self.tmp_storage_path = self.features_path + "_" + str(id(self)) + "_tmp_storage.hdf5"
 
         self.train_speakers = None
         self.val_speakers = None
