@@ -91,7 +91,7 @@ class Decoder(object):
         trellis[:, 0] = -observations[0] - self._get_penalty()
 
         # find most likely paths
-        for t in xrange(1, len(observations)):
+        for t in range(1, len(observations)):
             previous_trellis = trellis[:, t - 1]
 
             # last emitting state is the one with lowest likelyhood
@@ -108,7 +108,7 @@ class Decoder(object):
         # decode best path
         tokens = [trellis[:, -1].argmin()]
 
-        for t in xrange(len(observations) - 1, 0, -1):
+        for t in range(len(observations) - 1, 0, -1):
             if backpointer[tokens[-1], t]:
                 continue
 

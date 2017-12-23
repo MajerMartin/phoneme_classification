@@ -1,6 +1,6 @@
 from keras.models import Sequential
 from keras.layers import GRU, Dense
-from BaseModel import BaseModel
+from .BaseModel import BaseModel
 
 
 class DropoutGRU(BaseModel):
@@ -9,8 +9,8 @@ class DropoutGRU(BaseModel):
 
     def _compile_model(self):
         model = Sequential()
-        model.add(GRU(128, dropout=0.5, recurrent_dropout=0.5, return_sequences=True, input_shape=self.input_shape))
-        model.add(GRU(128, dropout=0.5, recurrent_dropout=0.5))
+        model.add(GRU(128, dropout=0.25, recurrent_dropout=0.25, return_sequences=True, input_shape=self.input_shape))
+        model.add(GRU(128, dropout=0.25, recurrent_dropout=0.25))
         model.add(Dense(self.output_shape, activation="softmax"))
 
         model.compile(loss="categorical_crossentropy", optimizer="rmsprop", metrics=["accuracy"])

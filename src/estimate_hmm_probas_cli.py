@@ -43,14 +43,14 @@ output_file_path = os.path.join(rebuild_dir_path(args.output_dir_path), os.path.
 phonemes = {}
 
 with open(output_file_path, "w") as fw:
-    with open(os.path.join(input_dir_path, args.alignment_file), 'r') as fr:
+    with open(os.path.join(input_dir_path, args.alignment_file), "r") as fr:
         for line in fr:
             line = line.strip()
 
             if line.startswith(("#!MLF!#", ".")) or line == "" or ".lab" in line:
                 continue
 
-            beginning_htk, end_htk, phoneme = line.split(args.delimiter.decode("string_escape"))[0:3]
+            beginning_htk, end_htk, phoneme = line.split(args.delimiter.encode().decode("unicode_escape"))[0:3]
 
             beginning_ms = htk_time_to_ms(beginning_htk)
             end_ms = htk_time_to_ms(end_htk)
@@ -60,7 +60,7 @@ with open(output_file_path, "w") as fw:
 
             phonemes[phoneme].append(end_ms - beginning_ms)
 
-    for phoneme, lengths in phonemes.iteritems():
+    for phoneme, lengths in phonemes.items():
         denominator = 1. * np.median(np.asarray(sorted(lengths))) / 10
         transition_proba = 1 / denominator
         self_loop_proba = 1 - transition_proba

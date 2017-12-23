@@ -6,3 +6,5 @@ Phoneme classification using multiple methods:
 * Seq2Seq recurrent neural network
 
 Tested on log filterbank energies and MFCC both with and without delta/delta-delta coefficients.
+
+Developed in Python 3.4 with Keras.

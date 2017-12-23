@@ -1,5 +1,5 @@
 import numpy as np
-from BaseExtractor import BaseExtractor
+from .BaseExtractor import BaseExtractor
 
 
 class LogFilterbankEnergies(BaseExtractor):
@@ -50,7 +50,7 @@ class LogFilterbankEnergies(BaseExtractor):
         :return: (ndarray) filterbanks
         """
         low_freq = 0
-        high_freq = rate / 2
+        high_freq = rate // 2
 
         # convert Hz to Mel
         low_mel = self._hz_to_mel(low_freq)
@@ -68,14 +68,14 @@ class LogFilterbankEnergies(BaseExtractor):
         # first filterbank will start at the first point, reach its peak at the second point
         # then return to zero at the 3rd point. The second filterbank will start at the 2nd
         # point, reach its max at the 3rd, then be zero at the 4th etc.
-        filterbanks = np.zeros([self.filters_count, self.fft_size / 2 + 1])
+        filterbanks = np.zeros([self.filters_count, self.fft_size // 2 + 1])
 
-        for i in xrange(self.filters_count):
+        for i in range(self.filters_count):
             # from left to peak
-            for j in xrange(int(fft_bin[i]), int(fft_bin[i + 1])):
+            for j in range(int(fft_bin[i]), int(fft_bin[i + 1])):
                 filterbanks[i, j] = (j - fft_bin[i]) / (fft_bin[i + 1] - fft_bin[i])
             # from peak to right
-            for j in xrange(int(fft_bin[i + 1]), int(fft_bin[i + 2])):
+            for j in range(int(fft_bin[i + 1]), int(fft_bin[i + 2])):
                 filterbanks[i, j] = (fft_bin[i + 2] - j) / (fft_bin[i + 2] - fft_bin[i + 1])
 
         return filterbanks

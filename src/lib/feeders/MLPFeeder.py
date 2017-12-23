@@ -1,6 +1,6 @@
 import h5py
 import numpy as np
-from BaseFeeder import BaseFeeder
+from .BaseFeeder import BaseFeeder
 
 
 class MLPFeeder(BaseFeeder):
@@ -57,12 +57,12 @@ class MLPFeeder(BaseFeeder):
         utterance_index = 0
         speakers_count = len(speakers)
 
-        print suffix
+        print(suffix)
 
         for i, speaker in enumerate(speakers):
-            print "\r\t({}/{})".format(i + 1, speakers_count),
+            print("\r\t({}/{})".format(i + 1, speakers_count), end=" ")
 
-            for utterance in fr[speaker].keys():
+            for utterance in list(fr[speaker].keys()):
                 features = fr[speaker][utterance]["features"][:]
                 labels = fr[speaker][utterance]["labels"][:]
 
@@ -82,7 +82,7 @@ class MLPFeeder(BaseFeeder):
 
                 utterance_index += 1
 
-        print "\n\t{{'{0}': {1}}}, {{'{2}': {3}}}".format("X.shape", X.shape, "y.shape", y.shape)
+        print("\n\t{{'{0}': {1}}}, {{'{2}': {3}}}".format("X.shape", X.shape, "y.shape", y.shape))
 
     def create_datasets(self, ratio, test_speakers=[], left_context=0, right_context=0, sample=[]):
         """

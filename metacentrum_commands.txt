@@ -4,17 +4,11 @@ scp target_file 'META username'@skirit.metacentrum.cz:
 # move data from metacentrum
 scp 'META username'@skirit.metacentrum.cz:target_file .
 
-# get current working directory
-echo $PWD
-
-# add python
-module add python27-modules-intel
-
 # install custom python packages
-pip install <module-name> --user --process-dependency-links
+pip install <module-name> --user
 
 # submit job
-qsub -l select=1:ncpus=2:ngpus=1:cl_gram=False:cl_konos=False:mem=5gb -l walltime=24:00:00 -q gpu /storage/plzen1/home/mmajer/_packages/phoneme_classification/run_job.sh
+qsub -l select=1:ncpus=2:ngpus=1:cl_gram=False:cl_konos=False:mem=5gb -l walltime=24:00:00 -q gpu /storage/plzen1/home/mmajer/phoneme_classification/run_job.sh
 
 # further info:
 # https://wiki.metacentrum.cz/wiki/How_to_compute/Requesting_resources

@@ -35,7 +35,7 @@ class BaseExtractor(object):
 
         normalized = np.zeros(dim)
 
-        for i in xrange(dim[1]):
+        for i in range(dim[1]):
             column = matrix[:, i]
             normalized[:, i] = self._normalize(column)
 
@@ -100,7 +100,7 @@ class BaseExtractor(object):
         """
         output = ""
 
-        for key, value in self.__dict__.iteritems():
+        for key, value in self.__dict__.items():
             if type(value) == str:
                 value = "'{}'".format(value)
             output += "{{'{0}': {1}}}, ".format(key, value)

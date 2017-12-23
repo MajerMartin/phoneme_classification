@@ -52,4 +52,4 @@ loader = WaveLoader(framer, extractor)
 
 # create dataset
 loader.create_dataset(args.input_dir_path, args.output_dir_path, args.wav_dir_name, args.alignment_file,
-                      args.words_file, args.regex, args.encoding, args.delimiter.decode("string_escape"))
+                      args.words_file, args.regex, args.encoding, args.delimiter.encode().decode("unicode_escape"))

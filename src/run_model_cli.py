@@ -51,7 +51,7 @@ if args.test_speakers_path:
         test_speakers = [speaker.strip() for speaker in fr.readlines()]
 
 # choose model and corresponding feeder
-print "\nBuilding temporary dataset..."
+print("\nBuilding temporary dataset...")
 
 selected_model = MODELS[args.model]
 
@@ -69,27 +69,27 @@ else:
                            right_context=args.right_context, sample=args.sample)
 
 # train/load weights and predict
-print "\nCompiling model..."
+print("\nCompiling model...")
 
 model = selected_model.model(feeder, args.epochs, args.batch_size, callbacks=args.callbacks)
 
-print model.model.summary()
+print(model.model.summary())
 
 if args.load:
-    print "\nLoading weights..."
+    print("\nLoading weights...")
     model.load_weights()
 else:
-    print "\nTraining..."
+    print("\nTraining...")
     model.train()
 
-print "\nEvaluating..."
-print model.evaluate()
+print("\nEvaluating...")
+print(model.evaluate())
 
-print "\nPredicting..."
+print("\nPredicting...")
 predictions, transcriptions = model.predict()
 
 # create directory for results
-print "\n\nCreating directory for results..."
+print("\n\nCreating directory for results...")
 
 features_name = os.path.splitext(os.path.basename(feeder.features_path))[0]
 model_name = model.__class__.__name__
@@ -100,7 +100,7 @@ if not os.path.exists(results_dir):
     os.makedirs(results_dir)
 
 # build language model
-print "\nBuilding language model..."
+print("\nBuilding language model...")
 
 languageModel = LanguageModel(feeder)
 language_model = languageModel.create_model(ngram=args.ngram)
@@ -108,7 +108,7 @@ language_model = languageModel.create_model(ngram=args.ngram)
 is_bigram = args.ngram == 2
 
 # decode and save results
-print "\nDecoding predictions..."
+print("\nDecoding predictions...")
 
 pred_path = os.path.join(results_dir, "pred.mlf")
 ref_path = os.path.join(results_dir, "ref.mlf")
@@ -120,7 +120,7 @@ with open(pred_path, "w") as fw_pred, open(ref_path, "w") as fw_ref:
     fw_ref.write("#!MLF!#\n")
 
     for i, (observations, transcription) in enumerate(zip(predictions, transcriptions)):
-        print "\r  {0}/{1}".format(i, len(predictions) - 1),
+        print("\r  {0}/{1}".format(i, len(predictions) - 1), end=" ")
 
         decoded_transcription = decoder.decode(observations)
 
@@ -137,5 +137,5 @@ with open(os.path.join(results_dir, "phonemes"), "w") as fw:
     fw.write("\n".join(feeder.encoder.classes_))
 
 # clean after training and prediction
-print "\n\nCleaning temporary dataset..."
+print("\n\nCleaning temporary dataset...")
 feeder.remove_tmp_storage()

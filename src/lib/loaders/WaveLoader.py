@@ -73,10 +73,10 @@ class WaveLoader(object):
         format_print = lambda k, v: "{:20}|\t{}\n".format(k, v)
 
         with open(metadata_file_path, "w") as fw:
-            for key, value in self.framer.__dict__.iteritems():
+            for key, value in self.framer.__dict__.items():
                 fw.write(format_print(key, value))
 
-            for key, value in self.extractor.__dict__.iteritems():
+            for key, value in self.extractor.__dict__.items():
                 fw.write(format_print(key, value))
 
             fw.write(format_print("regex", regex.pattern))
@@ -99,7 +99,7 @@ class WaveLoader(object):
 
             duplicates[key].append(wav_file)
 
-        return {key: value for key, value in duplicates.items() if len(value) > 1}
+        return {key: value for key, value in list(duplicates.items()) if len(value) > 1}
 
     def _ignore_mlf_condition(self, line):
         """
@@ -126,7 +126,7 @@ class WaveLoader(object):
         :return: (defaultdict) list of words per file per speaker
         """
         # this file should not be that large - load it into memory
-        with codecs.open(words_path, mode="rt", encoding=encoding) as fr:
+        with codecs.open(words_path, mode="r", encoding=encoding) as fr:
             lines = fr.read().split("\n")
 
         words = defaultdict(dict)
@@ -160,7 +160,7 @@ class WaveLoader(object):
         alignments = defaultdict(dict)
         phonemes = {}
 
-        with open(alignment_path, 'r') as fr:
+        with open(alignment_path, "r") as fr:
             # this file may be large - do not load into memory and read line by line instead
             for line in fr:
                 line = line.strip()
@@ -203,8 +203,8 @@ class WaveLoader(object):
         duplicates = self._find_duplicate_files(wav_files, regex)
 
         if duplicates:
-            for i, d in enumerate(duplicates.itervalues()):
-                print "{})".format(i), ", ".join(d)
+            for i, d in enumerate(duplicates.values()):
+                print("{})".format(i), ", ".join(d))
             raise ValueError("Resolve file names with duplicate (speaker, utterance) pairs.")
 
         group_sep = "/"
@@ -228,7 +228,7 @@ class WaveLoader(object):
 
                 if transcription:
                     if i % 100 == 0 or i == total:
-                        print "\r{}-{} ({}/{})".format(speaker, utterance, i, total),
+                        print("\r{}-{} ({}/{})".format(speaker, utterance, i, total), end=" ")
 
                     rate, signal = wav_read(wav_file)
                     alignment = alignments[speaker][utterance]
@@ -349,7 +349,7 @@ class WaveLoader(object):
         """
         output = ""
 
-        for key, value in self.__dict__.iteritems():
+        for key, value in self.__dict__.items():
             output += "{{'{0}': {1}}}, ".format(key, value)
 
         return output[:-2]

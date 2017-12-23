@@ -73,7 +73,7 @@ class Framer(object):
         """
         output = ""
 
-        for key, value in self.__dict__.iteritems():
+        for key, value in self.__dict__.items():
             output += "{{'{0}': {1}}}, ".format(key, value)
 
         return output[:-2]

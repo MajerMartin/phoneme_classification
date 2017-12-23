@@ -1,6 +1,6 @@
 import h5py
 import numpy as np
-from BaseFeeder import BaseFeeder
+from .BaseFeeder import BaseFeeder
 
 
 class RNNFeeder(BaseFeeder):
@@ -28,7 +28,7 @@ class RNNFeeder(BaseFeeder):
 
         time_series = np.zeros((rows - time_steps, time_steps, cols))
 
-        for i in xrange(time_steps, rows - time_steps):
+        for i in range(time_steps, rows - time_steps):
             time_series[i, :, :] = features[i - time_steps:i, :]
 
         return time_series
@@ -76,12 +76,12 @@ class RNNFeeder(BaseFeeder):
         utterance_index = 0
         speakers_count = len(speakers)
 
-        print suffix
+        print(suffix)
 
         for i, speaker in enumerate(speakers):
-            print "\r\t({}/{})".format(i + 1, speakers_count),
+            print("\r\t({}/{})".format(i + 1, speakers_count), end=" ")
 
-            for utterance in fr[speaker].keys():
+            for utterance in list(fr[speaker].keys()):
                 features = fr[speaker][utterance]["features"][:]
                 labels = fr[speaker][utterance]["labels"][:]
 
@@ -107,7 +107,7 @@ class RNNFeeder(BaseFeeder):
 
                 utterance_index += 1
 
-        print "\n\t{{'{0}': {1}}}, {{'{2}': {3}}}".format("X.shape", X.shape, "y.shape", y.shape)
+        print("\n\t{{'{0}': {1}}}, {{'{2}': {3}}}".format("X.shape", X.shape, "y.shape", y.shape))
 
     def create_datasets(self, ratio, time_steps, test_speakers=[], left_context=0, right_context=0, sample=[]):
         """

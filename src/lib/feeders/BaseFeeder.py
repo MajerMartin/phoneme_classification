@@ -4,7 +4,7 @@ import h5py
 import random
 import numpy as np
 from sklearn.preprocessing import LabelBinarizer
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 
 
 class BaseFeeder(object):
@@ -89,7 +89,7 @@ class BaseFeeder(object):
         features_raveled = features.ravel()
         context_features = np.zeros((rows - context_count, cols * (context_count + 1)))
 
-        for i in xrange(rows - context_count):
+        for i in range(rows - context_count):
             context_features[i, :] = features_raveled[i * cols:(context_count + i + 1) * cols]
 
         return context_features
@@ -116,7 +116,7 @@ class BaseFeeder(object):
             raise ValueError("0 <= ratio <= 1.")
 
         with h5py.File(self.features_path, "r") as fr:
-            speakers = sorted([key for key in fr.keys() if key not in ["max_frames_count", "phonemes"] + test_speakers])
+            speakers = sorted([key for key in list(fr.keys()) if key not in ["max_frames_count", "phonemes"] + test_speakers])
 
         # case when we have predefined test speakers
         if test_speakers:
@@ -186,7 +186,7 @@ class BaseFeeder(object):
                     random.shuffle(indexes)
 
                 # yield batches
-                for index in xrange(0, count, batch_size):
+                for index in range(0, count, batch_size):
                     batch_indexes = sorted(indexes[index:min(index + batch_size, count)])
 
                     X = fr[self.X_prefix + split_type][batch_indexes, :]
@@ -263,7 +263,7 @@ class BaseFeeder(object):
         """
         output = ""
 
-        for key, value in self.__dict__.iteritems():
+        for key, value in self.__dict__.items():
             output += "{{'{0}': {1}}}, ".format(key, value)
 
         output += "{{'{0}': {1}}}".format("encoder.classes_", self.encoder.classes_)

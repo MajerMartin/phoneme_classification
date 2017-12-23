@@ -1,5 +1,5 @@
 from scipy.fftpack import dct
-from LogFilterbankEnergies import LogFilterbankEnergies
+from .LogFilterbankEnergies import LogFilterbankEnergies
 
 
 class MFCC(LogFilterbankEnergies):

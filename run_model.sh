@@ -12,6 +12,6 @@ python run_model_cli.py \
 --model DropoutLSTM \
 --epochs 10 \
 --batch_size 32 \
---callbacks modelCheckpoint reduceLROnPlateau CSVLogger # \
+--callbacks tensorboard modelCheckpoint reduceLROnPlateau CSVLogger # \
 #--test_speakers_path test_speakers.txt
 #--load

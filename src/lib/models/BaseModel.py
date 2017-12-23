@@ -60,7 +60,7 @@ class BaseModel(object):
         """
         format_print = lambda k, v: "{:25}|\t{}\n".format(k, v)
 
-        model_keys = ["epochs", "batch_size", "model_checkpoint_path", "tensorboard_log_path"]
+        model_keys = ["epochs", "batch_size", "model_checkpoint_path", "tensorboard_log_path", "csv_log_path"]
         feeder_keys = ["features_path", "left_context", "right_context", "time_steps", "train_speakers", "val_speakers",
                        "test_speakers"]
 
@@ -84,14 +84,15 @@ class BaseModel(object):
 
         def batch_print(batch, logs):
             if batch % 5000 == 0:
-                print "\r  Batch: {}/{}".format(batch, batches_count - 1),
+                print("\r  Batch: {}/{}".format(batch, batches_count - 1), end=" ")
             elif batch == batches_count - 1:
-                print "\r  Batch: {}/{}\n".format(batch, batches_count - 1),
+                print("\r  Batch: {}/{}\n".format(batch, batches_count - 1), end=" ")
 
         callbacks_init = {
-            "modelCheckpoint": ModelCheckpoint(self.model_checkpoint_path, save_best_only=True, save_weights_only=True),
-            "reduceLROnPlateau": ReduceLROnPlateau(patience=5, min_lr=0.0001),
-            "earlyStopping": EarlyStopping(patience=10),
+            "modelCheckpoint": ModelCheckpoint(self.model_checkpoint_path, save_best_only=True, save_weights_only=True,
+                                               verbose=1),
+            "reduceLROnPlateau": ReduceLROnPlateau(patience=5, min_lr=0.0001, verbose=1),
+            "earlyStopping": EarlyStopping(patience=10, verbose=1),
             "CSVLogger": CSVLogger(self.csv_log_path),
             "batchPrint": LambdaCallback(on_batch_begin=batch_print)
         }
@@ -161,7 +162,7 @@ class BaseModel(object):
         """
         output = ""
 
-        for key, value in self.__dict__.iteritems():
+        for key, value in self.__dict__.items():
             if type(value) == str:
                 value = "'{}'".format(value)
             output += "{{'{0}': {1}}}, ".format(key, value)

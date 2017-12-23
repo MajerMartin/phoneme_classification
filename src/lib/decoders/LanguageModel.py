@@ -23,7 +23,7 @@ class LanguageModel(object):
         cnt = Counter()
 
         for transcription in self.feeder.get_transcriptions("train"):
-            for i in xrange(len(transcription) - n + 1):
+            for i in range(len(transcription) - n + 1):
                 key = tuple([phoneme for phoneme in transcription[i:i + n]])
                 cnt[key] += 1
 
@@ -38,7 +38,7 @@ class LanguageModel(object):
         probabilities = {}
 
         for phoneme in phonemes:
-            probabilities[(phoneme,)] = np.log10(1. / len(phonemes))
+            probabilities[(phoneme,)] = np.log10(1.0 / len(phonemes))
 
         return probabilities
 

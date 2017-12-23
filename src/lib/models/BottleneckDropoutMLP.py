@@ -1,6 +1,6 @@
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
-from BaseModel import BaseModel
+from .BaseModel import BaseModel
 
 
 class BottleneckDropoutMLP(BaseModel):
