@@ -25,11 +25,12 @@ class BaseModel(object):
         features_name = os.path.splitext(os.path.basename(self.feeder.features_path))[0]
         model_name = str(id(self)) + "_" + self.__class__.__name__ + "_" + str(self.feeder.left_context) + "_" + str(
             self.feeder.right_context) + "_" + str(self.feeder.time_steps if self.feeder.time_steps else 0)
-        models_path_prefix = os.path.join("..", "weights", features_name)
 
-        self.model_checkpoint_path = os.path.join(models_path_prefix,
-                                                  model_name + ".hdf5")
-        self.metadata_path = os.path.join(models_path_prefix, model_name + "_metadata.txt")
+        self.models_path_prefix = os.path.join("..", "weights", features_name)
+
+        self.model_checkpoint_path = os.path.join(self.models_path_prefix,
+                                                  self.model_name + ".h5")
+        self.metadata_path = os.path.join(self.models_path_prefix, model_name + "_metadata.txt")
         self.tensorboard_log_path = os.path.join("..", "logs", "tensorboard", features_name, model_name)
         self.csv_log_path = os.path.join("..", "logs", "csv", features_name, model_name + ".csv")
 
@@ -90,7 +91,7 @@ class BaseModel(object):
                 print("\r  Batch: {}/{}\n".format(batch, batches_count - 1), end=" ")
 
         callbacks_init = {
-            "modelCheckpoint": ModelCheckpoint(self.model_checkpoint_path, save_best_only=True, save_weights_only=True,
+            "modelCheckpoint": ModelCheckpoint(self.model_checkpoint_path, save_best_only=True, save_weights_only=False,
                                                verbose=1),
             "reduceLROnPlateau": ReduceLROnPlateau(patience=5, min_lr=0.0001, verbose=1),
             "earlyStopping": EarlyStopping(patience=10, verbose=1),
@@ -150,11 +151,11 @@ class BaseModel(object):
 
         return {metric: score for score, metric in zip(scores, self.model.metrics_names)}
 
-    def load_weights(self):
+    def load_model(self, model_name):
         """
-        Load saved model weights.
+        Load saved model.
         """
-        self.model.load_weights(self.model_checkpoint_path)
+        self.model.load_model(os.path.join(self.models_path_prefix, model_name))
 
     def __str__(self):
         """
