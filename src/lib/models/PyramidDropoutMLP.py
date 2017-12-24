@@ -1,5 +1,6 @@
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
+from keras.optimizers import SGD
 from .BaseModel import BaseModel
 
 
@@ -17,6 +18,8 @@ class PyramidDropoutMLP(BaseModel):
         model.add(Dropout(0.5))
         model.add(Dense(units=self.output_shape, activation="softmax"))
 
-        model.compile(loss="categorical_crossentropy", optimizer="sgd", metrics=["accuracy"])
+        sgd = SGD(lr=0.01, momentum=0.9, decay=0.0, nesterov=True)
+
+        model.compile(loss="categorical_crossentropy", optimizer=sgd, metrics=["accuracy"])
 
         return model

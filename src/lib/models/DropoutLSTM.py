@@ -1,5 +1,6 @@
 from keras.models import Sequential
 from keras.layers import LSTM, Dense
+from keras.optimizers import Adam
 from .BaseModel import BaseModel
 
 
@@ -13,6 +14,8 @@ class DropoutLSTM(BaseModel):
         model.add(LSTM(128, dropout=0.25, recurrent_dropout=0.25))
         model.add(Dense(self.output_shape, activation="softmax"))
 
-        model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
+        adam = Adam(lr=0.003)
+
+        model.compile(loss="categorical_crossentropy", optimizer=adam, metrics=["accuracy"])
 
         return model
