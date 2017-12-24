@@ -24,7 +24,7 @@ class BaseModel(object):
         # define logging paths
         features_name = os.path.splitext(os.path.basename(self.feeder.features_path))[0]
         model_name = str(id(self)) + "_" + self.__class__.__name__ + "_" + str(self.feeder.left_context) + "_" + str(
-            self.feeder.right_context) + "_" + str(self.feeder.time_steps if self.feeder.time_steps else 0)
+            self.feeder.right_context) + "_" + str(self.feeder.time_steps)
 
         self.models_path_prefix = os.path.join("..", "weights", features_name)
 
