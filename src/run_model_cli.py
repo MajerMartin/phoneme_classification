@@ -33,6 +33,8 @@ parser.add_argument("--sample", help="train, validation and test size limits", n
 # add model arguments
 parser.add_argument("--model", help="model architecture")
 parser.add_argument("--load", help="load saved model weights", action="store_true", default=False)
+parser.add_argument("--continue_training", help="continue training from loaded weights", action="store_true",
+                    default=False)
 parser.add_argument("--epochs", help="number of epochs", type=int)
 parser.add_argument("--batch_size", help="batch size", type=int)
 parser.add_argument("--callbacks", help="model callbacks to use", nargs="+", default=[])
@@ -78,6 +80,10 @@ print(model.model.summary())
 if args.load:
     print("\nLoading weights...")
     model.load_weights()
+
+    if args.continue_training:
+        print("\nTraining...")
+        model.train()
 else:
     print("\nTraining...")
     model.train()
