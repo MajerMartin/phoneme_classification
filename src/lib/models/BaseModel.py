@@ -1,5 +1,6 @@
 import os
 from keras.backend import backend
+from keras.models import load_model
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, LambdaCallback, CSVLogger
 
 
@@ -155,7 +156,7 @@ class BaseModel(object):
         """
         Load saved model.
         """
-        self.model.load_model(os.path.join(self.models_path_prefix, model_name))
+        self.model = load_model(os.path.join(self.models_path_prefix, model_name))
 
     def __str__(self):
         """
