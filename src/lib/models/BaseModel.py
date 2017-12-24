@@ -29,8 +29,7 @@ class BaseModel(object):
 
         self.models_path_prefix = os.path.join("..", "weights", features_name)
 
-        self.model_checkpoint_path = os.path.join(self.models_path_prefix,
-                                                  self.model_name + ".h5")
+        self.model_checkpoint_path = os.path.join(self.models_path_prefix, model_name + ".h5")
         self.metadata_path = os.path.join(self.models_path_prefix, model_name + "_metadata.txt")
         self.tensorboard_log_path = os.path.join("..", "logs", "tensorboard", features_name, model_name)
         self.csv_log_path = os.path.join("..", "logs", "csv", features_name, model_name + ".csv")
