@@ -37,6 +37,7 @@ parser.add_argument("--continue_training", help="continue training from loaded w
                     default=False)
 parser.add_argument("--epochs", help="number of epochs", type=int)
 parser.add_argument("--batch_size", help="batch size", type=int)
+parser.add_argument("--learning_rate", help="learning rate", type=float, default=None)
 parser.add_argument("--callbacks", help="model callbacks to use", nargs="+", default=[])
 
 # add language model arguments
@@ -73,12 +74,13 @@ else:
 # train/load weights and predict
 print("\nCompiling model...")
 
-model = selected_model.model(feeder, args.epochs, args.batch_size, callbacks=args.callbacks)
+model = selected_model.model(feeder, args.epochs, args.batch_size, learning_rate=args.learning_rate,
+                             callbacks=args.callbacks)
 
 print(model.model.summary())
 
 if args.load:
-    print("\nLoading weights...")
+    print("\nLoading model...")
     model.load_model(args.load)
 
     if args.continue_training:

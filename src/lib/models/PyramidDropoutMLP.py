@@ -18,7 +18,12 @@ class PyramidDropoutMLP(BaseModel):
         model.add(Dropout(0.5))
         model.add(Dense(units=self.output_shape, activation="softmax"))
 
-        sgd = SGD(lr=0.01, momentum=0.9, decay=0.0, nesterov=True)
+        if self.learning_rate:
+            lr = self.learning_rate
+        else:
+            lr = 0.01
+
+        sgd = SGD(lr=lr, momentum=0.9, decay=0.0, nesterov=True)
 
         model.compile(loss="categorical_crossentropy", optimizer=sgd, metrics=["accuracy"])
 

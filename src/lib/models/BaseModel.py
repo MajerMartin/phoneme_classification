@@ -9,7 +9,7 @@ class BaseModel(object):
     Compile model, train and predict on data provided by feeder.
     """
 
-    def __init__(self, feeder, epochs, batch_size, callbacks=[]):
+    def __init__(self, feeder, epochs, batch_size, learning_rate=None, callbacks=[]):
         """
         Initialize base model.
         :param feeder: (object) feeder object
@@ -21,6 +21,7 @@ class BaseModel(object):
         self.feeder = feeder
         self.epochs = epochs
         self.batch_size = batch_size
+        self.learning_rate = learning_rate
 
         # define logging paths
         features_name = os.path.splitext(os.path.basename(self.feeder.features_path))[0]
