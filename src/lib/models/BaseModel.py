@@ -25,15 +25,15 @@ class BaseModel(object):
 
         # define logging paths
         features_name = os.path.splitext(os.path.basename(self.feeder.features_path))[0]
-        model_name = str(id(self)) + "_" + self.__class__.__name__ + "_" + str(self.feeder.left_context) + "_" + str(
+        self.model_name = str(id(self)) + "_" + self.__class__.__name__ + "_" + str(self.feeder.left_context) + "_" + str(
             self.feeder.right_context) + "_" + str(self.feeder.time_steps)
 
         self.models_path_prefix = os.path.join("..", "weights", features_name)
 
-        self.model_checkpoint_path = os.path.join(self.models_path_prefix, model_name + ".h5")
-        self.metadata_path = os.path.join(self.models_path_prefix, model_name + "_metadata.txt")
-        self.tensorboard_log_path = os.path.join("..", "logs", "tensorboard", features_name, model_name)
-        self.csv_log_path = os.path.join("..", "logs", "csv", features_name, model_name + ".csv")
+        self.model_checkpoint_path = os.path.join(self.models_path_prefix, self.model_name + ".h5")
+        self.metadata_path = os.path.join(self.models_path_prefix, self.model_name + "_metadata.txt")
+        self.tensorboard_log_path = os.path.join("..", "logs", "tensorboard", features_name, self.model_name)
+        self.csv_log_path = os.path.join("..", "logs", "csv", features_name, self.model_name + ".csv")
 
         # define input and output shapes
         if self.feeder.time_steps:

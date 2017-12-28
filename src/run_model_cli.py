@@ -100,7 +100,7 @@ predictions, transcriptions = model.predict()
 print("\n\nCreating directory for results...")
 
 features_name = os.path.splitext(os.path.basename(feeder.features_path))[0]
-model_name = model.__class__.__name__
+model_name = model.model_name
 
 results_dir = os.path.join("..", "results", features_name, model_name)
 
