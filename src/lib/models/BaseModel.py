@@ -97,8 +97,8 @@ class BaseModel(object):
         callbacks_init = {
             "modelCheckpoint": ModelCheckpoint(self.model_checkpoint_path, save_best_only=True, save_weights_only=False,
                                                verbose=1),
-            "reduceLROnPlateau": ReduceLROnPlateau(patience=5, min_lr=0.0001, verbose=1),
-            "earlyStopping": EarlyStopping(patience=10, verbose=1),
+            "reduceLROnPlateau": ReduceLROnPlateau(factor=0.5, patience=5, min_lr=0.0001, verbose=1),
+            "earlyStopping": EarlyStopping(patience=30, verbose=1),
             "CSVLogger": CSVLogger(self.csv_log_path),
             "batchPrint": LambdaCallback(on_batch_begin=batch_print)
         }
