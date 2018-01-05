@@ -23,6 +23,8 @@ class BaseModel(object):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
 
+        self.initial_epoch = 0
+
         # define logging paths
         features_name = os.path.splitext(os.path.basename(self.feeder.features_path))[0]
         self.model_name = str(id(self)) + "_" + self.__class__.__name__ + "_" + str(self.feeder.left_context) + "_" + str(
@@ -126,7 +128,8 @@ class BaseModel(object):
                                  verbose=2,
                                  callbacks=self.callbacks,
                                  validation_data=self.feeder.yield_batches(self.batch_size, "val"),
-                                 validation_steps=self.feeder.get_steps_per_epoch(self.batch_size, "val"))
+                                 validation_steps=self.feeder.get_steps_per_epoch(self.batch_size, "val"),
+                                 initial_epoch=self.initial_epoch)
 
     def predict(self):
         """
@@ -153,10 +156,11 @@ class BaseModel(object):
 
         return {metric: score for score, metric in zip(scores, self.model.metrics_names)}
 
-    def load_model(self, model_name):
+    def load_model(self, model_name, initial_epoch=0):
         """
         Load saved model.
         """
+        self.initial_epoch = initial_epoch
         self.model = load_model(os.path.join(self.models_path_prefix, model_name))
 
     def __str__(self):

@@ -41,6 +41,7 @@ parser.add_argument("--sample", help="train, validation and test size limits", n
 # add model arguments
 parser.add_argument("--model", help="model architecture")
 parser.add_argument("--load", help="load model", default=None, type=str)
+parser.add_argument("--initial_epoch", help="initial epoch when resuming training", default=0, type=int)
 parser.add_argument("--continue_training", help="continue training from loaded weights", action="store_true",
                     default=False)
 parser.add_argument("--epochs", help="number of epochs", type=int)
@@ -89,7 +90,7 @@ print(model.model.summary())
 
 if args.load:
     print("\nLoading model...")
-    model.load_model(args.load)
+    model.load_model(args.load, args.initial_epoch)
 
     if args.continue_training:
         print("\nTraining...")
