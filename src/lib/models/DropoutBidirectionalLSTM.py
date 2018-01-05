@@ -11,7 +11,7 @@ class DropoutBidirectionalLSTM(BaseModel):
     def _compile_model(self):
         model = Sequential()
         model.add(Bidirectional(
-            LSTM(256, dropout=0.25, recurrent_dropout=0.25, return_sequences=True, input_shape=self.input_shape)))
+            LSTM(256, dropout=0.25, recurrent_dropout=0.25, return_sequences=True), input_shape=self.input_shape))
         model.add(Bidirectional(LSTM(256, dropout=0.25, recurrent_dropout=0.25)))
         model.add(Dense(self.output_shape, activation="softmax"))
 

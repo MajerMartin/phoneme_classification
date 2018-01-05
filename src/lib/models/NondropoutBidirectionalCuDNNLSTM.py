@@ -10,7 +10,7 @@ class NondropoutBidirectionalCuDNNLSTM(BaseModel):
 
     def _compile_model(self):
         model = Sequential()
-        model.add(Bidirectional(CuDNNLSTM(256, return_sequences=True, input_shape=self.input_shape)))
+        model.add(Bidirectional(CuDNNLSTM(256, return_sequences=True), input_shape=self.input_shape))
         model.add(Bidirectional(CuDNNLSTM(256)))
         model.add(Dense(self.output_shape, activation="softmax"))
 
