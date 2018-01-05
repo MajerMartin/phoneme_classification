@@ -7,13 +7,21 @@ from lib.decoders import LanguageModel, Decoder
 from lib.models import PyramidDropoutMLP
 from lib.models import DropoutLSTM
 from lib.models import DropoutGRU
+from lib.models import NondropoutCuDNNLSTM
+from lib.models import NondropoutCuDNNGRU
+from lib.models import DropoutBidirectionalLSTM
+from lib.models import NondropoutBidirectionalCuDNNLSTM
 
 Model = namedtuple('Model', "model is_rnn")
 
 MODELS = {
     "PyramidDropoutMLP": Model(model=PyramidDropoutMLP, is_rnn=False),
     "DropoutLSTM": Model(model=DropoutLSTM, is_rnn=True),
-    "DropoutGRU": Model(model=DropoutGRU, is_rnn=True)
+    "DropoutGRU": Model(model=DropoutGRU, is_rnn=True),
+    "NondropoutCuDNNLSTM": Model(model=NondropoutCuDNNLSTM, is_rnn=True),
+    "NondropoutCuDNNGRU": Model(model=NondropoutCuDNNGRU, is_rnn=True),
+    "DropoutBidirectionalLSTM": Model(model=DropoutBidirectionalLSTM, is_rnn=True),
+    "NondropoutBidirectionalCuDNNLSTM": Model(model=NondropoutBidirectionalCuDNNLSTM, is_rnn=True)
 }
 
 parser = argparse.ArgumentParser()

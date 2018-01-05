@@ -1,17 +1,18 @@
 from keras.models import Sequential
-from keras.layers import LSTM, Dense
+from keras.layers import LSTM, Dense, Bidirectional
 from keras.optimizers import RMSprop
 from .BaseModel import BaseModel
 
 
-class DropoutLSTM(BaseModel):
+class DropoutBidirectionalLSTM(BaseModel):
     def __init__(self, *args, **kwargs):
-        super(DropoutLSTM, self).__init__(*args, **kwargs)
+        super(DropoutBidirectionalLSTM, self).__init__(*args, **kwargs)
 
     def _compile_model(self):
         model = Sequential()
-        model.add(LSTM(256, dropout=0.25, recurrent_dropout=0.25, return_sequences=True, input_shape=self.input_shape))
-        model.add(LSTM(256, dropout=0.25, recurrent_dropout=0.25))
+        model.add(Bidirectional(
+            LSTM(256, dropout=0.25, recurrent_dropout=0.25, return_sequences=True, input_shape=self.input_shape)))
+        model.add(Bidirectional(LSTM(256, dropout=0.25, recurrent_dropout=0.25)))
         model.add(Dense(self.output_shape, activation="softmax"))
 
         if self.learning_rate:
