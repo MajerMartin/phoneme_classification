@@ -1,6 +1,6 @@
 from keras.models import Sequential
 from keras.layers import GRU, Dense
-from keras.optimizers import RMSprop
+from keras.optimizers import Adam
 from .BaseModel import BaseModel
 
 
@@ -19,8 +19,8 @@ class DropoutGRU(BaseModel):
         else:
             lr = 0.001
 
-        rmsprop = RMSprop(lr=lr)
+        adam = Adam(lr=lr)
 
-        model.compile(loss="categorical_crossentropy", optimizer=rmsprop, metrics=["accuracy"])
+        model.compile(loss="categorical_crossentropy", optimizer=adam, metrics=["accuracy"])
 
         return model

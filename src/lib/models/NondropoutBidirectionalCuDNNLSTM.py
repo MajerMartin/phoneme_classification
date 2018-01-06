@@ -1,6 +1,6 @@
 from keras.models import Sequential
 from keras.layers import CuDNNLSTM, Dense, Bidirectional
-from keras.optimizers import RMSprop
+from keras.optimizers import Adam
 from .BaseModel import BaseModel
 
 
@@ -10,8 +10,8 @@ class NondropoutBidirectionalCuDNNLSTM(BaseModel):
 
     def _compile_model(self):
         model = Sequential()
-        model.add(Bidirectional(CuDNNLSTM(256, return_sequences=True), input_shape=self.input_shape))
-        model.add(Bidirectional(CuDNNLSTM(256)))
+        model.add(Bidirectional(CuDNNLSTM(128, return_sequences=True), input_shape=self.input_shape))
+        model.add(Bidirectional(CuDNNLSTM(128)))
         model.add(Dense(self.output_shape, activation="softmax"))
 
         if self.learning_rate:
@@ -19,8 +19,8 @@ class NondropoutBidirectionalCuDNNLSTM(BaseModel):
         else:
             lr = 0.001
 
-        rmsprop = RMSprop(lr=lr)
+        adam = Adam(lr=lr)
 
-        model.compile(loss="categorical_crossentropy", optimizer=rmsprop, metrics=["accuracy"])
+        model.compile(loss="categorical_crossentropy", optimizer=adam, metrics=["accuracy"])
 
         return model

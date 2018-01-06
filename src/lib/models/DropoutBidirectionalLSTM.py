@@ -1,6 +1,6 @@
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Bidirectional
-from keras.optimizers import RMSprop
+from keras.optimizers import Adam
 from .BaseModel import BaseModel
 
 
@@ -11,8 +11,8 @@ class DropoutBidirectionalLSTM(BaseModel):
     def _compile_model(self):
         model = Sequential()
         model.add(Bidirectional(
-            LSTM(256, dropout=0.25, recurrent_dropout=0.25, return_sequences=True), input_shape=self.input_shape))
-        model.add(Bidirectional(LSTM(256, dropout=0.25, recurrent_dropout=0.25)))
+            LSTM(128, dropout=0.25, recurrent_dropout=0.25, return_sequences=True), input_shape=self.input_shape))
+        model.add(Bidirectional(LSTM(128, dropout=0.25, recurrent_dropout=0.25)))
         model.add(Dense(self.output_shape, activation="softmax"))
 
         if self.learning_rate:
@@ -20,8 +20,8 @@ class DropoutBidirectionalLSTM(BaseModel):
         else:
             lr = 0.001
 
-        rmsprop = RMSprop(lr=lr)
+        adam = Adam(lr=lr)
 
-        model.compile(loss="categorical_crossentropy", optimizer=rmsprop, metrics=["accuracy"])
+        model.compile(loss="categorical_crossentropy", optimizer=adam, metrics=["accuracy"])
 
         return model
