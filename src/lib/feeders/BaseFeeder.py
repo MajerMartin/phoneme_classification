@@ -3,6 +3,7 @@ import re
 import h5py
 import random
 import numpy as np
+from sklearn.utils import shuffle as sk_shuffle
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split
 
@@ -27,6 +28,7 @@ class BaseFeeder(object):
         self.left_context = None
         self.right_context = None
         self.time_steps = None
+        self.ctc = False
 
         self.X_prefix = "X_"
         self.y_prefix = "y_"
@@ -191,6 +193,8 @@ class BaseFeeder(object):
 
                     X = fr[self.X_prefix + split_type][batch_indexes, :]
                     y = fr[self.y_prefix + split_type][batch_indexes]
+
+                    X, y = sk_shuffle(X, y)
 
                     yield (X, y)
 

@@ -38,12 +38,15 @@ class BaseModel(object):
         self.csv_log_path = os.path.join("..", "logs", "csv", features_name, self.model_name + ".csv")
 
         # define input and output shapes
-        if self.feeder.time_steps:
+        if self.feeder.time_steps or self.feeder.ctc:
             self.input_shape = (feeder.get_dim("X", "train", 1), feeder.get_dim("X", "train", 2))
         else:
             self.input_shape = feeder.get_dim("X", "train", 1)
 
-        self.output_shape = feeder.get_dim("y", "train", 1)
+        if self.feeder.ctc:
+            self.output_shape = feeder.get_dim("y", "train", 2)
+        else:
+            self.output_shape = feeder.get_dim("y", "train", 1)
 
         # build model
         self.callbacks = self._set_callbacks(callbacks)
