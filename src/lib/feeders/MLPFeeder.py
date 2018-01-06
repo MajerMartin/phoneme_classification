@@ -68,7 +68,10 @@ class MLPFeeder(BaseFeeder):
 
                 if left_context or right_context:
                     features = self._build_features_with_context(features, left_context, right_context)
-                    labels = labels[left_context:-right_context]
+                    if not right_context:
+                        labels = labels[left_context:]
+                    else:
+                        labels = labels[left_context:-right_context]
 
                 labels_ohe = self._one_hot_encode(labels)
 

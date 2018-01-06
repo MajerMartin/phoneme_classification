@@ -26,10 +26,12 @@ class RNNFeeder(BaseFeeder):
 
         rows, cols = features.shape
 
-        time_series = np.zeros((rows - time_steps, time_steps, cols))
+        ts_index = 0
+        time_series = np.zeros((rows - time_steps + 1, time_steps, cols))
 
-        for i in range(time_steps, rows - time_steps):
-            time_series[i, :, :] = features[i - time_steps:i, :]
+        for i in range(time_steps, rows + 1):
+            time_series[ts_index, :, :] = features[i - time_steps:i, :]
+            ts_index += 1
 
         return time_series
 
@@ -61,7 +63,7 @@ class RNNFeeder(BaseFeeder):
                     max_cols_features = features_data.shape[1] + features_data.shape[1] * context_count
                     max_cols_labels = self._one_hot_encode(labels_data[:2]).shape[1]
 
-                max_rows += features_data.shape[0] - time_steps
+                max_rows += features_data.shape[0] - time_steps + 1
                 utterances_count += 1
 
         # create datasets
@@ -93,7 +95,7 @@ class RNNFeeder(BaseFeeder):
                     features = self._build_features_with_context(features, left_context, right_context)
 
                 features = self._build_time_series(features, time_steps)
-                labels = labels[time_steps:]
+                labels = labels[time_steps - 1:]
 
                 labels_ohe = self._one_hot_encode(labels)
 
@@ -135,3 +137,4 @@ class RNNFeeder(BaseFeeder):
 
                 if self.test_speakers:
                     self._process_speakers(self.test_speakers, "test", time_steps, left_context, right_context, fr, fw)
+
