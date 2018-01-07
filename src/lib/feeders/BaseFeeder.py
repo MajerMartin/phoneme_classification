@@ -13,13 +13,15 @@ class BaseFeeder(object):
     Split features into train, validation and test set and prepare them for neural network.
     """
 
-    def __init__(self, features_path):
+    def __init__(self, features_path, noise=None):
         """
         Initialize base feeder.
         :param features_path: (string) path to file with features
         """
         self.features_path = self._rebuild_path(features_path)
         self.tmp_storage_path = self.features_path + "_" + str(id(self)) + ".hdf5"
+
+        self.noise = noise
 
         self.train_speakers = None
         self.val_speakers = None
@@ -243,7 +245,8 @@ class BaseFeeder(object):
         """
         prefix = {
             "X": self.X_prefix,
-            "y": self.y_prefix
+            "y": self.y_prefix,
+            "bounds": self.bounds_prefix
         }
 
         with h5py.File(self.tmp_storage_path) as fr:

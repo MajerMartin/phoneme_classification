@@ -8,12 +8,12 @@ class MLPFeeder(BaseFeeder):
     Split features into train, validation and test set and prepare them for feed-forward neural network.
     """
 
-    def __init__(self, features_path):
+    def __init__(self, features_path, noise=None):
         """
         Initialize MLP feeder.
         :param features_path: (string) path to file with features
         """
-        super(MLPFeeder, self).__init__(features_path)
+        super(MLPFeeder, self).__init__(features_path, noise)
 
     def _process_speakers(self, speakers, suffix, left_context, right_context, fr, fw):
         """
@@ -65,6 +65,9 @@ class MLPFeeder(BaseFeeder):
             for utterance in list(fr[speaker].keys()):
                 features = fr[speaker][utterance]["features"][:]
                 labels = fr[speaker][utterance]["labels"][:]
+
+                if self.noise and suffix == "train":
+                    features += np.random.normal(0, self.noise, features.shape)
 
                 if left_context or right_context:
                     features = self._build_features_with_context(features, left_context, right_context)

@@ -37,6 +37,7 @@ parser.add_argument("--right_context", help="number of future frames to build fe
 parser.add_argument("--time_steps", help="number of time steps in phoneme time series, applicable for RNN only",
                     default=5, type=int)
 parser.add_argument("--sample", help="train, validation and test size limits", nargs=3, default=[], type=int)
+parser.add_argument("--noise", help="add gaussian noise", default=None, type=float)
 
 # add model arguments
 parser.add_argument("--model", help="model architecture")
@@ -68,13 +69,13 @@ print("\nBuilding temporary dataset...")
 selected_model = MODELS[args.model]
 
 if selected_model.is_rnn:
-    feeder = RNNFeeder(args.features_path)
+    feeder = RNNFeeder(args.features_path, args.noise)
 
     feeder.remove_tmp_storage()
     feeder.create_datasets(tuple(args.ratio), args.time_steps, test_speakers=test_speakers,
                            left_context=args.left_context, right_context=args.right_context, sample=args.sample)
 else:
-    feeder = MLPFeeder(args.features_path)
+    feeder = MLPFeeder(args.features_path, args.noise)
 
     feeder.remove_tmp_storage()
     feeder.create_datasets(tuple(args.ratio), test_speakers=test_speakers, left_context=args.left_context,

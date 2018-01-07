@@ -8,12 +8,12 @@ class RNNFeeder(BaseFeeder):
     Split features into train, validation and test set and prepare them for recurrent neural network.
     """
 
-    def __init__(self, features_path):
+    def __init__(self, features_path, noise=None):
         """
         Initialize RNN feeder.
         :param features_path: (string) path to file with features
         """
-        super(RNNFeeder, self).__init__(features_path)
+        super(RNNFeeder, self).__init__(features_path, noise)
 
     def _build_time_series(self, features, time_steps):
         """
@@ -86,6 +86,9 @@ class RNNFeeder(BaseFeeder):
             for utterance in list(fr[speaker].keys()):
                 features = fr[speaker][utterance]["features"][:]
                 labels = fr[speaker][utterance]["labels"][:]
+
+                if self.noise and suffix == "train":
+                    features += np.random.normal(0, self.noise, features.shape)
 
                 if left_context or right_context:
                     left_padding = np.zeros((left_context, features.shape[1]))
