@@ -38,6 +38,8 @@ parser.add_argument("--time_steps", help="number of time steps in phoneme time s
                     default=5, type=int)
 parser.add_argument("--sample", help="train, validation and test size limits", nargs=3, default=[], type=int)
 parser.add_argument("--noise", help="add gaussian noise", default=None, type=float)
+parser.add_argument("--cells", help="cells count per layer in RNN", default=128, type=int)
+
 
 # add model arguments
 parser.add_argument("--model", help="model architecture")
@@ -85,7 +87,7 @@ else:
 print("\nCompiling model...")
 
 model = selected_model.model(feeder, args.epochs, args.batch_size, learning_rate=args.learning_rate,
-                             callbacks=args.callbacks)
+                             callbacks=args.callbacks, cells=args.cells)
 
 print(model.model.summary())
 

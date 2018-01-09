@@ -10,8 +10,8 @@ class NondropoutCuDNNLSTM(BaseModel):
 
     def _compile_model(self):
         model = Sequential()
-        model.add(CuDNNLSTM(128, return_sequences=True, input_shape=self.input_shape))
-        model.add(CuDNNLSTM(128))
+        model.add(CuDNNLSTM(self.cells, return_sequences=True, input_shape=self.input_shape))
+        model.add(CuDNNLSTM(self.cells))
         model.add(Dense(self.output_shape, activation="softmax"))
 
         if self.learning_rate:

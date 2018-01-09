@@ -9,19 +9,21 @@ class BaseModel(object):
     Compile model, train and predict on data provided by feeder.
     """
 
-    def __init__(self, feeder, epochs, batch_size, learning_rate=None, callbacks=[]):
+    def __init__(self, feeder, epochs, batch_size, learning_rate=None, callbacks=[], cells=128):
         """
         Initialize base model.
         :param feeder: (object) feeder object
         :param epochs: (int) number of epochs
         :param batch_size: (int) batch size
         :param callbacks: (list) model callbacks to use
+        :param cells: (list) cells per layer for recurrent neural networks
         """
         # TODO: support multiple feeders - train, validation, test
         self.feeder = feeder
         self.epochs = epochs
         self.batch_size = batch_size
         self.learning_rate = learning_rate
+        self.cells = cells
 
         self.initial_epoch = 0
 
@@ -43,10 +45,7 @@ class BaseModel(object):
         else:
             self.input_shape = feeder.get_dim("X", "train", 1)
 
-        if self.feeder.ctc:
-            self.output_shape = feeder.get_dim("y", "train", 2)
-        else:
-            self.output_shape = feeder.get_dim("y", "train", 1)
+        self.output_shape = feeder.get_dim("y", "train", 1)
 
         # build model
         self.callbacks = self._set_callbacks(callbacks)

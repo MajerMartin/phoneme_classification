@@ -10,8 +10,8 @@ class NondropoutCuDNNGRU(BaseModel):
 
     def _compile_model(self):
         model = Sequential()
-        model.add(CuDNNGRU(128, return_sequences=True, input_shape=self.input_shape))
-        model.add(CuDNNGRU(128))
+        model.add(CuDNNGRU(self.cells, return_sequences=True, input_shape=self.input_shape))
+        model.add(CuDNNGRU(self.cells))
         model.add(Dense(self.output_shape, activation="softmax"))
 
         if self.learning_rate:
