@@ -5,3 +5,4 @@ from .NondropoutCuDNNLSTM import *
 from .NondropoutCuDNNGRU import *
 from .DropoutBidirectionalLSTM import *
 from .NondropoutBidirectionalCuDNNLSTM import *
+from .NondropoutCTCCuDNNLSTM import *

@@ -12,6 +12,7 @@ class RNNFeeder(BaseFeeder):
         """
         Initialize RNN feeder.
         :param features_path: (string) path to file with features
+        :param noise: (float) standard deviation of Gaussian noise to be added to signal
         """
         super(RNNFeeder, self).__init__(features_path, noise)
 

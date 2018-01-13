@@ -40,12 +40,15 @@ class BaseModel(object):
         self.csv_log_path = os.path.join("..", "logs", "csv", features_name, self.model_name + ".csv")
 
         # define input and output shapes
-        if self.feeder.time_steps or self.feeder.ctc:
+        if self.feeder.time_steps:
             self.input_shape = (feeder.get_dim("X", "train", 1), feeder.get_dim("X", "train", 2))
         else:
             self.input_shape = feeder.get_dim("X", "train", 1)
 
-        self.output_shape = feeder.get_dim("y", "train", 1)
+        if self.feeder.ctc:
+            self.output_shape = None
+        else:
+            self.output_shape = feeder.get_dim("y", "train", 1)
 
         # build model
         self.callbacks = self._set_callbacks(callbacks)
@@ -70,7 +73,7 @@ class BaseModel(object):
         model_keys = ["epochs", "batch_size", "learning_rate", "model_checkpoint_path", "tensorboard_log_path",
                       "csv_log_path"]
         feeder_keys = ["features_path", "left_context", "right_context", "time_steps", "train_speakers", "val_speakers",
-                       "test_speakers"]
+                       "test_speakers", "noise", "ctc"]
 
         with open(self.metadata_path, "w") as fw:
             for key in model_keys:

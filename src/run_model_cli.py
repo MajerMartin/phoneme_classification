@@ -1,7 +1,7 @@
 import os
 import argparse
 from collections import namedtuple
-from lib.feeders import MLPFeeder, RNNFeeder
+from lib.feeders import MLPFeeder, RNNFeeder, CTCFeeder
 from lib.decoders import LanguageModel, Decoder
 
 from lib.models import PyramidDropoutMLP
@@ -11,17 +11,19 @@ from lib.models import NondropoutCuDNNLSTM
 from lib.models import NondropoutCuDNNGRU
 from lib.models import DropoutBidirectionalLSTM
 from lib.models import NondropoutBidirectionalCuDNNLSTM
+from lib.models import NondropoutCTCCuDNNLSTM
 
-Model = namedtuple('Model', "model is_rnn")
+Model = namedtuple('Model', "model is_rnn is_ctc")
 
 MODELS = {
-    "PyramidDropoutMLP": Model(model=PyramidDropoutMLP, is_rnn=False),
-    "DropoutLSTM": Model(model=DropoutLSTM, is_rnn=True),
-    "DropoutGRU": Model(model=DropoutGRU, is_rnn=True),
-    "NondropoutCuDNNLSTM": Model(model=NondropoutCuDNNLSTM, is_rnn=True),
-    "NondropoutCuDNNGRU": Model(model=NondropoutCuDNNGRU, is_rnn=True),
-    "DropoutBidirectionalLSTM": Model(model=DropoutBidirectionalLSTM, is_rnn=True),
-    "NondropoutBidirectionalCuDNNLSTM": Model(model=NondropoutBidirectionalCuDNNLSTM, is_rnn=True)
+    "PyramidDropoutMLP": Model(model=PyramidDropoutMLP, is_rnn=False, is_ctc=False),
+    "DropoutLSTM": Model(model=DropoutLSTM, is_rnn=True, is_ctc=False),
+    "DropoutGRU": Model(model=DropoutGRU, is_rnn=True, is_ctc=False),
+    "NondropoutCuDNNLSTM": Model(model=NondropoutCuDNNLSTM, is_rnn=True, is_ctc=False),
+    "NondropoutCuDNNGRU": Model(model=NondropoutCuDNNGRU, is_rnn=True, is_ctc=False),
+    "DropoutBidirectionalLSTM": Model(model=DropoutBidirectionalLSTM, is_rnn=True, is_ctc=False),
+    "NondropoutBidirectionalCuDNNLSTM": Model(model=NondropoutBidirectionalCuDNNLSTM, is_rnn=True, is_ctc=False),
+    "NondropoutCTCCuDNNLSTM": Model(model=NondropoutCTCCuDNNLSTM, is_rnn=True, is_ctc=True)
 }
 
 parser = argparse.ArgumentParser()
@@ -70,16 +72,17 @@ print("\nBuilding temporary dataset...")
 
 selected_model = MODELS[args.model]
 
-if selected_model.is_rnn:
+if selected_model.is_rnn and not selected_model.is_rnn:
     feeder = RNNFeeder(args.features_path, args.noise)
 
-    feeder.remove_tmp_storage()
     feeder.create_datasets(tuple(args.ratio), args.time_steps, test_speakers=test_speakers,
                            left_context=args.left_context, right_context=args.right_context, sample=args.sample)
 else:
-    feeder = MLPFeeder(args.features_path, args.noise)
+    if selected_model.is_ctc:
+        feeder = CTCFeeder(args.features_path, args.noise)
+    else:
+        feeder = MLPFeeder(args.features_path, args.noise)
 
-    feeder.remove_tmp_storage()
     feeder.create_datasets(tuple(args.ratio), test_speakers=test_speakers, left_context=args.left_context,
                            right_context=args.right_context, sample=args.sample)
 
@@ -119,21 +122,22 @@ results_dir = os.path.join("..", "results", features_name, model_name)
 if not os.path.exists(results_dir):
     os.makedirs(results_dir)
 
-# build language model
-print("\nBuilding language model...")
+if not selected_model.is_ctc:
+    # build language model
+    print("\nBuilding language model...")
 
-languageModel = LanguageModel(feeder)
-language_model = languageModel.create_model(ngram=args.ngram)
+    languageModel = LanguageModel(feeder)
+    language_model = languageModel.create_model(ngram=args.ngram)
 
-is_bigram = args.ngram == 2
+    is_bigram = args.ngram == 2
+
+    decoder = Decoder(feeder, language_model, is_bigram)
 
 # decode and save results
 print("\nDecoding predictions...")
 
 pred_path = os.path.join(results_dir, "pred.mlf")
 ref_path = os.path.join(results_dir, "ref.mlf")
-
-decoder = Decoder(feeder, language_model, is_bigram)
 
 with open(pred_path, "w") as fw_pred, open(ref_path, "w") as fw_ref:
     fw_pred.write("#!MLF!#\n")
@@ -142,7 +146,10 @@ with open(pred_path, "w") as fw_pred, open(ref_path, "w") as fw_ref:
     for i, (observations, transcription) in enumerate(zip(predictions, transcriptions)):
         print("\r  {0}/{1}".format(i, len(predictions) - 1), end=" ")
 
-        decoded_transcription = decoder.decode(observations)
+        if not selected_model.is_ctc:
+            decoded_transcription = decoder.decode(observations)
+        else:
+            decoded_transcription = observations
 
         fw_pred.write('"*/{}.rec"\n'.format(i))
         fw_ref.write('"*/{}.lab"\n'.format(i))

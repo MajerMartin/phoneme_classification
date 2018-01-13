@@ -1,20 +1,34 @@
 import h5py
+import random
 import numpy as np
-from .BaseFeeder import BaseFeeder
+from itertools import groupby
+from .MLPFeeder import MLPFeeder
 
 
-class MLPFeeder(BaseFeeder):
+class CTCFeeder(MLPFeeder):
     """
-    Split features into train, validation and test set and prepare them for feed-forward neural network.
+    Split features into train, validation and test set and prepare them for recurrent neural network with CTC loss.
     """
 
     def __init__(self, features_path, noise=None):
         """
-        Initialize MLP feeder.
+        Initialize CTC feeder.
         :param features_path: (string) path to file with features
         :param noise: (float) standard deviation of Gaussian noise to be added to signal
         """
-        super(MLPFeeder, self).__init__(features_path, noise)
+        super(CTCFeeder, self).__init__(features_path, noise)
+
+        self.max_labelling_length = 0
+        self.blank = np.array(["-"])
+        self.ctc = True
+
+        with h5py.File(self.features_path, "r") as fr:
+            self.max_sequence_length = fr["max_frames_count"][:][0]
+
+            # remap phonemes to numeric values with blank label (-) as a last one
+            self.phonemes_map = {phoneme: i for i, phoneme in
+                                 enumerate(np.concatenate([fr['phonemes'][:], self.blank]))}
+            self.inverse_phonemes_map = {value: key for key, value in self.phonemes_map.items()}
 
     def _process_speakers(self, speakers, suffix, left_context, right_context, fr, fw):
         """
@@ -29,7 +43,6 @@ class MLPFeeder(BaseFeeder):
         # find dimension of resulting datasets
         max_rows = 0
         max_cols_features = 0
-        max_cols_labels = 0
         utterances_count = 0
 
         context_count = left_context + right_context
@@ -37,18 +50,18 @@ class MLPFeeder(BaseFeeder):
         for speaker in speakers:
             for i, utterance in enumerate(fr[speaker].keys()):
                 features_data = fr[speaker][utterance]["features"]
-                labels_data = fr[speaker][utterance]["labels"]
 
+                self.max_labelling_length = max(self.max_labelling_length,
+                                                fr[speaker][utterance]["transcription"][:].shape[0])
                 if i == 0:
                     max_cols_features = features_data.shape[1] + features_data.shape[1] * context_count
-                    max_cols_labels = self._one_hot_encode(labels_data[:2]).shape[1]
 
                 max_rows += features_data.shape[0] - context_count
                 utterances_count += 1
 
         # create datasets
         X = fw.create_dataset(self.X_prefix + suffix, (max_rows, max_cols_features))
-        y = fw.create_dataset(self.y_prefix + suffix, (max_rows, max_cols_labels))
+        y = fw.create_dataset(self.y_prefix + suffix, (max_rows,))
         bounds = fw.create_dataset(self.bounds_prefix + suffix, (utterances_count, 2))
         transcription_map = fw.create_dataset(self.transcription_prefix + suffix, (utterances_count, 2),
                                               dtype=h5py.special_dtype(vlen=str))
@@ -77,13 +90,11 @@ class MLPFeeder(BaseFeeder):
                     else:
                         labels = labels[left_context:-right_context]
 
-                labels_ohe = self._one_hot_encode(labels)
-
                 current_rows_count = rows_count
                 rows_count += labels.shape[0]
 
                 X[current_rows_count:rows_count, :] = features
-                y[current_rows_count:rows_count] = labels_ohe
+                y[current_rows_count:rows_count] = [self.phonemes_map[label.decode()] for label in labels]
                 bounds[utterance_index, :] = np.array([current_rows_count, rows_count])
                 transcription_map[utterance_index, :] = np.array([speaker, utterance])
 
@@ -91,27 +102,51 @@ class MLPFeeder(BaseFeeder):
 
         print("\n\t{{'{0}': {1}}}, {{'{2}': {3}}}".format("X.shape", X.shape, "y.shape", y.shape))
 
-    def create_datasets(self, ratio, test_speakers=[], left_context=0, right_context=0, sample=[]):
+    def yield_batches(self, split_type, shuffle=True):
         """
-        Create train, validation and test datasets.
-        :param ratio: (tuple) ratio between train, validation and test size
-        :param test_speakers: (list) predefined test speakers
-        :param left_context: (int) number of previous frames
-        :param right_context: (int) number of future frames
-        :param sample: (list) train, validation and test size limits
+        Yield batches of batch size 1.
+        :param split_type: (string) set to yield from (train/val/test)
+        :param shuffle: (boolean) shuffle on every epoch
+        :return: (dict, dict) features, labels and other information and dummy output (generator)
         """
-        self._train_val_test_split(ratio, test_speakers)
+        with h5py.File(self.tmp_storage_path) as fr:
+            count = fr[self.bounds_prefix + split_type][:].shape[0]
+            indexes = np.arange(0, count)
 
-        if sample:
-            self._sample_speakers(*sample)
+            if shuffle:
+                random.shuffle(indexes)
 
-        with h5py.File(self.features_path, "r") as fr:
-            with h5py.File(self.tmp_storage_path, "a") as fw:
-                if self.train_speakers:
-                    self._process_speakers(self.train_speakers, "train", left_context, right_context, fr, fw)
+            for index in indexes:
+                bounds = fr[self.bounds_prefix + split_type][index].astype(int)
 
-                if self.val_speakers:
-                    self._process_speakers(self.val_speakers, "val", left_context, right_context, fr, fw)
+                X = fr[self.X_prefix + split_type][bounds[0]:bounds[1]]
+                y = fr[self.y_prefix + split_type][bounds[0]:bounds[1]]
 
-                if self.test_speakers:
-                    self._process_speakers(self.test_speakers, "test", left_context, right_context, fr, fw)
+                # pad sequence with zeros
+                padding = np.zeros((self.max_sequence_length - X.shape[0], X.shape[1]))
+                X = np.vstack([padding, X])
+
+                # get correct label
+                y = np.array([k for k, g in groupby(y)])
+
+                input_length = np.array([len(X)])
+                label_length = np.array([len(y)])
+
+                # pad label with minus one
+                padding = np.ones((self.max_labelling_length - y.shape[0],)) * -1
+                y = np.hstack([y, padding])
+
+                X = X.reshape(1, X.shape[0], X.shape[1])
+                y = y.reshape(1, -1)
+
+                inputs = {
+                    "the_input": X,
+                    "the_labels": y,
+                    "input_length": input_length,
+                    "label_length": label_length
+                }
+
+                # dummy data for dummy loss function
+                outputs = {"ctc": np.zeros([X.shape[0]])}
+
+                yield (inputs, outputs)

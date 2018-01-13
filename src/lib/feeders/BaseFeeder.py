@@ -17,6 +17,7 @@ class BaseFeeder(object):
         """
         Initialize base feeder.
         :param features_path: (string) path to file with features
+        :param noise: (float) standard deviation of Gaussian noise to be added to signal
         """
         self.features_path = self._rebuild_path(features_path)
         self.tmp_storage_path = self.features_path + "_" + str(id(self)) + ".hdf5"
