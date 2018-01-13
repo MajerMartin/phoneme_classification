@@ -6,7 +6,7 @@ from keras.models import Model
 from keras.optimizers import Adam
 from keras.callbacks import Callback
 from tensorflow.python.ops import ctc_ops as ctc
-from keras.layers import Input, Masking, Lambda
+from keras.layers import Input, Lambda
 from itertools import groupby
 from .BaseModel import BaseModel
 
@@ -72,19 +72,13 @@ class BaseCTCModel(BaseModel):
         :param kwargs: (list) positional arguments passed to inherited classes
         :param kwargs: (dict) keyword arguments passed to inherited classes
         """
-        # override epochs
-        args = list(args)
-        args[2] = 1
-
-        # extract callbacks names
         self.used_callbacks = kwargs.get("callbacks", [])
-
-        self.best_val_loss = np.inf
-        self.flat_iterations = 0
-
         self.output_layer = "dense"
 
         super(BaseCTCModel, self).__init__(*args, **kwargs)
+
+        self.best_val_loss = np.inf
+        self.flat_iterations = 0
 
     def _get_prediction_layer(self, input_data):
         """
@@ -98,7 +92,7 @@ class BaseCTCModel(BaseModel):
         Compile model.
         :return: (object) compiled model
         """
-        input_data = Input(shape=(self.feeder.max_sequence_length, self.input_shape), dtype="float32",
+        input_data = Input(shape=self.input_shape, dtype="float32",
                            name="the_input", )
 
         y_pred = self._get_prediction_layer(input_data)
@@ -206,8 +200,9 @@ class BaseCTCModel(BaseModel):
             losses = []
             history = LossHistory()
 
-            for inputs, outputs in self.feeder.yield_batches("train", shuffle=True):
-                self.model.fit(inputs, outputs, batch_size=1, epochs=1, shuffle=False, verbose=0, callbacks=[history])
+            for inputs, outputs in self.feeder.yield_batches(self.batch_size, "train", shuffle=True):
+                self.model.fit(inputs, outputs, batch_size=self.batch_size, epochs=1, shuffle=False, verbose=0,
+                               callbacks=[history])
                 losses.extend(history.losses)
 
             loss = np.mean(losses)
@@ -232,7 +227,7 @@ class BaseCTCModel(BaseModel):
 
         predictions_by_utterance = []
 
-        for inputs, outputs in self.feeder.yield_batches("test", shuffle=False):
+        for inputs, outputs in self.feeder.yield_batches(self.batch_size, "test", shuffle=False):
             pred = [self.feeder.inverse_phonemes_map[index] for index in
                     np.argmax(pred_layer_model.predict_on_batch(inputs)[0, :, :], axis=1)]
             pred = [k for k, g in groupby(pred) if k != self.feeder.blank[0]]
@@ -251,8 +246,8 @@ class BaseCTCModel(BaseModel):
         """
         losses = []
 
-        for inputs, outputs in self.feeder.yield_batches(split_type, shuffle=False):
-            loss = self.model.evaluate(inputs, outputs, batch_size=1, verbose=0)
+        for inputs, outputs in self.feeder.yield_batches(self.batch_size, split_type, shuffle=False):
+            loss = self.model.evaluate(inputs, outputs, batch_size=self.batch_size, verbose=0)
             losses.append(loss)
 
         return {"ctc": np.mean(losses)}

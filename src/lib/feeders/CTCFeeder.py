@@ -2,6 +2,7 @@ import h5py
 import random
 import numpy as np
 from itertools import groupby
+from sklearn.utils import shuffle as sk_shuffle
 from .MLPFeeder import MLPFeeder
 
 
@@ -20,6 +21,8 @@ class CTCFeeder(MLPFeeder):
 
         self.max_labelling_length = 0
         self.blank = np.array(["-"])
+        self.input_length_prefix = "input_length"
+        self.label_length_prefix = "label_length"
         self.ctc = True
 
         with h5py.File(self.features_path, "r") as fr:
@@ -41,11 +44,11 @@ class CTCFeeder(MLPFeeder):
         :param fw: (object) file write object
         """
         # find dimension of resulting datasets
-        max_rows = 0
         max_cols_features = 0
         utterances_count = 0
 
         context_count = left_context + right_context
+        self.max_sequence_length -= context_count
 
         for speaker in speakers:
             for i, utterance in enumerate(fr[speaker].keys()):
@@ -56,18 +59,17 @@ class CTCFeeder(MLPFeeder):
                 if i == 0:
                     max_cols_features = features_data.shape[1] + features_data.shape[1] * context_count
 
-                max_rows += features_data.shape[0] - context_count
                 utterances_count += 1
 
         # create datasets
-        X = fw.create_dataset(self.X_prefix + suffix, (max_rows, max_cols_features))
-        y = fw.create_dataset(self.y_prefix + suffix, (max_rows,))
-        bounds = fw.create_dataset(self.bounds_prefix + suffix, (utterances_count, 2))
+        X = fw.create_dataset(self.X_prefix + suffix, (utterances_count, self.max_sequence_length, max_cols_features))
+        y = fw.create_dataset(self.y_prefix + suffix, (utterances_count, self.max_labelling_length))
+        input_length = fw.create_dataset(self.input_length_prefix + suffix, (utterances_count,))
+        label_length = fw.create_dataset(self.label_length_prefix + suffix, (utterances_count,))
         transcription_map = fw.create_dataset(self.transcription_prefix + suffix, (utterances_count, 2),
                                               dtype=h5py.special_dtype(vlen=str))
 
         # process features and labels and store them in datasets
-        rows_count = 0
         utterance_index = 0
         speakers_count = len(speakers)
 
@@ -90,54 +92,60 @@ class CTCFeeder(MLPFeeder):
                     else:
                         labels = labels[left_context:-right_context]
 
-                current_rows_count = rows_count
-                rows_count += labels.shape[0]
+                # encode labels to numeric value
+                labels = [self.phonemes_map[label.decode()] for label in labels]
 
-                X[current_rows_count:rows_count, :] = features
-                y[current_rows_count:rows_count] = [self.phonemes_map[label.decode()] for label in labels]
-                bounds[utterance_index, :] = np.array([current_rows_count, rows_count])
+                # pad sequence with zeros
+                padding = np.zeros((self.max_sequence_length - features.shape[0], features.shape[1]))
+                features = np.vstack([padding, features])
+
+                # get correct label
+                labels = np.array([k for k, g in groupby(labels)])
+
+                input_length_data = np.array([len(features)])
+                label_length_data = np.array([len(labels)])
+
+                # pad label with minus one
+                padding = np.ones((self.max_labelling_length - labels.shape[0],)) * -1
+                labels = np.hstack([labels, padding])
+
+                features = features.reshape(1, features.shape[0], features.shape[1])
+                labels = labels.reshape(1, -1)
+
+                X[utterance_index, :, :] = features
+                y[utterance_index, :] = labels
+                input_length[utterance_index] = input_length_data
+                label_length[utterance_index] = label_length_data
                 transcription_map[utterance_index, :] = np.array([speaker, utterance])
 
                 utterance_index += 1
-
         print("\n\t{{'{0}': {1}}}, {{'{2}': {3}}}".format("X.shape", X.shape, "y.shape", y.shape))
 
-    def yield_batches(self, split_type, shuffle=True):
+    def yield_batches(self, batch_size, split_type, shuffle=True):
         """
-        Yield batches of batch size 1.
+        Yield batches of defined batch size.
+        :param batch_size: (int) size of batches
         :param split_type: (string) set to yield from (train/val/test)
         :param shuffle: (boolean) shuffle on every epoch
         :return: (dict, dict) features, labels and other information and dummy output (generator)
         """
         with h5py.File(self.tmp_storage_path) as fr:
-            count = fr[self.bounds_prefix + split_type][:].shape[0]
+            count = fr[self.y_prefix + split_type][:].shape[0]
             indexes = np.arange(0, count)
 
             if shuffle:
                 random.shuffle(indexes)
 
-            for index in indexes:
-                bounds = fr[self.bounds_prefix + split_type][index].astype(int)
+            # yield batches
+            for index in range(0, count, batch_size):
+                batch_indexes = sorted(indexes[index:min(index + batch_size, count)])
 
-                X = fr[self.X_prefix + split_type][bounds[0]:bounds[1]]
-                y = fr[self.y_prefix + split_type][bounds[0]:bounds[1]]
+                X = fr[self.X_prefix + split_type][batch_indexes, :, :]
+                y = fr[self.y_prefix + split_type][batch_indexes, :]
+                input_length = fr[self.input_length_prefix + split_type][batch_indexes]
+                label_length = fr[self.label_length_prefix + split_type][batch_indexes]
 
-                # pad sequence with zeros
-                padding = np.zeros((self.max_sequence_length - X.shape[0], X.shape[1]))
-                X = np.vstack([padding, X])
-
-                # get correct label
-                y = np.array([k for k, g in groupby(y)])
-
-                input_length = np.array([len(X)])
-                label_length = np.array([len(y)])
-
-                # pad label with minus one
-                padding = np.ones((self.max_labelling_length - y.shape[0],)) * -1
-                y = np.hstack([y, padding])
-
-                X = X.reshape(1, X.shape[0], X.shape[1])
-                y = y.reshape(1, -1)
+                X, y, input_length, label_length = sk_shuffle(X, y, input_length, label_length)
 
                 inputs = {
                     "the_input": X,
