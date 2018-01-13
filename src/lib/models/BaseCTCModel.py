@@ -86,9 +86,10 @@ class BaseCTCModel(BaseModel):
 
         super(BaseCTCModel, self).__init__(*args, **kwargs)
 
-    def _get_prediction_layer(self, mask):
+    def _get_prediction_layer(self, input_data):
         """
         Get prediction layer - implemented in inherited classes.
+        :param input_data: (object) Keras input layer
         """
         raise NotImplementedError("Implemented in inherited classes.")
 
@@ -99,9 +100,8 @@ class BaseCTCModel(BaseModel):
         """
         input_data = Input(shape=(self.feeder.max_sequence_length, self.input_shape), dtype="float32",
                            name="the_input", )
-        mask = Masking(mask_value=0., name="mask")(input_data)
 
-        y_pred = self._get_prediction_layer(mask)
+        y_pred = self._get_prediction_layer(input_data)
 
         labels = Input(name="the_labels", shape=[self.feeder.max_labelling_length], dtype="float32")
         input_length = Input(name="input_length", shape=[1], dtype="int32")

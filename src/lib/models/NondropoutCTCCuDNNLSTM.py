@@ -6,9 +6,9 @@ class NondropoutCTCCuDNNLSTM(BaseCTCModel):
     def __init__(self, *args, **kwargs):
         super(NondropoutCTCCuDNNLSTM, self).__init__(*args, **kwargs)
 
-    def _get_prediction_layer(self, mask):
+    def _get_prediction_layer(self, input_data):
         inner = Bidirectional(CuDNNLSTM(self.cells, return_sequences=True, kernel_initializer="he_normal"),
-                              name="bilstm1")(mask)
+                              name="bilstm1")(input_data)
         inner = Bidirectional(CuDNNLSTM(self.cells, return_sequences=True, kernel_initializer="he_normal"),
                               name="bilstm2")(inner)
         y_pred = TimeDistributed(

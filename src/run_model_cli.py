@@ -12,6 +12,7 @@ from lib.models import NondropoutCuDNNGRU
 from lib.models import DropoutBidirectionalLSTM
 from lib.models import NondropoutBidirectionalCuDNNLSTM
 from lib.models import NondropoutCTCCuDNNLSTM
+from lib.models import DropoutCTCLSTM
 
 Model = namedtuple('Model', "model is_rnn is_ctc")
 
@@ -23,7 +24,8 @@ MODELS = {
     "NondropoutCuDNNGRU": Model(model=NondropoutCuDNNGRU, is_rnn=True, is_ctc=False),
     "DropoutBidirectionalLSTM": Model(model=DropoutBidirectionalLSTM, is_rnn=True, is_ctc=False),
     "NondropoutBidirectionalCuDNNLSTM": Model(model=NondropoutBidirectionalCuDNNLSTM, is_rnn=True, is_ctc=False),
-    "NondropoutCTCCuDNNLSTM": Model(model=NondropoutCTCCuDNNLSTM, is_rnn=True, is_ctc=True)
+    "NondropoutCTCCuDNNLSTM": Model(model=NondropoutCTCCuDNNLSTM, is_rnn=True, is_ctc=True),
+    "DropoutCTCLSTM": Model(model=DropoutCTCLSTM, is_rnn=True, is_ctc=True)
 }
 
 parser = argparse.ArgumentParser()

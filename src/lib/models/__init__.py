@@ -6,3 +6,5 @@ from .NondropoutCuDNNGRU import *
 from .DropoutBidirectionalLSTM import *
 from .NondropoutBidirectionalCuDNNLSTM import *
 from .NondropoutCTCCuDNNLSTM import *
+from .DropoutCTCLSTM import *
+
