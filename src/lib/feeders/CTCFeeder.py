@@ -1,7 +1,7 @@
 import h5py
 import random
 import numpy as np
-from itertools import groupby
+from itertools import groupby, chain
 from sklearn.utils import shuffle as sk_shuffle
 from .MLPFeeder import MLPFeeder
 
@@ -30,8 +30,18 @@ class CTCFeeder(MLPFeeder):
 
             # remap phonemes to numeric values with blank label (-) as a last one
             self.phonemes_map = {phoneme: i for i, phoneme in
-                                 enumerate(np.concatenate([fr['phonemes'][:], self.blank]))}
+                                 enumerate(np.concatenate([fr["phonemes"][:], self.blank]))}
             self.inverse_phonemes_map = {value: key for key, value in self.phonemes_map.items()}
+
+    def _set_max_labelling_length(self, fr):
+        """
+        Set maximum labelling length.
+        :param fr: (object) file read object
+        """
+        for speaker in list(chain(*[self.train_speakers, self.val_speakers, self.test_speakers])):
+            for utterance in fr[speaker].keys():
+                self.max_labelling_length = max(self.max_labelling_length,
+                                                fr[speaker][utterance]["transcription"][:].shape[0])
 
     def _process_speakers(self, speakers, suffix, left_context, right_context, fr, fw):
         """
@@ -43,6 +53,9 @@ class CTCFeeder(MLPFeeder):
         :param fr: (object) file read object
         :param fw: (object) file write object
         """
+        if self.max_labelling_length == 0:
+            self._set_max_labelling_length(fr)
+
         # find dimension of resulting datasets
         max_cols_features = 0
         utterances_count = 0
@@ -54,8 +67,6 @@ class CTCFeeder(MLPFeeder):
             for i, utterance in enumerate(fr[speaker].keys()):
                 features_data = fr[speaker][utterance]["features"]
 
-                self.max_labelling_length = max(self.max_labelling_length,
-                                                fr[speaker][utterance]["transcription"][:].shape[0])
                 if i == 0:
                     max_cols_features = features_data.shape[1] + features_data.shape[1] * context_count
 

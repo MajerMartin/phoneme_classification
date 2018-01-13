@@ -92,8 +92,7 @@ class BaseCTCModel(BaseModel):
         Compile model.
         :return: (object) compiled model
         """
-        input_data = Input(shape=self.input_shape, dtype="float32",
-                           name="the_input", )
+        input_data = Input(shape=self.input_shape, dtype="float32", name="the_input")
 
         y_pred = self._get_prediction_layer(input_data)
 
