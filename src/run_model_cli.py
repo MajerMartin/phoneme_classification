@@ -74,7 +74,7 @@ print("\nBuilding temporary dataset...")
 
 selected_model = MODELS[args.model]
 
-if selected_model.is_rnn and not selected_model.is_rnn:
+if selected_model.is_rnn and not selected_model.is_ctc:
     feeder = RNNFeeder(args.features_path, args.noise)
 
     feeder.create_datasets(tuple(args.ratio), args.time_steps, test_speakers=test_speakers,
