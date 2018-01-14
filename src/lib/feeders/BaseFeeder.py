@@ -197,7 +197,8 @@ class BaseFeeder(object):
                     X = fr[self.X_prefix + split_type][batch_indexes, :]
                     y = fr[self.y_prefix + split_type][batch_indexes]
 
-                    X, y = sk_shuffle(X, y)
+                    if shuffle:
+                        X, y = sk_shuffle(X, y)
 
                     yield (X, y)
 

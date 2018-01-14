@@ -156,7 +156,8 @@ class CTCFeeder(MLPFeeder):
                 input_length = fr[self.input_length_prefix + split_type][batch_indexes]
                 label_length = fr[self.label_length_prefix + split_type][batch_indexes]
 
-                X, y, input_length, label_length = sk_shuffle(X, y, input_length, label_length)
+                if shuffle:
+                    X, y, input_length, label_length = sk_shuffle(X, y, input_length, label_length)
 
                 inputs = {
                     "the_input": X,
