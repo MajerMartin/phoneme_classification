@@ -153,7 +153,7 @@ class BaseCTCModel(BaseModel):
                 fw.write("{},{},{}".format(epoch, loss, val_loss))
             fw.write("\n")
 
-    def _simulate_earlyStopping(self, epoch, val_loss, patience=0):
+    def _simulate_earlyStopping(self, epoch, val_loss, patience=10):
         """
         Simulate behaviour of earlyStopping callback from Keras.
         :param epoch: (int) current epoch
@@ -227,11 +227,13 @@ class BaseCTCModel(BaseModel):
         predictions_by_utterance = []
 
         for inputs, outputs in self.feeder.yield_batches(self.batch_size, "test", shuffle=False):
-            pred = [self.feeder.inverse_phonemes_map[index] for index in
-                    np.argmax(pred_layer_model.predict_on_batch(inputs)[0, :, :], axis=1)]
-            pred = [k for k, g in groupby(pred) if k != self.feeder.blank[0]]
+            batch_predictions = pred_layer_model.predict_on_batch(inputs)[0, :, :]
 
-            predictions_by_utterance.append(pred)
+            for pred in batch_predictions:
+                pred = [self.feeder.inverse_phonemes_map[index] for index in np.argmax(pred, axis=1)]
+                pred = [k for k, g in groupby(pred) if k != self.feeder.blank[0]]
+
+                predictions_by_utterance.append(pred)
 
         transcriptions = self.feeder.get_transcriptions("test")
 
