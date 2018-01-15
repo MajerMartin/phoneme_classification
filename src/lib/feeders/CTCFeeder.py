@@ -93,9 +93,6 @@ class CTCFeeder(MLPFeeder):
                 features = fr[speaker][utterance]["features"][:]
                 labels = fr[speaker][utterance]["labels"][:]
 
-                if self.noise and suffix == "train":
-                    features += np.random.normal(0, self.noise, features.shape)
-
                 if left_context or right_context:
                     features = self._build_features_with_context(features, left_context, right_context)
                     if not right_context:
@@ -158,6 +155,9 @@ class CTCFeeder(MLPFeeder):
 
                 if shuffle:
                     X, y, input_length, label_length = sk_shuffle(X, y, input_length, label_length)
+
+                if self.noise and split_type == "train":
+                    X += np.random.normal(0, self.noise, X.shape)
 
                 inputs = {
                     "the_input": X,

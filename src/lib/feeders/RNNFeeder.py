@@ -88,9 +88,6 @@ class RNNFeeder(BaseFeeder):
                 features = fr[speaker][utterance]["features"][:]
                 labels = fr[speaker][utterance]["labels"][:]
 
-                if self.noise and suffix == "train":
-                    features += np.random.normal(0, self.noise, features.shape)
-
                 if left_context or right_context:
                     left_padding = np.zeros((left_context, features.shape[1]))
                     right_padding = np.zeros((right_context, features.shape[1]))

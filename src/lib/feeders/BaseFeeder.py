@@ -200,6 +200,9 @@ class BaseFeeder(object):
                     if shuffle:
                         X, y = sk_shuffle(X, y)
 
+                    if self.noise and split_type == "train":
+                        X += np.random.normal(0, self.noise, X.shape)
+
                     yield (X, y)
 
     def remove_tmp_storage(self):
