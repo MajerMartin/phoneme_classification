@@ -1,7 +1,7 @@
 import os
 import argparse
 from collections import namedtuple
-from lib.feeders import MLPFeeder, RNNFeeder, CTCFeeder
+from lib.feeders import MLPFeeder, RNNFeeder, CTCFeeder, BatchCTCFeeder
 from lib.decoders import LanguageModel, Decoder
 
 from lib.models import PyramidDropoutMLP
@@ -9,23 +9,21 @@ from lib.models import DropoutLSTM
 from lib.models import DropoutGRU
 from lib.models import NondropoutCuDNNLSTM
 from lib.models import NondropoutCuDNNGRU
-from lib.models import DropoutBidirectionalLSTM
-from lib.models import NondropoutBidirectionalCuDNNLSTM
 from lib.models import NondropoutCTCCuDNNLSTM
 from lib.models import DropoutCTCLSTM
+from lib.models import NondropoutBatchCTCCuDNNLSTM
 
-Model = namedtuple('Model', "model is_rnn is_ctc")
+Model = namedtuple('Model', "model is_rnn is_ctc is_batch_ctc")
 
 MODELS = {
-    "PyramidDropoutMLP": Model(model=PyramidDropoutMLP, is_rnn=False, is_ctc=False),
-    "DropoutLSTM": Model(model=DropoutLSTM, is_rnn=True, is_ctc=False),
-    "DropoutGRU": Model(model=DropoutGRU, is_rnn=True, is_ctc=False),
-    "NondropoutCuDNNLSTM": Model(model=NondropoutCuDNNLSTM, is_rnn=True, is_ctc=False),
-    "NondropoutCuDNNGRU": Model(model=NondropoutCuDNNGRU, is_rnn=True, is_ctc=False),
-    "DropoutBidirectionalLSTM": Model(model=DropoutBidirectionalLSTM, is_rnn=True, is_ctc=False),
-    "NondropoutBidirectionalCuDNNLSTM": Model(model=NondropoutBidirectionalCuDNNLSTM, is_rnn=True, is_ctc=False),
-    "NondropoutCTCCuDNNLSTM": Model(model=NondropoutCTCCuDNNLSTM, is_rnn=True, is_ctc=True),
-    "DropoutCTCLSTM": Model(model=DropoutCTCLSTM, is_rnn=True, is_ctc=True)
+    "PyramidDropoutMLP": Model(model=PyramidDropoutMLP, is_rnn=False, is_ctc=False, is_batch_ctc=False),
+    "DropoutLSTM": Model(model=DropoutLSTM, is_rnn=True, is_ctc=False, is_batch_ctc=False),
+    "DropoutGRU": Model(model=DropoutGRU, is_rnn=True, is_ctc=False, is_batch_ctc=False),
+    "NondropoutCuDNNLSTM": Model(model=NondropoutCuDNNLSTM, is_rnn=True, is_ctc=False, is_batch_ctc=False),
+    "NondropoutCuDNNGRU": Model(model=NondropoutCuDNNGRU, is_rnn=True, is_ctc=False, is_batch_ctc=False),
+    "NondropoutCTCCuDNNLSTM": Model(model=NondropoutCTCCuDNNLSTM, is_rnn=True, is_ctc=True, is_batch_ctc=False),
+    "DropoutCTCLSTM": Model(model=DropoutCTCLSTM, is_rnn=True, is_ctc=True, is_batch_ctc=False),
+    "NondropoutBatchCTCCuDNNLSTM": Model(model=NondropoutBatchCTCCuDNNLSTM, is_rnn=True, is_ctc=True, is_batch_ctc=True)
 }
 
 parser = argparse.ArgumentParser()
@@ -42,8 +40,7 @@ parser.add_argument("--time_steps", help="number of time steps in phoneme time s
                     default=5, type=int)
 parser.add_argument("--sample", help="train, validation and test size limits", nargs=3, default=[], type=int)
 parser.add_argument("--noise", help="add gaussian noise", default=None, type=float)
-parser.add_argument("--cells", help="cells count per layer in RNN", default=128, type=int)
-
+parser.add_argument("--overlap", help="overlap batches from batched CTC training", action="store_true", default=False)
 
 # add model arguments
 parser.add_argument("--model", help="model architecture")
@@ -55,6 +52,7 @@ parser.add_argument("--epochs", help="number of epochs", type=int)
 parser.add_argument("--batch_size", help="batch size", type=int)
 parser.add_argument("--learning_rate", help="learning rate", type=float, default=None)
 parser.add_argument("--callbacks", help="model callbacks to use", nargs="+", default=[])
+parser.add_argument("--cells", help="cells count per layer in RNN", default=128, type=int)
 
 # add language model arguments
 parser.add_argument("--ngram", help="ngram order", default=0, type=int)
@@ -75,15 +73,19 @@ print("\nBuilding temporary dataset...")
 selected_model = MODELS[args.model]
 
 if selected_model.is_rnn and not selected_model.is_ctc:
-    feeder = RNNFeeder(args.features_path, args.noise)
+    feeder = RNNFeeder(args.features_path, noise=args.noise)
 
     feeder.create_datasets(tuple(args.ratio), args.time_steps, test_speakers=test_speakers,
                            left_context=args.left_context, right_context=args.right_context, sample=args.sample)
 else:
     if selected_model.is_ctc:
-        feeder = CTCFeeder(args.features_path, args.noise)
+        if selected_model.is_batch_ctc:
+            feeder = BatchCTCFeeder(args.features_path, noise=args.noise, sequence_length=args.time_steps,
+                                    overlap=args.overlap)
+        else:
+            feeder = CTCFeeder(args.features_path, noise=args.noise)
     else:
-        feeder = MLPFeeder(args.features_path, args.noise)
+        feeder = MLPFeeder(args.features_path, noise=args.noise)
 
     feeder.create_datasets(tuple(args.ratio), test_speakers=test_speakers, left_context=args.left_context,
                            right_context=args.right_context, sample=args.sample)

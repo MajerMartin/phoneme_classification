@@ -184,8 +184,8 @@ class BaseCTCModel(BaseModel):
 
     def train(self):
         """
-                Train model on train set and validate on validation set.
-                """
+        Train model on train set and validate on validation set.
+        """
         self._create_dirs()
         self._save_model_metadata()
 
