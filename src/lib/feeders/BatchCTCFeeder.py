@@ -22,6 +22,7 @@ class BatchCTCFeeder(CTCFeeder):
 
         self.sequence_length = sequence_length
         self.max_labelling_length = sequence_length
+        self.time_steps = sequence_length
         self.overlap = 0 if not overlap else sequence_length // 2
 
     def _process_speakers(self, speakers, suffix, left_context, right_context, fr, fw):

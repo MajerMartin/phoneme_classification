@@ -32,6 +32,7 @@ class BaseFeeder(object):
         self.right_context = None
         self.time_steps = None
         self.ctc = False
+        self.overlap = False
 
         self.X_prefix = "X_"
         self.y_prefix = "y_"

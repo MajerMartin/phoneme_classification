@@ -73,7 +73,7 @@ class BaseModel(object):
         model_keys = ["epochs", "batch_size", "learning_rate", "model_checkpoint_path", "tensorboard_log_path",
                       "csv_log_path"]
         feeder_keys = ["features_path", "left_context", "right_context", "time_steps", "train_speakers", "val_speakers",
-                       "test_speakers", "noise", "ctc"]
+                       "test_speakers", "noise", "ctc", "overlap"]
 
         with open(self.metadata_path, "w") as fw:
             for key in model_keys:

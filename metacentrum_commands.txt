@@ -1,15 +1,42 @@
-# move data to metacentrum
+# MOVE DATA TO METACENTRUM
 scp target_file 'META username'@skirit.metacentrum.cz:
 
-# move data from metacentrum
-scp 'META username'@skirit.metacentrum.cz:target_file .
+# MOVE DATA FROM METACENTRUM
+scp -r 'META username'@skirit.metacentrum.cz:target_file .
 
-# install custom python packages
+# LOGIN
+ssh mmajer@nympha.zcu.cz
+ssh mmajer@skirit.metacentrum.cz
+
+# INSTALL CUSTOM PYTHON PACKAGES
 pip install <module-name> --user
 
-# submit job
+# SUBMIT JOB
 qsub -l select=1:ncpus=2:ngpus=1:cl_gram=False:cl_konos=False:mem=5gb -l walltime=24:00:00 -q gpu /storage/plzen1/home/mmajer/phoneme_classification/run_job.sh
 
-# further info:
-# https://wiki.metacentrum.cz/wiki/How_to_compute/Requesting_resources
-# https://wiki.metacentrum.cz/wiki/How_to_compute/Interactive_jobs
+# ZUBAT ONLY
+qsub -I -l select=1:ncpus=2:ngpus=1:cl_gram=False:cl_konos=False:cl_doom=False:mem=5gb -l walltime=24:00:00 -q gpu
+
+# DOOM AND ZUBAT
+qsub -I -l select=1:ncpus=2:ngpus=1:cl_gram=False:cl_konos=False:mem=5gb -l walltime=24:00:00 -q gpu
+
+# PREPARE JOB
+module add python34-modules-gcc
+module add cuda-8.0
+module load cudnn-6.0
+
+export PYTHONPATH="/storage/plzen1/home/mmajer/.local/lib/python3.4/site-packages/:$PYTHONPATH"
+
+cd /storage/plzen1/home/mmajer/phoneme_classification/src
+
+# RUN MLP
+python run_model_cli.py --features_path ../data/features/SkodaAuto_25_10_log_filterbank_energies.hdf5 --ratio 0.75 0.5 --left_context 5 --right_context 3 --model PyramidDropoutMLP --epochs 150 --batch_size 64 --callbacks earlyStopping tensorboard modelCheckpoint reduceLROnPlateau CSVLogger
+
+# RUN RNN
+python run_model_cli.py --features_path ../data/features/SkodaAuto_25_10_log_filterbank_energies.hdf5 --ratio 0.75 0.5 --left_context 0 --right_context 0 --time_steps 7 --noise 0.6 --cells 120 --model NondropoutCuDNNLSTM --epochs 100 --batch_size 64 --callbacks earlyStopping tensorboard modelCheckpoint CSVLogger
+
+# RUN CTC
+python run_model_cli.py --features_path ../data/features/SkodaAuto_25_10_log_filterbank_energies.hdf5 --ratio 0.75 0.5 --left_context 0 --right_context 0 --noise 0.6 --cells 200 --model NondropoutCTCCuDNNLSTM --epochs 500 --batch_size 64 --callbacks earlyStopping modelCheckpoint CSVLogger
+
+# RUN BATCH CTC
+python run_model_cli.py --features_path ../data/features/SkodaAuto_25_10_log_filterbank_energies.hdf5 --ratio 0.75 0.5 --left_context 0 --right_context 0 --time_steps 20 --overlap --noise 0.6 --cells 200 --model NondropoutBatchCTCCuDNNLSTM --epochs 500 --batch_size 64 --callbacks earlyStopping modelCheckpoint CSVLogger
