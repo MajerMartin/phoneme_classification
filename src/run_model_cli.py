@@ -12,6 +12,7 @@ from lib.models import NondropoutCuDNNGRU
 from lib.models import NondropoutCTCCuDNNLSTM
 from lib.models import DropoutCTCLSTM
 from lib.models import NondropoutBatchCTCCuDNNLSTM
+from lib.models import NondropoutBatchCTCBiCuDNNLSTM
 
 Model = namedtuple('Model', "model is_rnn is_ctc is_batch_ctc")
 
@@ -23,7 +24,10 @@ MODELS = {
     "NondropoutCuDNNGRU": Model(model=NondropoutCuDNNGRU, is_rnn=True, is_ctc=False, is_batch_ctc=False),
     "NondropoutCTCCuDNNLSTM": Model(model=NondropoutCTCCuDNNLSTM, is_rnn=True, is_ctc=True, is_batch_ctc=False),
     "DropoutCTCLSTM": Model(model=DropoutCTCLSTM, is_rnn=True, is_ctc=True, is_batch_ctc=False),
-    "NondropoutBatchCTCCuDNNLSTM": Model(model=NondropoutBatchCTCCuDNNLSTM, is_rnn=True, is_ctc=True, is_batch_ctc=True)
+    "NondropoutBatchCTCCuDNNLSTM": Model(model=NondropoutBatchCTCCuDNNLSTM, is_rnn=True, is_ctc=True,
+                                         is_batch_ctc=True),
+    "NondropoutBatchCTCBiCuDNNLSTM": Model(model=NondropoutBatchCTCBiCuDNNLSTM, is_rnn=True, is_ctc=True,
+                                           is_batch_ctc=True)
 }
 
 parser = argparse.ArgumentParser()

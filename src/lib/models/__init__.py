@@ -6,3 +6,4 @@ from .NondropoutCuDNNGRU import *
 from .NondropoutCTCCuDNNLSTM import *
 from .DropoutCTCLSTM import *
 from .NondropoutBatchCTCCuDNNLSTM import *
+from .NondropoutBatchCTCBiCuDNNLSTM import *
