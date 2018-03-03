@@ -40,3 +40,6 @@ python run_model_cli.py --features_path ../data/features/SkodaAuto_25_10_log_fil
 
 # RUN BATCH CTC
 python run_model_cli.py --features_path ../data/features/SkodaAuto_25_10_log_filterbank_energies.hdf5 --ratio 0.75 0.5 --left_context 0 --right_context 0 --time_steps 20 --overlap --noise 0.6 --cells 200 --model NondropoutBatchCTCCuDNNLSTM --epochs 500 --batch_size 64 --callbacks earlyStopping modelCheckpoint CSVLogger
+
+RUN BATCH CTC BIDIRECTIONAL:
+python run_model_cli.py --features_path ../data/features/SkodaAuto_25_10_log_filterbank_energies.hdf5 --ratio 0.75 0.5 --left_context 0 --right_context 0 --time_steps 20 --overlap --noise 0.6 --cells 200 --model NondropoutBatchCTCBiCuDNNLSTM --epochs 500 --batch_size 64 --callbacks earlyStopping modelCheckpoint CSVLogger
