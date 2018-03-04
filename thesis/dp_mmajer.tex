@@ -20,7 +20,7 @@
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{lmodern}
-\usepackage{bm}
+\usepackage{interval}
 
 % equation numbering
 \numberwithin{equation}{section}
@@ -168,13 +168,125 @@ v &\leftarrow \alpha v - \epsilon \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{
 kde parametry $ \alpha $ a $ \epsilon $ odpovídají stejnım parametrùm jako u algoritmu momentu. Hlavním rozdílem oproti algoritmu momentu je, e gradient je vyhodnocen a po aplikaci minulıch gradientù. Nejprve je tedy proveden krok ve smìru akumulovanıch minulıch gradientù a následnì je provedena korekce \cite{dl, karpathy, ruder, nesterov}.
 
 \subsection{ADAM}
+Cenová funkce bıvá èasto citlivá na urèité smìry v prostoru parametrù a naopak necitlivá na smìry jiné. Moment tento problém do urèité míry øeší, ale za cenu zavedení nového parametru, kterı je tøeba správnì nastavit. ADAM je adaptivní metoda, která tento problém øeší tím, e zavede vlastní konstantu uèení pro kadı parametr a tyto konstanty pak automaticky v prùbìhu uèení adaptuje.
+
+ADAM pouívá ke zmìnì parametrù plovoucí prùmìr (první centrální moment) gradientù s exponenciálním zapomínáním $ r $ a druhı necentrální moment $ v $. Poèáteèní hodnota obou momentù je nastavena na nulu a zejména v prvních krocích algoritmu je potøeba momenty opravit korekèním faktorem. Parametry $ \beta_{1} $ a $ \beta_{2} $ udávají rychlost zapomínání a $ \delta $ je malá konstanta  \cite{dl, karpathy, ruder, adam}.
+\\[12pt]
+\begin{algorithm}[H]
+\setstretch{1.25}
+inicializace \\
+$ \boldsymbol{r} = 0 $, $ \boldsymbol{v} = 0 $, $ \boldsymbol{t} = 0 $  \\
+\While{zastavovací podmínka není splnìna}{
+ $ t \leftarrow t + 1 $  \\
+ vıpoèet gradientu \\
+$ g = \dfrac{1}{m} \nabla_{\boldsymbol{\theta}} \sum_{i} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta}), \boldsymbol{y}^{(i)}) $ \\ 
+ zmìna odhadu prvního centrálního momentu \\
+ $ \boldsymbol{r} \leftarrow \beta_{1}\boldsymbol{r} + (1 - \beta_{1})g $ \\
+ zmìna odhadu druhého necentrálního momentu \\
+ $ \boldsymbol{v} \leftarrow \beta_{2}\boldsymbol{v} + (1 - \beta_{2})g \odot g $ \\
+ korekce odhadu prvního centrálního momentu \\
+ $ \hat{\boldsymbol{r}} \leftarrow \dfrac{\boldsymbol{r}}{1- \beta_{1}^{t}} $ \\
+ korekce odhadu druhého necentrálního momentu \\
+ $ \hat{\boldsymbol{v}} \leftarrow \dfrac{\boldsymbol{v}}{1- \beta_{2}^{t}} $ \\
+ zmìna parametrù \\
+ $ \boldsymbol{\theta} \leftarrow \boldsymbol{\theta} + -\epsilon \dfrac{\hat{\boldsymbol{r}}}{\sqrt{\hat{\boldsymbol{v}} + \delta}} $
+}
+\end{algorithm}
+\begin{center}
+Algoritmus 1: ADAM.
+\end{center}
+
+\newpage
 \section{Neuronové sítì}
+Neuronová sí je algoritmus, kterı je schopen aproximovat i silnì nelineární funkce a zároveò je schopen dosáhnout vysoké míry statistické generalizace. Tento parametrickı model bıvá zpravidla sloen z nìkolika vrstev reprezentovanımi vektory, jejich dimenze udává šíøku modelu. Prvky tìchto vektorù, jednotky èi perceptrony, pracují paralelnì a reprezentují funkce zobrazující vstupní vektor na skalár. Cílem je natrénovat parametry tohoto modelu tak, aby dokázal splnit zadanou úlohu s minimální chybou. Jedná se tedy o optimalizaèní úlohu.
+
+Základním rozdílem mezi bìnou optimalizací a optimalizací v neuronovıch sítí je, e optimalizace v neuronovıch sítích a ve strojovém uèení obecnì probíhá nepøímo. To znamená, e aèkoliv optimalizujeme zvolenou metriku $ P $, která v jistém smyslu kvantifikuje vıkon algoritmu na dané úloze, minimalizujeme jinou cenovou funkci $ J(\boldsymbol{\theta}) $ za úèelem minimalizace metriky $ P $. V bìném optimalizaèním problému bychom minimalizovali pøímo cenovou funkci $ J(\boldsymbol{\theta}) $ za úèelem její minimalizace \cite{dl, karpathy, bishop}.
+
+\subsection{Cenová funkce}
+Jedním ze zásadních aspektù pøi návrhu neuronovıch sítí je právì vıbìr cenové funkce. Vıbìr cenové funkce závisí na dané úloze a poadovaném vıstupu. Cenovou funkci definujeme stejnım zpùsobem jako u ostatních parametrickıch modelù, které generují hustotu pravdìpodobnosti $ p(\boldsymbol{y} \mid \boldsymbol{x} ; \boldsymbol{\theta}) $ a pøi trénování vyuívají principu maximální vìrohodnosti. Vìtšinou tedy cenovou funkci definujeme jako vzájemnou entropii mezi trénovacími daty a predikcemi modelu
+\begin{equation}
+J(\boldsymbol{\theta}) = -\mathbb{E}_{\boldsymbol{x}, \boldsymbol{y} \sim \hat{p}_{data}} \log p_{model} (\boldsymbol{y} \mid \boldsymbol{x}).
+\end{equation}
+Pøedpis cenové funkce se liší model od modelu v závislosti na tvaru $ \log p_{model} $ a kromì definice ceny také mùe obsahovat regularizaèní prvky. Vıhodou vyuití principu maximální vìrohodnosti je, e specifikací modelu $ p(\boldsymbol{y} \mid \boldsymbol{x}) $ zároveò definujeme cenovou funkci $ \log p(\boldsymbol{y} \mid \boldsymbol{x}) $ \cite{dl, bishop}.
+
+\subsection{Dopøedné neuronové sítì}
+Dopøedné neuronové sítì, obèas také nazıvané vícevrstvé perceptrony, jsou základním typem neuronovıch sítí. Jejich cílem je aproximovat urèitou funkci $ f^{*} $, napø. klasifikátor $ \boldsymbol{y} = f^{*}(\boldsymbol{x}) $ zobrazuje vstup $ \boldsymbol{y} $ na vıstupní tøídu $ \boldsymbol{x} $. Dopøedná neuronová sí tedy definuje zobrazení $ \boldsymbol{y} = f^{*}(\boldsymbol{x} ; \boldsymbol{\theta}) $ a uèí se optimální hodnoty parametrù $ \boldsymbol{\theta} $ pøi kterıch by mìla bıt dosaena nejlepší aproximace funkce.
+
+Jak název napovídá, tok informací smìøuje od vstupu $ \boldsymbol{x} $ pøes nìkolik po sobì jdoucích vıpoèetních vrstev definujících $ f $ a k vıstupu $ \boldsymbol{y} $. Jedná se tedy o sloení nìkolika rùznıch funkcí do øetìzové struktury. Takto definovanı model lze také popsat jako orientovanı acyklickı graf, kterı urèuje závislosti mezi funkcemi. Mìjme napøíklad sí sloenou ze tøí funkcí $ f^{(1)} $, $ f^{(2)} $ a $ f^{(3)} $ spojenıch do øady $ f( \boldsymbol{x}) = f^{(3)}(f^{(2)}(f^{(1)}(\boldsymbol{x}))) $. V tomto pøípadì nazıváme  $ f^{(1)} $ první skrytou vrstvou, $ f^{(2)} $ druhou skrytou vrstvou a $ f^{(3)} $ vıstupní vrstvou. Celková délka tohoto øetìzce pak udává hloubku modelu \cite{dl}.
+
+Cílem trénování sítì je, aby se nauèila odpovídající zobrazení mezi $ f(\boldsymbol{x}) $ a $ f^{*}(\boldsymbol{x}) $. Uèení probíhá na základì trénovacích dat, která poskytují zašumìná aproximovaná pozorování $ f^{*}(\boldsymbol{x}) $ vyhodnocena v rùznıch bodech. Ke kadému pozorování $ \boldsymbol{x} $ je k dispozici také skuteèná hodnota $ \boldsymbol{y} \approx f^{*}(\boldsymbol{x}) $. Vıstupní vrstva sítì se tedy pro kadou trénovací hodnotu $ \boldsymbol{x} $ snaí vyprodukovat hodnotu blízkou $ \boldsymbol{y} $. Chování skrytıch vrstev není pøímo dáno trénovacími daty a sí se je musí nauèit vyuívat k získání poadovaného vısledku, tedy k aproximaci $ f^{*}(\boldsymbol{x}) $ \cite{dl, bishop}.
+
+\subsubsection{Architektura}
+Klíèovım prvkem pøi návrhu neuronovıch sítí je jejich architektura. Architekturou sítì èi modlu rozumíme celkovou strukturu sítì - kolik má mít jednotek a jak mají bıt tyto jednotky mezi sebou propojeny.
+
+Jak ji bylo uvedeno, neuronové sítì jsou tvoøeny skupinami jednotek, které jsou uspoøádány do jednotlivıch vrstev. Vìtšina architektur tyto vrstvy uspoøádává do øetìzové struktury, kde kadá vrstva je funkcí vrstvy, která ji pøedchází. V této struktuøe je pak první vrstva definována jako
+\begin{equation}
+\boldsymbol{h}^{(1)} = g^{(1)}\left( \boldsymbol{W}^{(1)\top} \boldsymbol{x} + \boldsymbol{b}^{(1)} \right),
+\end{equation}
+druhá vrstva jako 
+\begin{equation}
+\boldsymbol{h}^{(2)} = g^{(2)}\left( \boldsymbol{W}^{(2)\top} \boldsymbol{x} + \boldsymbol{b}^{(2)} \right),
+\end{equation}
+a tak dále, kde $ g^{(i)} $ je aktivaèní funkce vrstvy $ i $, $ \boldsymbol{W}^{(i)\top} $ je váhová matice vrstvy $ i $ a $ \boldsymbol{b}^{(i)} $ je prahovı vektor vrstvy $ i $. 
+
+Pro takto definovanou øetìzovou architekturu je pak hlavním problémem urèení hloubky sítì a šíøky kadé vrstvy. Vhodnou architekturu pro danou úlohu je tøeba nalézt pomocí experimentù zaloenıch na sledování chyby na validaèní datové sadì a apriorní znalosti o úloze a datech \cite{dl, karpathy, bishop, hastie}.
+
+\subsubsection{Vıstupní jednotky}
+Reprezentace vıstupu je úzce spojena s danou úlohou a tím i s vıbìrem cenové funkce. Pøedpokládejme, e dopøedná neuronová sí poskytuje vıstupní vrstvì soubor skrytıch pøíznakù  $ \boldsymbol{h} = f(\boldsymbol{x} ; \boldsymbol{\theta}) $, tj. vıstup poslední skryté vrstvy. Cílem vıstupní vrstvy je pak provést urèitou transformaci tìchto pøíznakù, aby sí plnila úlohu, pro kterou byla navrena. Tato transformace je provedena pouitím aktivaèní funkce $ g(\boldsymbol{h}) $. Aèkoliv existuje mnoho aktivaèních funkcí, které lze ve vıstupní vrstvì vyuít, zde se zamìøíme pouze na aktivaèní funkci softmax, která je vyuívána v experimentech provedenıch v rámci této práce.
+
+Aktivaèní funkce softmax je vyuívána pro úlohy, kde je tøeba reprezentovat vıstup jako hustotu pravdìpodobnosti diskrétní promìnné s $ n $ monımi hodnotami (vıstupními tøídami). K odvození aktivaèní funkce softmax vyuijeme znalosti o úloze binární klasifikaci, pøi které predikujeme hodnotu
+\begin{equation}
+\hat{\boldsymbol{y}} = P(\boldsymbol{y} = 1 \mid \boldsymbol{x}),
+\end{equation}
+kde $ \hat{\boldsymbol{y}} \in \interval{0}{1} $. Aby byla zajištìna numerická stabilita pøi optimalizaci, budeme radìji hodnotu
+\begin{equation}
+\boldsymbol{z} = \log \tilde{P} (\boldsymbol{y} = 1 \mid \boldsymbol{x}).
+\end{equation}
+Aplikací exponenciální funkce a následnou normalizací bychom pak dostali Bernoulliho rozloení pravdìpodobnosti øízeného sigmoidální funkcí.
+
+Pro generalizaci tohoto postupu pro diskrétní promìnnou s $ n $ hodnotami je tedy potøeba získat vektor $ \hat{\boldsymbol{y}} $, kde $ \hat{\boldsymbol{y}}_{i} = P(\boldsymbol{y} = i \mid \boldsymbol{x}) $. Pro kadı prvek $ \hat{\boldsymbol{y}}_{i}  $ musí platit $ \hat{\boldsymbol{y}}_{i} \in \interval{0}{1} $ a zároveò $ \sum_{i} \hat{\boldsymbol{y}}_{i}  = 1 $, aby bylo moné tento vektor interpretovat za hustotu pravdìpodobnosti. Nejprve je potøeba provést predikci vrstvou s lineární aktivaèní funkcí, která predikuje nenormalizované logaritmované pravdìpodobnosti
+\begin{equation}
+\boldsymbol{z} = \boldsymbol{W}^{\top} \boldsymbol{h} + \boldsymbol{b},
+\end{equation}
+kde $ \boldsymbol{z}_{i} = \log \tilde{P}(\boldsymbol{y} = i \mid \boldsymbol{x}) $. Softmax funkce pak aplikuje exponenciální funkci a normalizuje $ \boldsymbol{z} $, èím získáme poadované $ \hat{\boldsymbol{y}} $.
+\begin{equation}
+softmax(\boldsymbol{z}_{i}) = \dfrac{\exp(\boldsymbol{z}_{i})}{\sum_{j} \exp(\boldsymbol{z}_{j})}
+\end{equation}
+Natrénováním parametrù modelu pak bude vıstupní vrstva s aktivaèní funkcí softmax predikovat podíly poètù všech pozorovanıch vısledkù v trénovací datové sadì \cite{dl}.
+\begin{equation}
+softmax(\boldsymbol{z}(\boldsymbol{x} ; \boldsymbol{\theta}))_{i} \approx \dfrac{\sum_{j=1}^{m} 1_{\boldsymbol{y}^{(j)} = i, \boldsymbol{x}^{(j)} = \boldsymbol{x}}}{\sum_{j=1}^{m} 1_{\boldsymbol{x}^{(j)} = \boldsymbol{x}}}
+\end{equation}
+
+\subsubsection{Skryté jednotky}
+Jak název napovídá, skryté jednotky jsou jednotky skryté vrstvy, jejich vstupem je vektor $ \boldsymbol{x} $, kterı je transformován na $ \boldsymbol{z} = \boldsymbol{W}^{\top} \boldsymbol{x} + \boldsymbol{b} $. Na takto transformovanı vstup je pak po prvcích aplikována nelineární aktivaèní funkce  $ g(\boldsymbol{z}) $. Volba aktivaèních funkcí skrytıch vrstev vyaduje mnoho experimentù a vyhodnocení pøesnosti modelu na validaèní datové sadì. V dnešní dobì se pro dopøedné neuronové sítì vìtšinou volí jednotky s aktivaèní funkcí RELU (z anglického "rectified linear unit") èi její modifikace, pro sítì rekurentní jsou pak voleny funkce hyperbolickı tangens a hard sigmoid.
+\begin{itemize}
+\item \textbf{RELU} - tyto jednotky vyuívají aktivaèní funkcí $ g(\boldsymbol{z}) = \max\{0, \boldsymbol{z}\} $. Jedná se tedy o lineární jednotky s prahem v bodì nula - levá polovina jejich definièního je rovna nule. To zaruèuje rychlı vıpoèet a vysokou hodnotu gradientu, kdykoliv je jednotka aktivní. Zásadním nedostatkem je, e tyto jednotky se pomocí gradientních metod nemohou uèit z pozorování, které mají aktivaèní hodnotu rovnou nule. Existuje proto nìkolik modifikací, které zajistí, e jednotky budou mít gradient všude (napø. Leaky RELU, PRELU, Maxout).
+\item \textbf{sigmoid} a \textbf{tanh} - tyto jednotky vyuívají logistickou funkci (sigmoid) $ g(\boldsymbol{z}) = \sigma (\boldsymbol{z}) $, resp. hyperbolickı tangens $ \tanh (\boldsymbol{z}) = 2\sigma (2\boldsymbol{z}) - 1 $. Hlavním nedostatkem sigmoidální funkce je její citlivost a náchylnost k saturaci, kdy mùe dojít k tzv. explozi èi vymizení gradientu a sí nebude schopná se uèit.
+\item \textbf{hard sigmoid} - tyto jednotky vyuívají aktivaèní funkci $ g(\boldsymbol{z}) = \max(0, \min(1, \frac{\boldsymbol{z} + 1}{2}) $. Jedná se o lineární aproximaci funkce sigmoid a díky své vıpoèetní nenároènosti jsou vyuívány v sítích typu LSTM \cite{dl, karpathy}.
+\end{itemize}
+
+\subsubsection{Algoritmus zpìtného šíøení}
 
 
-Základním rozdílem mezi èistou optimalizací a optimalizací v neuronovıch sítích je pøedevším ten,  e optimalizace ve strojovém uèení probíhá nepøímo, tj. optimalizujeme vybranou metriku $ P $ mìøící vıkon našeho algoritmu. Minimaluzujeme jinou ztrátovou funkci $ J(\theta) $ za úèelem minimalizace metriky $ P $, zatímco u èisté optimalizace minimaluzjeme pøímo ztrátovou funkci $ J(\theta) $ za úèelem její minimalizace.
 
 
+..
+
+..
+
+..
+
+..
+
+..
+
+
+Návrh a trénování neuronové sítì není nijak rozdílnı od ostatní algoritmù strojového uèení zaloenıch na gradientním sestupu. Nejvìtší rozdíl mezi takovımi algoritmy a neuronovımi sítìmi je, e nelinearita neuronové sítì mùe zpùsobit, e ztrátová funkce se stane nekonvexní. To znamenám, e neuronové sítì jsou vìtšinou trénovány pomocí iterativních optimalizaèních technik, které cost function dostanou na nízkou hodnotu místo toho, aby zajistili globální konvergenci jako napø. u logistické regrese nebo SVM. KOnvexní optimalizace konverguje z libovolnıch poèáteèních parametrù. Stochastickı gradientní sestup aplikovanı na nekonvexní loss function negarantuje konvergenci a je citlivı na hodnoty poèáteèní parametrù. Pro dopøedné neuronové sítì je dùleité incializovat všechny váhy nmalımi náhodnımi èísly. Biasy mohou bıt inicviálzovany nulou èi velmi malou klasdnou hodnotu. V následující kapitole si odvodíme algoritmus, kterım lze spoèítat gradient pro neuronové sítì - backpropagation. Srtejnì jako u ostatních modelù zaloenıch na gradientu i zde musíme definovat cost function a vhodnì reprezentovat vıstup modelu.
+
+\newpage
 \section{Kapacita modelu}
+
+\newpage
 \section{Connectionist temporal classification}
 
 % PRAKTICKÁ ÈÁST
@@ -225,91 +337,7 @@ Základním rozdílem mezi èistou optimalizací a optimalizací v neuronovıch sítích 
 
 
 \section{Neuronové sítì}
-\subsection{Dopøedné neuronové sítì}
-Dopøedné neuronové sítì, obèas také nazıvané vícevrstvé perceptrony jsou základními deep learningovım modely. Jejich cílem je aproximovat urèitou funkci $ f^{*} $, napø. klasifikátor $ y = f^{*}(x) $ zobrazuje vstup $ x $ na vıstupní tøídu $ y $. Dopøedná neuronová sí definuje toto mapování $ y = f^{*}(x;\theta) $ a uèí se hodnoty parametrù $ \theta $, jejím vısledkem je by mìla bıt nejlepší aproximace funkce.
 
-Název dopøednı implikuje, e tok informace putuje od dopøedu od vstupu $ x $ pøes nìkolik po sobì jdoucích vıpoèetních vrstev definujících $ f $ a k vıstupu $ y $. Nevyskytují se zde ádné zpìtné vazby od vıstupu modelu do pøedešlıch vrstev. Zavedením tìchto zpìtnıch vazeb bychom pak hovoøili o rekuretních neuronovıch sítích.
-
-Dopøedné neuronové sítì jsou nazıvaány sítìmi právì kvùli jejich typické reprezentaci - sloení nìkolika rùznıch funkcí. Model lze popsat jako directed acyklickı graf, kterı urèuje závislosti mezi funkcemi. Napøíklad pro sí skládající se ze tøí funkcí $ f^{(1)} $, $ f^{(2)} $ a $ f^{(3)} $ spojenıch do øady $ f(x) = f^{(3)}(f^{(2)}(f^{(1)}(x))) $. Tato øetìzová struktura je typická pro definici neuronovıch sítí. V tomto pøípadì nazıváme $ f^{(1)} $ první vrstvou, $ f^{(2)} $ druhou vrstvou, atd. Celková délka tohoto øetìzce udává hloubku modelu. Poslední vrstva se nazıvá vıstupní vrstva.
-
-Bìhem trénování neuronové sítì cílíme na to, aby se sí nauèila odpovídající mapovaní (match) mezi $ f(x) $ a $ f^{*}(x) $. Trénovací data nám poskytují zašumìné a aproximované pozorování (examples) $ f^{*}(x) $ vyhodnoceny v rùznıch training points. Ke kadému pozorování $ x $ máme k dispozici také label (skuteènou hodnotu) $ y \approx f^{*}(x) $. Trénovací pozorování pøesnì urèují, co vıstupní vrstva musí udìlat pro bod $ x $ - musí vyprodukovast hodnotu blízkou $ y $. Chování ostatní vrstev není pøímo dáno trénovacími daty. Uèící algoritmus se musí rozhodnout, jak tyto vrstvy vyuít k získání poadovaného vısledku, ale trénovací data pøesnì neøíkají, co mají jednotlivé vrstvy udìlat. Namísto toho se musí uèící alogritmus rozhodnot, jak tyto vrstvy co nejlépe pouít k co nejlepší aproximaci $ f^{*}(x) $. Vzhledem k tomu, e trénovací adta neukazují poadovanı vıstupní pro tyto vrstvy, øíkáme jim skryté vrstvy.
-
-Tyto modely jsou nazıvanımi neuronovı dle jejich inspirace lidskım mozkem. Kadá skrytá vrstva je typicky vektor, jeho dimenze udává šíøku modelu. Kadı prvek tohoto vektoru mùe pak bıt povaován za jednotku analogickou s neuronem v lidském mozku (perceptron). Tyto jednotky/prvky pracují paralelnì a reprezentují funkci zobrazující vektor na skalár. Analogie k neuronu spoèívá v tom, e pøijme vstup od nìkolika rùznıch jednotek (z pøedchozí vrstvy) a spoèítá svojí aktivaèní hodnotu. V dnešní dobì u je ale zøejmé, e neuronové sítì ani zdaleka nekopírují funkci mozku a nahlííme na nì pouze 
-jako algoritmus aproximující funkce tak, aby dosáhli vysoké míry statistické generalizace.
-
-DEEP LEARNING
-
-\subsubsection{Uèení zaloené na gradientu}
-Návrh a trénování neuronové sítì není nijak rozdílnı od ostatní algoritmù strojového uèení zaloenıch na gradientním sestupu. Nejvìtší rozdíl mezi takovımi algoritmy a neuronovımi sítìmi je, e nelinearita neuronové sítì mùe zpùsobit, e ztrátová funkce se stane nekonvexní. To znamenám, e neuronové sítì jsou vìtšinou trénovány pomocí iterativních optimalizaèních technik, které cost function dostanou na nízkou hodnotu místo toho, aby zajistili globální konvergenci jako napø. u logistické regrese nebo SVM. KOnvexní optimalizace konverguje z libovolnıch poèáteèních parametrù. Stochastickı gradientní sestup aplikovanı na nekonvexní loss function negarantuje konvergenci a je citlivı na hodnoty poèáteèní parametrù. Pro dopøedné neuronové sítì je dùleité incializovat všechny váhy nmalımi náhodnımi èísly. Biasy mohou bıt inicviálzovany nulou èi velmi malou klasdnou hodnotu. V následující kapitole si odvodíme algoritmus, kterım lze spoèítat gradient pro neuronové sítì - backpropagation. Srtejnì jako u ostatních modelù zaloenıch na gradientu i zde musíme definovat cost function a vhodnì reprezentovat vıstup modelu.
-
-\subsubsection{Cost function}
-Základním aspektem návrhu (hlubokıch) neuronovıch sítí je vıbìr cost function. Naštìstí, pro neuronové sítì jsou cost function definovány témìø stejnì jako pro ostatní parametrické modely. Ve vìtšinì pøípadech parametrickı model definuje rozloení pravdìpodobností $ p(y\mid x;\theta) $ a vyuívá pricnipu mximum likelyhood.To znamenám, e vyuíváme crossentropy mezi trénovacími daty a predikcemi modelu jako cost function. Nebo mùeme takové zvolit jednodušší pøístup, kde místo kompletního rozloení pravdìpodobnosti $ y $ predikujeme pouze dané statistiky $ y $ (napø. prùmìr $ y $) conditioned on x. S vhodnout ztrátovou funkcí psk mùeme natrénovat prediktor tìchto statistik.
-
-Pøedpis cost function kromì hlavní èásti cost function také èasto obsahuje regularizaèní èást, napø. weight decay.
-
-Vìtšina moderních neuronovıch sítí je trénovaná pomocí maximum likelyhood. To znamená, e cost function je dána jako záporná log-likelyhood, ekvivalentnì popsána jako crossentripoe mezi trénovacími daty a model distribution. Cenová funkce je tedy dána jako
-$$
-J(\theta) = -\mathbb{E}_{x,y\sim \hat{p}_{data}} \log p_{model} (y \mid x).
-$$
-Tvar cost function se liší modelem od modelu v závislosti na tvary $ \log p_{model} $. Rozšíøením rovnice vıše pak získáváme èleny, které nejsou pøímo závislé na parametrech modelu a mohou bıt discarded. Vıhodou tohoto pøístupu (maximum likelyhood) je, e specifikací modelu $ p(y \mid x) $ automaticky definujeme cost function $ \log p(y \mid x) $.
-
-\subsubsection{Vıstupní jednotky}
-Vıbìr cost function je velice úzce svázán s vıbìrem vıstupních jednotech. Vìtšinou vyuíváme cross entropii mezi rozloením data a modelu. Vıbìrem vıstupních jednotek pak udává tvar crossentropy function. Libovolná jednotka, která mùe bıt pouita jako vıstupní jednotka také mùe bıt pouita jako jednotka ve skryté vrstvì. Pøedpokládejme, e dopøedná neuronová sí dává soubor skrytıch pøíznakù $ h = f(x; \theta) $. Rolí vıstupní vrstvy je provést nìjakou transformaci pøíznakù, aby neuronová sí splnila úlohu, pro kterou byla navrena. Vzhledem k tomu, e v rámci této práce predikujeme pouze pravdìpodobnosti jednotlivıch tøíd na vıstupu sítì, budeme se zdì vìnovast pouze aktivaèní funkci softmax.
-
-Aktivaèní funkci softmax vyuíváme tehdy, pokud chceme na vıstupu reprezentovat rozloení pravdìpodobnosti nad diskrétní promìnnou s $ n $ monımi hodnotami. Na funkci softmax mùeme nahlíet jako na generalizaci sigmoid funkce, která byla navrena pro reprezetnaci rozloení pravdìpodobnosti nad binární promìnnou. Softmax funkce je nejèastìji vyuívána na vıstupu klasifikátoru k reprezetnaci rozloení ppsti nad $ n $ rùznımi tøídami. 
-
-K odvození funkce softmax vyuijeme znalosti o lineární aktivaèní funkci a aktivaèní funkci sigmoid. V pøípadì binární klasifikace bychom chtìli na vıstupu dostat jedno èíslo 
-$$
-\hat{y} = P(y = 1\mid x).
-$$
-Vzhledem k tomu, e poadujeme, aby toto èíslo leelo mezi $ 0 $ a $ 1$ a zároveò abychom udreli numerickou stabilitu pøi optimalizace zaloené na gradientním sestupu log-likelyhood, budeme radši predikovat èíslo $ z = \log \tilde{P}(y = 1\mid x) $. Zexponenciálnìním a normalizací dostaneme Bernoulliho rozloení controlledby sigmoidální funkcí.
-
-Generalizací pro diskrétní promìnnou s $ n $ hodnotami potøebujeme vytvoøit vektor $ \hat{y} $, kde $ \hat{y}_{i} = P(y = i \mid x) $. Nyní ji poadujeme nejen tom, aby kadı prvek $ \hat{y}_{i} $ leel mezi $ 0 $ a $ 1 $, ale zároveò aby suma celeého vektoru byla 1 a bylo moné ji povaovat za hustotu pravdìpodobnosti. Provedmì tedy nejprve predikci vrstvou s lineární vrtvou, která predikuje nenormalizované log pravdìpodbnosti
-$$
-z = W^{T}h + b,
-$$
-kde $ z_{i} = \log \tilde{P}(y = i\mid x) $. Softmax funkce pak provede operaci exponentu a normalizace $ z $ abychom získali poadované $ \hat{y}  $
-$$
-softmax(z_{i}) = \dfrac{\exp(z_{i})}{\sum_{j}\exp(z_{j})}
-$$
-Natrénovaním parametrù modelu pak bude softmax predikovat podíly poètù všech monıch vidìnıch vısledkù v trénovacím datasetu
-$$
-softmax(z(x;\theta))_{i} \approx \dfrac{\sum_{j=1}^{m}1_{y^{(j)}=i,x^{(j)}=x}}{\sum_{j=1}^{m}1_{x^{(j)}=x}}
-$$
-
-DEEP LEARNING
-
-\subsubsection{Skryté jednotky a aktivaèní funkce}
-Nyní se budeme zabıvat nejèastìji pouívanımi aktivaèními funkcemi pro skryté jednotky. Vìtšinou je primárnì volena rectified linear unit aktivaèní funkce, která ale ne vdy zaruèuje nejlepší moné vısledky. Volba aktivaèních funkcí ve skrytıch vrstvách vyaduje mnoho trial and error  a evaluaci perfomance na validaèní sadì. Pøedvedeme si pouze  aktivaèní funkce vyuité v rámci této práce.
-
-Nìkteré z déle uvedenıch funkcí nejsou diferencovatelné ve všech bodech, co by naznaèovalo, e tyto funkce nelze pouít pøi optimalizaci pomocí graidentní setupu. V praxi ovšem gradientní sestup funguje velice dobøe i pøi proušení toho pøedpokladu. Vzhledem k tomu, e neuronové sítì nenacházají globální a velice èasto an ilokální minimum, ale pouze vıraznì minimaluzjí cost func, tzn. neoèekáváme, e by byl gradient nulovı, je pøijatelné aby minimum cost func odpovídalo bodu s nedefinovanım gradientem.
-
-Skryté jednotky mohou bıt popsány jako jednotky, jejich vstupem je vektor vstupù $ x $ a poèítají afinní transformaci $ z = W^{T}x + b $ a poté po prvcích aplikují nelineární funkci $ g(z) $.
-
-\textbf{RELU} - recitfied linear units pouívají aktivaèní funkci $ g(z) = \max\{0,z\} $. Tyto jednotky jsou snadno optimalizovatelné jeliko jsou podobné lineární jednotkám. Jediny rozdíl je, e RELU vrací nulu pro polovinu svého definièního oboru. Gradienty jsou pak velké, kdykoliv je jedjnotka aktivní. Nejenom  jsou velké, ale raké konzistentní. Druhá derivace je témìø všude 0 a 1 tam, kde jsou jednotky aktivní. To znamená, e smìr gradientu je mnohem uiteènìjší pro uèení ne s aktivaèními funkcemi, které vyuívají efekty druhého øádu.
-
-Jedním z nedostatkù RELU je, e pomocí gradientních metod se nemùou uèit z pozorování, jejich aktivace je rovna nule. Mnoho generalizací však RELU zajištuje, e budou mít fgradient všude (leaky relu, prelu, maxout unit).
-
-\textbf{sigmoid a tanh} - pøed pøíchodem aktivaèní funkce RLEU byla hojnì vyuívana logistická sigmoidální aktivèní funkce $ g(z) = \sigma (z) $ nebo hyperbolickı tangens $ g(z) = \tanh (z) $, které jsou si spolu velmi blízké, jeliko $ \tanh (z) = 2\sigma (2z) - 1 $. Hlavním problémem sigmoidální funkce je její citlivost a náchylnost k saturaci - pro velké kladní hodnoty $ z $ saturuje k vyskoım hodnotám a naopak. Funkce je citlivá pouze na hodnoty $ z $ blízké nule. Kvùli tomuto chování je uèení pomocí gradientních metod znaènì obtíné. Kdy u tato funkce musí bıt vyuíta ve skryté vrstvì, doporuèuje se radìji vyuít hyperbolickı tangen, kterı dosahuje lepších vısledkù.
-
-\textbf{hard sigmoid} $ g(a) = \max(0, \min(1,a)) $.
-
-DEEP LEARNING
-
-\subsubsection{Architektura neuronovıch sítí}
-Další klíèovım prvkem pøi návrhu neuronovıch sítí je jejich architektura. Architekturou sítì èi modelu rozumíme celkovou strukutru sítì - kolik jednotek má sí mít a jak mají bıt tyto jednotky mezi sebou propojeny. 
-
-Neuronové sítì jsou vìtšinou tvoøeny skupinami jednotek (neuronù), které jsou uspoøádány do tzv. vrstev. Vìtšina architektur uspoøádává tyto vrstvy do øetìzové (chain, chain-based) struktury, kdy kadá vrstva je funkcí vrstvy, která ji pøedchází. V této struktuøe je první vrstva dána  jako
-$$
-h^{(1)} = g^{(1)}\left( W^{(1)T} x + b^{(1)} \right),
-$$
-druhá vrstva je dána jako
-$$
-h^{(2)} = g^{(2)}\left( W^{(2)T} x + b^{(2)} \right),
-$$
-a tak dále.
-
-V této øetìzové architektuøe je pak hlavní problémem urèení hloubky sítì a šíøky kadé vrstvy s tím, e ideální architekturu je tøeba najít pro kadou úlohu pomocí experimentù zlaoenıch na sledování chyby na validaèní datové sadì a apriorní znalosti o úloze a datech.
 
 \subsubsection{Backpropagation}
 Kdy vyuíváme dopøednou neuronovou sí, která na vstupu pøijme $ x $ a na vıstupu vyprodukuje  $ \hat{y} $, informace/informaèní tok proudí skrz sí dopøedu (proto dopøedná sí). Vstup $ x $ dává síti poèáteèní informaci, která je poté propagována do skrytıch jednotek ve všech vrstvách a k vıstupní vrstvì, která vyprodukuje $ \hat{y} $. Tomuto procesu se øíká dopøedná propagace. Bìhem trénování probíhá dopøedná proapgace dokud nevyprodukuje skalární cost $ J(\theta) $. Algoritmus zpìtného šíøení (backpropagation) pak umoní zpìtnı tok informace od cost/ceny skrz sí za úèelem vıpoètu gradientu.
@@ -550,36 +578,6 @@ DEEP LEARNING
 
 
 \subsection{ADAM}
-Jeliko konstanta uèení je parametr, kterı je nejtìší nastavit ruènì správnì a kterı má nejvìtší vliv jak na rychlost, tak na konvergenci trénovaní, vızkumnící se dlouho zabıvali metodami, jak provádìt toto nastavování ruènì. Cena/ztráta je velmi èasto citlivá na urèité smìry v prostoru paraemtrù na necitlivá na jiné. Momentum tento problém do urèité míry øeší, ale za cenu zavedení nového hyperparametru. Bylo by tedy vhodné vytvoøit vlastní konstantu uèení pro kadı parametr a kadou z tìchto konstant automaticky adaptovat bìhem uèení. V této práci byla vyuita metoda ADAM, která je spoleènì s RMSprop jednou z nejpouívanšìjích adaptivních optimalizaèních metod.
-
-Název ADAM je odvozen ze slov adaptive moment (adaptivní moment) a lze na nìj nahlíet jako na RMSprop  s momentem. Momentum je zavedeno pøímo do odhadu momentu prvního øádu (prvního momentu?)  gradientu s exponenciálním zapomínáním/váením. Nejvíce pøímoèará cesta, jak pøidat momentum k RMSprop je pøidání k pøeškálovanım gradientùm. ADAM dále provádí korekci biasu odhadu jak prvního centrálního momentu, tka druhého necentrálního momentu, aby bral v úvahu poèáteèní inicializaci. ADAM je jedním z nejrobustnìjším optimalizaèních algoritmù pro deep learning, ale obèas vyaduje zmìnu poèáteèního learning ratu oproti doporuèenım hodnotám.
-
-pøedbìnı update
-$$
-\tilde{\theta} \leftarrow \theta + \alpha v
-$$
-
-vıpoèet gradientu
-$$
-g \leftarrow \dfrac{1}{m} \nabla_{\tilde{\theta}} \sum_{i} L(f(x^{(i)};\tilde{\theta}), y^{(i)})
-$$
-
-akumulace gradientu
-$$
-r \leftarrow \rho r + (1-\rho) g \odot g
-$$
-
-vıpoèet updatu rychlosti/velocity
-$$
-v \leftarrow \alpha v - \dfrac{\epsilon}{\sqrt{r}} \odot g
-$$
-
-aplikace updatu
-$$
-\theta \leftarrow \theta + v
-$$
-
-DEEP LEARNING, str. xyz
 
 \section{Kapacita modelu, underfitting a overfitting}
 Základní vlastností kadého modelu ve strojovém uèení by mìla bıt generalizace. To znamená, e model musí správnì predikovat i vìtšinu novıch, døíve nevidìnıch pozorování a nejen ta pozorování, na kterıch byl natrénován. Pøi trénování modelu tedy rozdìlíme datovou sadu na tøi: trénovací, validaèní a testovací. Cílem je, abychom po natrénovaní modelu dostali obdobnou trénovací, validaèní i testovací chybu. Pøi rozdìlení datové sady pøedpokládáme, e jednotlivá pozorování jsou navzájem nezávislá a všechny tøi sady podléhají stejnému rozloení. Kvalitní model by tedy mìl splòovat tyto vlastnosti:
