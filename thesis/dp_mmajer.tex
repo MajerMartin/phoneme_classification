@@ -154,16 +154,16 @@ mají mnoho mìlkıch lokálních minim nebo v pøípadech, kdy jsou gradienty znaènì z
 
 Tento algoritmus zavádí parametr $ \alpha $, kterı udává, jakou rychlostí mají bıt minulé gradienty zapomínány. Pravidlo pro zmìnu parametrù pak vypadá následovnì
 \begin{align}
-v &\leftarrow \alpha v - \epsilon \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{m} \sum_{i=1}^{m} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta}), \boldsymbol{y}^{(i)}) \right), \\
-\boldsymbol{\theta} &\leftarrow \boldsymbol{\theta} + v.
+\boldsymbol{v} &\leftarrow \alpha \boldsymbol{v} - \epsilon \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{m} \sum_{i=1}^{m} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta}), \boldsymbol{y}^{(i)}) \right), \\
+\boldsymbol{\theta} &\leftarrow \boldsymbol{\theta} + \boldsymbol{v}.
 \end{align}
-Promìnná $ v $ akumuluje prvky gradientu $ \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{m} \sum_{i=1}^{m} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta}), \boldsymbol{y}^{(i)}) \right) $ s tím, e èím vìtší je parametr $ \alpha $ vùèi konstantì uèení $ \epsilon $, tím více minulé gradienty ovlivòují aktuální smìr kroku. Stejnì jako u konstanty uèení, i parametr $ \alpha $ mùe bıt mìnen v závislosti na èase. Vìtšinou je jako poèáteèní hodnota zvolena 0.5 a je navyšována a na 0.99 \cite{dl, karpathy, ruder}.
+Promìnná $ \boldsymbol{v} $ akumuluje prvky gradientu $ \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{m} \sum_{i=1}^{m} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta}), \boldsymbol{y}^{(i)}) \right) $ s tím, e èím vìtší je parametr $ \alpha $ vùèi konstantì uèení $ \epsilon $, tím více minulé gradienty ovlivòují aktuální smìr kroku. Stejnì jako u konstanty uèení, i parametr $ \alpha $ mùe bıt mìnen v závislosti na èase. Vìtšinou je jako poèáteèní hodnota zvolena 0.5 a je navyšována a na 0.99 \cite{dl, karpathy, ruder}.
 
 \subsubsection{Nesterovùv moment}
 Dalším variantou je Nesterovùv moment, kterı dále rozšiøuje algoritmus momentu. Pravidlo pro zmìnu parametrù se zmìní na
 \begin{align}
-v &\leftarrow \alpha v - \epsilon \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{m} \sum_{i=1}^{m} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta} + \alpha v), \boldsymbol{y}^{(i)}) \right), \\
-\boldsymbol{\theta} &\leftarrow \boldsymbol{\theta} + v,
+\boldsymbol{v} &\leftarrow \alpha \boldsymbol{v} - \epsilon \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{m} \sum_{i=1}^{m} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta} + \alpha \boldsymbol{v}), \boldsymbol{y}^{(i)}) \right), \\
+\boldsymbol{\theta} &\leftarrow \boldsymbol{\theta} + \boldsymbol{v},
 \end{align}
 kde parametry $ \alpha $ a $ \epsilon $ odpovídají stejnım parametrùm jako u algoritmu momentu. Hlavním rozdílem oproti algoritmu momentu je, e gradient je vyhodnocen a po aplikaci minulıch gradientù. Nejprve je tedy proveden krok ve smìru akumulovanıch minulıch gradientù a následnì je provedena korekce \cite{dl, karpathy, ruder, nesterov}.
 
@@ -258,36 +258,82 @@ softmax(\boldsymbol{z}(\boldsymbol{x} ; \boldsymbol{\theta}))_{i} \approx \dfrac
 \end{equation}
 
 \subsubsection{Skryté jednotky}
-Jak název napovídá, skryté jednotky jsou jednotky skryté vrstvy, jejich vstupem je vektor $ \boldsymbol{x} $, kterı je transformován na $ \boldsymbol{z} = \boldsymbol{W}^{\top} \boldsymbol{x} + \boldsymbol{b} $. Na takto transformovanı vstup je pak po prvcích aplikována nelineární aktivaèní funkce  $ g(\boldsymbol{z}) $. Volba aktivaèních funkcí skrytıch vrstev vyaduje mnoho experimentù a vyhodnocení pøesnosti modelu na validaèní datové sadì. V dnešní dobì se pro dopøedné neuronové sítì vìtšinou volí jednotky s aktivaèní funkcí RELU (z anglického "rectified linear unit") èi její modifikace, pro sítì rekurentní jsou pak voleny funkce hyperbolickı tangens a hard sigmoid.
+Jak název napovídá, skryté jednotky jsou jednotky skryté vrstvy, jejich vstupem je vektor $ \boldsymbol{x} $, kterı je transformován na $ \boldsymbol{z} = \boldsymbol{W}^{\top} \boldsymbol{x} + \boldsymbol{b} $. Na takto transformovanı vstup je pak po prvcích aplikována nelineární aktivaèní funkce  $ g(\boldsymbol{z}) $. Volba aktivaèních funkcí skrytıch vrstev vyaduje mnoho experimentù a vyhodnocení pøesnosti modelu na validaèní datové sadì. V dnešní dobì se pro dopøedné neuronové sítì vìtšinou volí jednotky s aktivaèní funkcí ReLU (z anglického "rectified linear unit") èi její modifikace, pro sítì rekurentní jsou pak voleny funkce hyperbolickı tangens a hard sigmoid.
 \begin{itemize}
-\item \textbf{RELU} - tyto jednotky vyuívají aktivaèní funkcí $ g(\boldsymbol{z}) = \max\{0, \boldsymbol{z}\} $. Jedná se tedy o lineární jednotky s prahem v bodì nula - levá polovina jejich definièního je rovna nule. To zaruèuje rychlı vıpoèet a vysokou hodnotu gradientu, kdykoliv je jednotka aktivní. Zásadním nedostatkem je, e tyto jednotky se pomocí gradientních metod nemohou uèit z pozorování, které mají aktivaèní hodnotu rovnou nule. Existuje proto nìkolik modifikací, které zajistí, e jednotky budou mít gradient všude (napø. Leaky RELU, PRELU, Maxout).
+\item \textbf{ReLU} - tyto jednotky vyuívají aktivaèní funkci $ g(\boldsymbol{z}) = \max\{0, \boldsymbol{z}\} $. Jedná se tedy o lineární jednotky s prahem v bodì nula - levá polovina jejich definièního je rovna nule. To zaruèuje rychlı vıpoèet a vysokou hodnotu gradientu, kdykoliv je jednotka aktivní. Zásadním nedostatkem je, e tyto jednotky se pomocí gradientních metod nemohou uèit z pozorování, které mají aktivaèní hodnotu rovnou nule. Existuje proto nìkolik modifikací, které zajistí, e jednotky budou mít gradient všude (napø. Leaky ReLU, PReLU, Maxout).
 \item \textbf{sigmoid} a \textbf{tanh} - tyto jednotky vyuívají logistickou funkci (sigmoid) $ g(\boldsymbol{z}) = \sigma (\boldsymbol{z}) $, resp. hyperbolickı tangens $ \tanh (\boldsymbol{z}) = 2\sigma (2\boldsymbol{z}) - 1 $. Hlavním nedostatkem sigmoidální funkce je její citlivost a náchylnost k saturaci, kdy mùe dojít k tzv. explozi èi vymizení gradientu a sí nebude schopná se uèit.
 \item \textbf{hard sigmoid} - tyto jednotky vyuívají aktivaèní funkci $ g(\boldsymbol{z}) = \max(0, \min(1, \frac{\boldsymbol{z} + 1}{2}) $. Jedná se o lineární aproximaci funkce sigmoid a díky své vıpoèetní nenároènosti jsou vyuívány v sítích typu LSTM \cite{dl, karpathy}.
 \end{itemize}
 
 \subsubsection{Algoritmus zpìtného šíøení}
+Dopøedná neuronová sí pøijme na vstupu poèáteèní informaci o pozorování $ \boldsymbol{x} $, kterou poté šíøí skrz skryté jednotky ve všech skrytıch vrstvách a k vıstupní vrstvì, která vygeneruje odhad $ \hat{\boldsymbol{y}} $. Informaèní tok tedy proudí skrz sí smìrem dopøedu a tomuto procesu se øíká dopøedné šíøení. V trénovací fázi probíhá dopøedné šíøení tak dlouho, dokud není vygenerována skalární cena $ J(\boldsymbol{\theta}) $. Algoritmus zpìtného šíøení (anglicky backpropagation) pak umoní zpìtnı tok informace od ceny skrz sí za úèelem vıpoètu gradientu.
+
+Analytickı vıpoèet gradientu je pomìrnì pøímoèarı, nicménì numericky mùe bıt velice nároènı. Algoritmus zpìtného šíøení provádí vıpoèet gradientu $ \nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) $ pomocí jednoduché a vıpoèetnì nenároèné procedury. Takto vypoètenı gradient je pak vyuit pøi uèení pomocí gradientních metod \cite{dl, karpathy}.
+
+Algoritmus zpìtného šíøení vyuívá k vıpoètu gradientu øetìzové pravidlo. Øetìzové pravidlo se bìnì vyuívá k vıpoètu derivací sloenıch funkcí, které jsou sloeny z funkcí, jejich derivace jsou známé. Mìjme reálné èíslo $ x $ a funkce $ f : \mathbb{R} \mapsto \mathbb{R} $ a $ g: \mathbb{R} \mapsto \mathbb{R} $. Dále pøedpokládejme, e $ y = g(x) $ a $ z = f(g(x)) = f(y) $. Øetìzové pravidlo je pak dáno jako
+\begin{equation}
+\dfrac{dz}{dx} = \dfrac{dz}{dy}\dfrac{dy}{dx}.
+\end{equation}
+Toto pravidlo lze snadno rozšíøit ze skalárního pøípadu. Pøedpokládejme, e $ \boldsymbol{x} \in \mathbb{R}^{n} $, $ \boldsymbol{y} \in \mathbb{R}^{n}  $, $ g: \mathbb{R}^{m} \mapsto \mathbb{R}^{n} $ a $ f : \mathbb{R}^{n} \mapsto \mathbb{R} $. Pokud  $ \boldsymbol{y} = g(\boldsymbol{x}) $ a $ \boldsymbol{z} =  f(\boldsymbol{y}) $, pak
+\begin{equation}\label{eq:chain}
+\dfrac{\partial \boldsymbol{z}}{\partial \boldsymbol{x}_{i}} = \sum_{j} \dfrac{\partial \boldsymbol{z}}{\partial \boldsymbol{y}_{j}} \dfrac{\partial \boldsymbol{y}_{j}}{\partial \boldsymbol{x}_{i}}
+\end{equation}
+Zapíšeme-li rovnici \eqref{eq:chain} vektorovì, získáme tvar
+\begin{equation}
+\nabla_{\boldsymbol{x}} \boldsymbol{z} = \left( \dfrac{\partial \boldsymbol{y}}{\partial \boldsymbol{x}} \right)^{\top} \nabla_{\boldsymbol{y}} \boldsymbol{z},
+\end{equation}
+kde $ \dfrac{\partial \boldsymbol{y}}{\partial \boldsymbol{x}} \in \mathbb{R}^{n \times m} $ je Jakobián $ \boldsymbol{x} $.
+Toto pravidlo lze dále snadno rozšíøit i na tensory, jen jsou v neuronovıch sítích èasto vyuívány (podrobnìji v \cite{dl, chain}).
+
+Pøedpokládejme sí o hloubce $ l $, kde kadé vrstvì náleí váhová matice $ \boldsymbol{W}^{(i)} $, $ i \in \{ 1, \ldots, l \} $ a prahovı vektor $ \boldsymbol{b}^{(i)} $. Ztrátová funkce $ L(\boldsymbol{y}, \hat{\boldsymbol{y}}) $ závisí na skuteèné hodnotì $ \boldsymbol{y} $ a na vıstupu sítì $ \boldsymbol{\hat{y}} $, kterı sí vygeneruje pro vstup $ \boldsymbol{x} $. Celková cena $ J $ pro zjednodušení odpovídá pøímo ztrátové funkci $ L $ a neobsahuje ádnou regularizaèní sloku.
+\\[12pt]
+\begin{algorithm}[H]
+\setstretch{1.25}
+$ \boldsymbol{h}^{(0)} = \boldsymbol{x} $ \\
+\For{$ k = 1,\ldots,l $}{
+	$ \boldsymbol{a}^{(k)} = \boldsymbol{W}^{(k)} \boldsymbol{h}^{(k-1)} + \boldsymbol{b}^{(k)}  $ \\
+	$ \boldsymbol{h}^{(k)} = f(\boldsymbol{a}^{(k)}) $
+}
+$ \hat{\boldsymbol{y}} = \boldsymbol{h}^{(l)} $ \\
+$ J = L(\boldsymbol{y}, \hat{\boldsymbol{y}}) $
+\end{algorithm}
+\begin{center}
+Algoritmus 2: Dopøedné šíøení.
+\end{center}
+
+Pøi zpìtném prùchodu jsou poèítány gradienty aktivací $ \boldsymbol{a}^{(k)} $ pro kadou vrstvu $ k $ poèínaje vıstupní vrstvou a k první skryté vrstvì. Tyto gradienty indikují, jak by se mìly zmìnit vıstupy jednotlivıch vrstev, aby došlo ke sníení chyby. Spoètené gradienty vah a prahù mohou bıt rovnou vyuity pro zmìnu parametrù pomocí optimalizaèního algoritmu \cite{dl}.
+\\[12pt]
+\begin{algorithm}[H]
+\setstretch{1.25}
+vıpoèet gradientu vıstupní vrstvy (po dopøedném prùchodu sítì) \\
+$ g \leftarrow \nabla_{\hat{\boldsymbol{y}}} J = \nabla_{\hat{\boldsymbol{y}}} L (\boldsymbol{y}, \hat{\boldsymbol{y}}) $ \\
+\For{$ k = l, l-1, \ldots, 1 $}{
+	pøevedení gradientu do tvaru pøed aplikací nelineární aktivaèní funkce \\
+	$ g \leftarrow \nabla_{\boldsymbol{a}^{(k)}} J = g \odot f'(\boldsymbol{a}^{(k)}) $ \\
+	vıpoèet gradientù prahovıch vektorù a váhovıch matic \\
+	$ \nabla_{\boldsymbol{b}^{(k)}} J = g $ \\
+	$ \nabla_{\boldsymbol{W}^{(k)}} J = g \boldsymbol{h}^{(k-1)\top} $ \\
+	šíøení gradientu do niší vrstvy \\
+	$ g \leftarrow \nabla_{\boldsymbol{h}^{(k-1)}} J = \boldsymbol{W}^{(k)\top} g $
+}
+\end{algorithm}
+\begin{center}
+Algoritmus 3: Zpìtné šíøení.
+\end{center}
+
+\subsection{Rekurentní neuronové sítì}
 
 
-
-
-..
-
-..
-
-..
-
-..
-
-..
-
-
-Návrh a trénování neuronové sítì není nijak rozdílnı od ostatní algoritmù strojového uèení zaloenıch na gradientním sestupu. Nejvìtší rozdíl mezi takovımi algoritmy a neuronovımi sítìmi je, e nelinearita neuronové sítì mùe zpùsobit, e ztrátová funkce se stane nekonvexní. To znamenám, e neuronové sítì jsou vìtšinou trénovány pomocí iterativních optimalizaèních technik, které cost function dostanou na nízkou hodnotu místo toho, aby zajistili globální konvergenci jako napø. u logistické regrese nebo SVM. KOnvexní optimalizace konverguje z libovolnıch poèáteèních parametrù. Stochastickı gradientní sestup aplikovanı na nekonvexní loss function negarantuje konvergenci a je citlivı na hodnoty poèáteèní parametrù. Pro dopøedné neuronové sítì je dùleité incializovat všechny váhy nmalımi náhodnımi èísly. Biasy mohou bıt inicviálzovany nulou èi velmi malou klasdnou hodnotu. V následující kapitole si odvodíme algoritmus, kterım lze spoèítat gradient pro neuronové sítì - backpropagation. Srtejnì jako u ostatních modelù zaloenıch na gradientu i zde musíme definovat cost function a vhodnì reprezentovat vıstup modelu.
+\subsubsection{Algoritmus zpìtného šíøení èasem}
+\subsubsection{Obousmìrné rekurentní neuronové sítì}
+\subsubsection{LSTM}
+\subsubsection{GRU}
 
 \newpage
 \section{Kapacita modelu}
 
 \newpage
-\section{Connectionist temporal classification}
+\section{CTC}
 
 % PRAKTICKÁ ÈÁST
 \newpage
@@ -339,76 +385,6 @@ Návrh a trénování neuronové sítì není nijak rozdílnı od ostatní algoritmù strojo
 \section{Neuronové sítì}
 
 
-\subsubsection{Backpropagation}
-Kdy vyuíváme dopøednou neuronovou sí, která na vstupu pøijme $ x $ a na vıstupu vyprodukuje  $ \hat{y} $, informace/informaèní tok proudí skrz sí dopøedu (proto dopøedná sí). Vstup $ x $ dává síti poèáteèní informaci, která je poté propagována do skrytıch jednotek ve všech vrstvách a k vıstupní vrstvì, která vyprodukuje $ \hat{y} $. Tomuto procesu se øíká dopøedná propagace. Bìhem trénování probíhá dopøedná proapgace dokud nevyprodukuje skalární cost $ J(\theta) $. Algoritmus zpìtného šíøení (backpropagation) pak umoní zpìtnı tok informace od cost/ceny skrz sí za úèelem vıpoètu gradientu.
-
-Analytickı vıpoèet gradientu je pomìrnì pøímoèarı, nicménì numericky mùe bıt vıpoèetnì velmi nároènı. Algoritmus zpìtného šíøení vıpoèet gradientu provádí pomocí jednoduché a vıpoèetnì nenároèené procedury.
-
-Velmi èasto je algoritmus zpìtného šíøení povaován za celı uèící algoritmus vícevrstvıch neuronovıch sítí. Jedná se ovšem pouze o efektivní metodu vıpoètu gradientu a samotné uèení obstarává jinı optimalziaèní gradient (napø. SGD), kterı vyuívá gradient spoèítanı metodou zpìtného šíøení. Nyní se budeme zabıvat tím, jak pomocí tohoto algoritmu spoèítat gradient $ \nabla_{x}f(x,y) $ pro libovolnou funkci, kde $ x $ je soubor promìnnıch, jejich gradient chceme spoèítat a $ y $ je soubor promìnnıch, je jsou vstupem funkce, ale pro nì nevyadujeme vıpoèet gradientu. V uèících algoritmech jako je neuronová sí vìtšinou poèítáme gradient cenové funkce (cost function) with regard to parameters, $ \nabla_{\theta} J(\theta) $.
-
-\textbf{øetìzové pravidlo}
-
-Øetìzové pravidlo se bìnì vyuívá k vıpoètù derivací sloenıch funkcí, které jsou sloeny z funkcí, jejich derivace jsou známé. Algoritmus zpìtného šíøení je algoritmus, tkerı poèítá øetìzové pravidlo v pøesnì daném sledu operací tak, aby byl co nejvıkonnìjší.
-
-Mìjmì reálné èíslo $ x $ a funkce $ f $ a $ g $, které zobrazují reálné èíslo na reálné èíslo. Dáke pøedpokládejme, e $ y = g(x) $ a $ z = f(g(x)) = f(y) $. Pak øetìzové pravidlo øíká, e 
-$$
-\dfrac{dz}{dx} = \dfrac{dz}{dy}\dfrac{dy}{dx}.
-$$
-Toto pravidlo mùeme rozšíøit ze skalárního pøípadu. pøedpokládejme, e $ x \in \mathbb{R}^{n}, y \in \mathbb{R}^{n}  $, $ g $ zobrazuje $ \mathbb{R}^{m} $ na $ \mathbb{R}^{n} $ a $ f $ je zobrazení z $ \mathbb{R}^{n} $ do $ \mathbb{R} $. Pokud  $ y = g(x) $ a $ z =  f(y) $, pak
-$$
-\dfrac{\partial z}{\partial x_{i}} = \sum_{j} \dfrac{\partial z}{\partial y_{j}} \dfrac{\partial y_{j}}{\partial x_{i}}
-$$
-Zapíšeme-li rovnici (odkaz) vektorovì, získáme tvar
-$$
-\nabla_{x}z = \left( \dfrac{\partial y}{\partial x} \right)^{T} \nabla_{y} z.
-$$,
-kde $ \dfrac{\partial y}{\partial x} $ je $ n \times m $ je Jakobián (Jacobian matrix) $ x $. V tomto tvaru øetìzové pravidla vidíme, e gradient promìnné $ x $ lze snadno získat vynásobením Jakobiánu $ \dfrac{\partial y}{\partial x} $ gradientem $ \nabla_{y} z $.
-
-Toto pravidlo lze dále snadno rozšíøit i na tensory, jen jsou v neuronovıch sítích velice èasto pouívány. 
-
-\textbf{dopøedné a zpìtné šíøení pro MLP}
-
-Uveïmì si nyní pøíklad dopøedného a zpìtného šíøení v dopøedné neuronové síti. Pøedpokládejme sí o hloubce $ l $, kde kadé vrstvì náleí váhová matice $ \textbf{W}^{(i)}, i \in \{ 1, \ldots, l \} $ a parametr bias $ b^{(i)}, i \in \{ 1, \ldots, l \} $. Loss function $ L(y, \hat{y}) $ závisí na targetu $ y $ a vıstupu sítì $ \hat{y} $, která sí vyprodukuje, pokud dostane na vstupu $ x $. Celková cena $ J $ pro zjednodušení neobsahu ádnou regularizaèní sloku a odpovídá zrtrátové funcki $ L $.
-
-\begin{algorithm}[H]
-\setstretch{1.25}
-$ h^{(0)} = x $ \\
-\For{$ k = 1,\ldots,l $}{
-	a .. aktivaèní hodnota (TODO) \\
-	$ a^{(k)} = b^{(k)} + W^{(k)}h^{(k-1)} $ \\
-	$ h^{(k)} = f(a^{(k)}) $
-}
-$ \hat{y} = h^{(l)} $ \\
-$ J = L(y, \hat{y}) $
-\end{algorithm}
-\begin{center}
-Algoritmus 1: Dopøedné šíøení.
-\end{center}
-
-Pøi zpìtném prùchodu jsou poèítány gradienty aktivací $ a^{(k)} $ pro kadou vrstvu $ k $ poèínaje vıstupní vrstvou a k první skryté vrstvì. Tyto gradienty mohou bıt interpretovány jako indikátor, jak by se mìl vıstup vrstvy zmìnit, aby sníil chybu. Gradienty vah a biasù mohou bıt rovnou vyuity pro optimalizace jako souèást stochastic grad. updatu (provedení zmìny parametrù hned po vıpoètu gradinetù) popø. mohou bıt vyuity pozdìji pro jinou optimalizaèní metodu zalouenou na gradientu.
-
-\begin{algorithm}[H]
-\setstretch{1.25}
-vıpoèet gradientu vıstupní vrstvy (po dopøedné prùchodu sítì) \\
-$ g \leftarrow \nabla_{\hat{y}} J = \nabla_{\hat{y}} L (y, \hat{y}) $ \\
-\For{$ k = l, l-1, \ldots, 1 $}{
-	zkonvertování gradientu na vıstupu vrstvy do gradientu pøed aplikací nelinární aktivace \\
-	$ g \leftarrow \nabla_{a^{(k)}} J = g \odot f'(a^{(k)}) $ \\
-	vıpoèet gradientù vah a biasu \\
-	$ \nabla_{b^{(k)}} J = g $ \\
-	$ \nabla_{W^{(k)}} J = g h^{(k-1)\top} $ \\
-	propagace/šíøení gradientu wrt aktivaci skryté vrstvy o úroveò níe \\
-	$ g \leftarrow \nabla_{h^{(k-1)}} J = W^{(k)\top} g $
-	
-}
-\end{algorithm}
-\begin{center}
-Algoritmus 2: Zpìtné šíøení.
-\end{center}
-
-TODO: ztuènit $ \boldsymbol{x}^\top $, y,W,b,g hat(y)?
-
-DEEP LEARNING
 
 \subsection{Rekurentní neuronové sítì}
 Rekurentní neuronové sítì (dále RNN) jsou typem neuronovıch sítí, která umí zpracovávat sekvenèní data, tj. sekevenci hodnot $ x^{(1)}, \ldots , x^{(\tau)} $. Abychom mohli od vícevrstvıch sítí pøejít k rekurentním, musíme vyuít principu z ranıch let strojového uèení a statistického modelování z 80. let: sdílení parametrù mezi rùznımi èástmi modelu. Sdílení parametrù umoní rozšíøit a aplikovat model na rùzné tvary pozorování (forms, v tomto pøípadì rùzné délky) a generalizovat mezi nimi. Kdybych mìli samostatné parametry pro kadou hodnotu v kadém èasové bodì (time index), nemohli bychom generalizovat na délky sekvencí, které nebyly vidìny bìhem trénovácí fázi a také bychom nemohli sdílet statistickou sílu (statistical strength) napøíè rùznımi délkami sekvencí a napøíè rùznımi pozicemi v èase. Toto sdílení je zejména dùleité v pøípadech, kdy specifická informace mùe nastat na více pozicích v sekvenci (napø. stejné datum na rùznıch pozicích ve vìtì).
