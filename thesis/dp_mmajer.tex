@@ -322,15 +322,219 @@ Algoritmus 3: Zpìtné šíøení.
 \end{center}
 
 \subsection{Rekurentní neuronové sítì}
+Rekurentní neuronové sítì (dále jen RNN z anglického "recurrent neural networks") jsou typem neuronovıch sítí, které umí zpracovávat sekvenèní data, tj. sekvenci hodnot $ \boldsymbol{x}^{(1)}, \ldots , \boldsymbol{x}^{(\tau)} $, a pøedávat si informace mezi jednotlivımi èasovımi kroky. Základním rozdílem oproti dopøednım neuronovım sítím je zavedení zpìtné smyèky a vyuití sdílení parametrù. RNN tedy netrénuje pro kadı èasovı krok samostatnı soubor parametrù, ale tyto parametry jsou sdíleny pøes všechny prvky sekvence. Díky tomu jsou RNN schopny generalizovat na rùzné délky sekvencí a na rùzné pozice dùleitıch informací v èase (napø. dvì témìø stejné vìty, kde jedna obsahuje datum na zaèátku vìty a druhá na konci).
 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{rnn_general.png}
+    \caption{Schéma rekurentní neuronové sítì. Pøevzato z \cite{colahNN}.}
+    \label{fig:rnn_general}
+\end{figure}
+
+Sdílení parametrù je zajištìno "rozvinutím" rekurentního vıpoètu do grafu s opakující se strukturou. Prvek sekvence v kadém èasovém kroku je tedy zpracováván stejnou sítí. Pro jednoduchost pøedpokládejme, e RNN pracuje se sekvencí obsahující vektory $ \boldsymbol{x}^{(t)} $, $ t = 1, \ldots, \tau $ a model je ve tvaru
+\begin{equation}\label{eq:unfold}
+\boldsymbol{s}^{(t)} = f(\boldsymbol{s}^{(t-1)}; \boldsymbol{\theta}),
+\end{equation}
+kde $ \boldsymbol{s} $ je stav systému. Tento rekurzivní vztah je moné pro koneènı poèet krokù $ \tau $ rozvinout $ \tau $-krát. Napøíklad pro model danı vztahem \eqref{eq:unfold} a $ \tau = 3 $ získáme
+\begin{equation}
+\boldsymbol{s}^{(3)} = f(\boldsymbol{s}^{(2)}; \boldsymbol{\theta}) = f(f(\boldsymbol{s}^{(1)}; \boldsymbol{\theta}); \boldsymbol{\theta}).
+\end{equation}
+Tímto rozvinutím zajistíme, e vztah neobsahuje ádnou rekurenci a je moné ho reprezentovat jako acyklickı orientovanı graf \cite{dl, colahLSTM}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{rnn_unrolled.png}
+	\caption{Ilustrace rozvinutí rekurentní neuronové sítì. Pøevzato z \cite{colahLSTM}.}
+    \label{fig:rnn_unrolled}
+\end{figure}
+
+Základní rovnici RNN získáme pøidáním závislosti na externím vstupu  $ \boldsymbol{x}^{(t)} $
+\begin{equation}
+\boldsymbol{h}^{(t)} = f(\boldsymbol{h}^{(t-1)}, \boldsymbol{x}^{(t)}; \boldsymbol{\theta}),
+\end{equation}
+kde $ \boldsymbol{h} $ je stav skrytıch jednotek. Pøi trénování sítì na danou úlohu se pak sí uèí vyuívat $ \boldsymbol{h}^{(t)} $ jako zobrazení relevantních informací z minulıch èasovıch krokù od vstupu a po $ t $. Toto zobrazení je ztrátové, jeliko se jedná o zobrazení sekvence o promìnné délce $ (\boldsymbol{x}^{(t)}, \boldsymbol{x}^{(t-1)}, \ldots, \boldsymbol{x}^{(2)}, \boldsymbol{x}^{(1)}) $ na vektor pevnì dané délky $ \boldsymbol{h}^{(t)} $.
+
+Definujme si tedy rovnice pro dopøedné šíøení základní RNN s aktivaèní funkcí hyperbolickı tangens ve skryté vrstvì. Sí je urèena ke klasifikaci $ n $ tøíd, kde vıstup $ \boldsymbol{o} $ reprezentuje nenormalizované pravdìpodobnosti jednotlivıch tøíd vıstupní diskrétní promìnné a aplikací operace softmax je pak získán vıslednı vektor $ \hat{\boldsymbol{y}} $ normalizovanıch pravdìpodobností nad vıstupem. Dopøedné šíøení vyaduje specifikaci poèáteèního stavu $ \boldsymbol{h}^{(0)} $, poté jsou pro kadı èasovı krok $ t = 1, \ldots, \tau $ vypoèteny následující rovnice
+\begin{align}
+\boldsymbol{a}^{(t)} &= \boldsymbol{b} + \boldsymbol{W} \boldsymbol{h}^{(t-1)} + \boldsymbol{U} \boldsymbol{x}^{(t)} , \\
+\boldsymbol{h}^{(t)} &= \tanh(\boldsymbol{a}^{(t)}) , \\
+\boldsymbol{o}^{(t)} &= \boldsymbol{c} + \boldsymbol{V} \boldsymbol{h}^{(t)} , \\
+\hat{\boldsymbol{y}}^{(t)} &= \text{softmax}(\boldsymbol{o}^{(t)}) ,
+\end{align}
+kde parametry $ \boldsymbol{b} $ a $ \boldsymbol{c} $ jsou prahové vektory a váhové matice $ \boldsymbol{U} $, $ \boldsymbol{V} $ a $ \boldsymbol{W} $ popoøadì odpovídají skrytım spojením mezi vstupem a skrytou vrstvou, mezi skrytou vrstvou a vıstupem a  mezi skrytou vrstvou a pøedcházející skrytou vrstvou \cite{dl}.
 
 \subsubsection{Algoritmus zpìtného šíøení èasem}
+Pro vıpoèet gradientu RNN se vyuívá algoritmus zpìtného šíøení èasem. Jedná se o generalizovanı algoritmus zpìtného šíøení nad rozvinutım vıpoèetním grafem a jeho èasová nároènost je $ O(\tau) $. Èasovou nároènost tohoto algoritmu není moné sníit paralelizací, jeliko dopøednıch prùchod je sekvenèní a hodnoty v aktuálním èasovém kroku jsou závislé na pøedchozích hodnotách.
+
+Pøedpokládejme reprezentaci rozvinuté RNN ve tvaru acyklického orientovaného grafu, jeho uzly obsahují parametry $ \boldsymbol{U} $, $ \boldsymbol{V} $, $ \boldsymbol{W} $, $ \boldsymbol{b} $, $ \boldsymbol{c} $, a sekvenci uzlù indexovanıch èasem $ t $ pro $ \boldsymbol{x}^{(t)} $, $ \boldsymbol{h}^{(t)} $, $ \boldsymbol{o}^{(t)} $ a $ L^{(t)} $. Pro kadı uzel grafu $ N $ pak potøebujeme rekurzivnì spoèítat gradient $ \nabla_{N} L $ v závislosti na uzlech grafu, které tento uzel následují. Zaèneme tedy rekurzi v uzlu, kterı bezprostøednì pøedchází vıslednou ztrátu $ L $ 
+\begin{align}
+L(\{ \boldsymbol{x}^{(1)}, \ldots, \boldsymbol{x}^{(\tau)}  \}, \{ \boldsymbol{y}^{(1)}, \ldots, \boldsymbol{y}^{(\tau)} \}) &= - \sum_{t} \log_{p_{model}} \left( \boldsymbol{y}^{(t)} \mid \{ \boldsymbol{x}^{(1)}, \ldots, \boldsymbol{x}^{(t)} \}  \right) , \\
+&\dfrac{\partial L}{\partial L^{(t)}} = 1.
+\end{align}
+Pro vıpoèet gradient $ \nabla_{\boldsymbol{o}^{(t)}} L $ nad všemi vıstupy v èase $ t $ pro všechna $ i, t $ je opìt vyuito øetìzové pravidlo
+\begin{equation}
+(\nabla_{\boldsymbol{o}^{(t)}} L)_{i} = \dfrac{\partial L}{\partial \boldsymbol{o}_{i}^{(t)}} = \dfrac{\partial L}{\partial L^{(t)}} \dfrac{\partial L^{(t)}}{\partial \boldsymbol{o}_{i}^{(t)}} = \hat{\boldsymbol{y}}_{i}^{(t)} - \boldsymbol{1}_{i, \boldsymbol{y}^{(t)}}.
+\end{equation}
+Vıpoèet gradientu dále pokraèuje pøes další uzly poèínaje koncem sekvence. V koneèném èasovém kroku $ \tau $ má $ \boldsymbol{h}^{(\tau)} $ za následníka pouze $ \boldsymbol{o}^{(\tau)} $, tedy
+\begin{equation}
+\nabla_{\boldsymbol{h}^{(\tau)}} L = \boldsymbol{V}^{\top} \nabla_{\boldsymbol{o}^{(\tau)}} L.
+\end{equation}
+Gradient se dál šíøí od $ t = \tau - 1 $ a k $ t = 1 $ s tím, e $ \boldsymbol{h}^{(t)} $ (pro $ t < \tau $) má jako své pøedchùdce $ \boldsymbol{o}^{(t)} $ a $ \boldsymbol{h}^{(t+1)} $. Gradient skryté vrstvy je pak
+\begin{align}
+\nabla_{\boldsymbol{h}^{(t)}} L &= \left( \dfrac{\partial \boldsymbol{h}^{(t+1)}}{\partial \boldsymbol{h}^{(t)}}  \right)^{\top} (\nabla_{\boldsymbol{h}^{(t+1)}} L) + \left( \dfrac{\partial \boldsymbol{o}^{(t)}}{\partial \boldsymbol{h}^{(t)}}  \right)^{\top} ( \nabla_{\boldsymbol{o}^{(t)}} L ) \notag \\
+&= \boldsymbol{W}^{\top} (\nabla_{\boldsymbol{h}^{(t+1)}} L) \text{ diag} \left(  1 - (\boldsymbol{h}^{(t+1)})^{2} \right) + \boldsymbol{V}^{\top} (\nabla_{\boldsymbol{o}}^{(t)} L),
+\end{align}
+kde $  \text{diag} \left(  1 - (\boldsymbol{h}^{(t+1)})^{2} \right) $ je Jakobián hyperbolického tangensu pro skryté jednotky $ i $ v èase $ t+1 $. Na základì gradientù skrytıch stavù lze dopoèítat gradienty parametrù. Vzhledem k tomu, e parametry jsou sdíleny mezi jednotlivımi èasovımi kroky, zavedem nové promìnné $ \boldsymbol{W}^{(t)} $, resp. $ \boldsymbol{U}^{(t)} $, které jsou kopiemi váhovıch matic $ \boldsymbol{W} $, resp. $ \boldsymbol{U} $ a znaèí, jakou mírou tyto váhy pøispívají ke gradienty v èase $ t $ \cite{dl}.
+\begin{align}
+\nabla_{\boldsymbol{c}} L &= \sum_{t} \left( \dfrac{\partial \boldsymbol{o}^{(t)}}{\partial \boldsymbol{c}} \right)^{\top} \nabla_{\boldsymbol{o}^{(t)}} L = \sum_{t} \nabla_{\boldsymbol{o}^{(t)}} L  \\
+\nabla_{\boldsymbol{b}} L &= \sum_{t} \left( \dfrac{\partial \boldsymbol{h}^{(t)}}{\partial \boldsymbol{b}^{(t)}} \right)^{\top} \nabla_{\boldsymbol{h}^{(t)}} L = \sum_{t} \text{ diag} \left( 1 - (\boldsymbol{h}^{(t)})^{2} \right)  \nabla_{\boldsymbol{h}^{(t)}} L \\
+\nabla_{\boldsymbol{V}} L &= \sum_{t} \sum_{t} \left( \dfrac{\partial L}{\partial \boldsymbol{o}_{i}^{(t)}} \right) \nabla_{\boldsymbol{V}} \boldsymbol{o}_{i}^{(t)} = \sum_{t} (\nabla_{\boldsymbol{o}^{(t)}} L) \boldsymbol{h}^{(t)\top} \\
+\nabla_{\boldsymbol{W}} L &= \sum_{t} \sum_{t} \left( \dfrac{\partial L}{\partial \boldsymbol{h}_{i}^{(t)}} \right) \nabla_{\boldsymbol{W}^{(t)}} \boldsymbol{h}_{i}^{(t)} = \sum_{t} \text{ diag} \left( 1 - (\boldsymbol{h}^{(t)})^{2} \right) (\nabla_{\boldsymbol{h}}^{(t)} L) \boldsymbol{h}^{(t-1)\top} \\
+\nabla_{\boldsymbol{U}} L &= \sum_{t} \sum_{t} \left( \dfrac{\partial L}{\partial \boldsymbol{h}_{i}^{(t)}} \right) \nabla_{\boldsymbol{u}^{(t)}} \boldsymbol{h}_{i}^{(t)} = \sum_{t} \text{ diag} \left( 1 - (\boldsymbol{h}^{(t)})^{2} \right) (\nabla_{\boldsymbol{h}^{(t)}} L) \boldsymbol{x}^{(t)\top} 
+\end{align}
+
 \subsubsection{Obousmìrné rekurentní neuronové sítì}
+Rekurentní neuronové sítì zachycují do stavu v èase $ t $ pouze informaci z minulosti, tj. informace ze vstupù $ \boldsymbol{x}^{(1)}, \ldots, \boldsymbol{x}^{(t-1)} $ a aktuálního vstupu $ \boldsymbol{x}^{(t)} $. V mnoha úlohách ovšem mùe správná predikce $ \boldsymbol{y}^{(t)} $ záviset i na budoucích vstupech èi na celé sekvenci. Tento problém øeší obousmìrná rekurentní neuronová sí (dále BRNN z anglického "bidirectional recurrent neural network").
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{rnn_bidirectional.png}
+    \caption{Schéma obousmìrné rekurentní neuronové sítì. Pøevzato z \cite{colahNN}.}    
+    \label{fig:rnn_bidirectional}
+\end{figure}
+
+BRNN kombinuje dvì RNN, kde jedna sí se pohybuje v èase kupøedu od zaèátku sekvence, zatímco druhá se pohybuje v èase zpìt od konce sekvence. Tyto dvì sítì mezi sebou sdílí skryté stavy $ \boldsymbol{h}^{(t)} $ (sí dopøedná) a $ \boldsymbol{g}^{(t)} $ (sí zpìtná), co zajistí, e vıstupní jednotky $ \boldsymbol{o}^{(t)} $ jsou závislé jak na minulosti, tak na budoucnosti. Vıstupy skrytıch stavù  $ \boldsymbol{h}^{(t)} $ a  $ \boldsymbol{g}^{(t)} $ nejsou mezi sebou nijak propojeny. Pro vıpoèet gradientù lze opìt vyuít algoritmus zpìtného šíøení èasem dle postupu, kterı je shrnut v algoritmu è. 4 \cite{dl, brnn}.
+\\[12pt]
+\begin{algorithm}[H]
+\setstretch{1.25}
+\For{$ t = 1,  \ldots, \tau $}{
+	dopøedné šíøení dopøednou sítí od $ t = 1 $ do $ t = \tau $ \\
+	dopøedné šíøení zpìtnou sítí od $ t = \tau $ do $ t = 1 $ \\
+	dopøedné šíøení nad vıstupními jednotkami obou sítí \\
+}
+\For{$ t = 1,  \ldots, \tau $}{
+	zpìtné šíøení nad vıstupními jednotkami obou sítí \\
+	zpìtné šíøení dopøednou  sítí od $ t = \tau $ do $ t = 1 $ \\
+	zpìtné šíøení zpìtnou sítí od $ t = 1 $ do $ t = \tau $
+}
+zmìna parametrù
+\end{algorithm}
+\begin{center}
+Algoritmus 4: Postup trénování obousmìrné rekurentní neuronové sítì.
+\end{center}
+
 \subsubsection{LSTM}
+Rekurentní sítì jsou velice náchylné na problém vymizení èi saturace gradientu. K tìmto problémùm dochází zejména pøi modelování dlouhodobıch závislostí, kdy jsou pøi vıpoètu váhy násobeny nìkolikrát samy sebou a v závislosti na jejich øádu mohou nabıvat velmi malıch èi velmi velkıch hodnot. To má pak za následek trvalou deaktivaci nìkterıch neuronù èi neschopnost sítì se uèit. Tento problém øeší sítì LSTM (z anglického "long short-term memory") a jejich modifikace GRU  (z anglického "gated reccurent unit").
+
+LSTM sítì, na rozdíl od bìnıch RNN, nejsou tvoøeny jednotkami, ale buòkami, které kromì vnìjší rekurence obsahují i rekurenci vnitøní (smyèky). Kadá buòka má stejnı vstup a vıstup jako obyèejná rekurentní jednotka, ale má více parametrù díky systému jednotek opatøenıch bránou, které øídí tok informací stavem buòky. Jedná se o vstupní bránu, zapomínací bránu a vıstupní bránu, které urèují, jaké vstupní informace mají bıt vpuštìny do stavu buòky, jaké informace ze stavu buòky odstranit a jaké informace ze stavu buòky mají bıt vypuštìny na její vıstup.
+
+Nejdùleitìjší komponentou LSTM je stavová jednotka $ \boldsymbol{s}_{i}^{(t)} $ (pro buòku $ i $ v èase $ t $), která je opatøena lineární smyèkou. Váha této smyèky je øízena jednotkou se zapomínací bránou $ \boldsymbol{f}_{i}^{(t)} $, která díky aktivaèní funkci sigmoid umoòuje nastavovat tuto váhu na hodnoty mezi 0 a 1
+\begin{equation}
+\boldsymbol{f}_{i}^{(t)} = \sigma \left( \boldsymbol{b}_{i}^{f} + \sum_{j} \boldsymbol{U}_{i,j}^{f} \boldsymbol{x}_{j}^{(t)} + \sum_{j} \boldsymbol{W}_{i,j}^{f} h_{j}^{(t-1)}  \right),
+\end{equation}
+kde $ \boldsymbol{x}^{(t)} $ je vstupní vektor v èase $ t $, $ \boldsymbol{h}^{(t)} $ vektor skryté vrstvy obsahující vıstupy všech LSTM buòek, $ \boldsymbol{b}^{f} $, $ \boldsymbol{U}^{f} $ a $ \boldsymbol{W}^{f} $ jsou popoøadì prahovı vektor, váhová matice vstupu a rekurentní váhová matice zapomínací brány.  Stav buòky se pak øídí pravidlem
+\begin{equation}
+\boldsymbol{s}_{i}^{(t)} = \boldsymbol{f}_{i}^{(t)} \boldsymbol{s}_{i}^{(t-1)} + \boldsymbol{g}_{i}^{(t)} \sigma \left( \boldsymbol{b}_{i} + \sum_{j} \boldsymbol{U}_{i,j} \boldsymbol{x}_{j}^{(t)} + \sum_{j} \boldsymbol{W}_{i,j} \boldsymbol{h}_{j}^{(t-1)}  \right),
+\end{equation}
+kde $ \boldsymbol{b} $, $ \boldsymbol{U} $, $ \boldsymbol{W} $ jsou popoøadì prahovı vektor, váhová matice vstupu a rekurentní váhová matice buòky. Stav buòky je také závislı na jednotce s vstupní bránou $ \boldsymbol{g}_{i}^{(t)} $, která se chová podobnì jako jednotka se zapomínací branou
+\begin{equation}
+\boldsymbol{g}_{i}^{(t)} = \sigma \left( \boldsymbol{b}_{i}^{g} + \sum_{j} \boldsymbol{U}_{i,j}^{g} \boldsymbol{x}_{j}^{(t)} + \sum_{j} \boldsymbol{W}_{i,j}^{g} h_{j}^{(t-1)}  \right),
+\end{equation}
+kde $ \boldsymbol{b}^{g} $, $ \boldsymbol{U}^{g} $ a $ \boldsymbol{W}^{g} $ jsou popoøadì prahovı vektor, váhová matice vstupu a rekurentní váhová matice vstupní brány. Vıstup buòky  $ \boldsymbol{h}_{i}^{(t)} $ je pak øízen pomocí vıstupní brány $ \boldsymbol{q}_{i}^{(t)} $, která opìt øídí propustnost pomocí aktivaèní funkce sigmoid
+\begin{align}
+\boldsymbol{h}_{i}^{(t)} &= \tanh (\boldsymbol{s}_{i}^{(t)}) \boldsymbol{q}_{i}^{(t)}, \\
+\boldsymbol{q}_{i}^{(t)} &= \sigma \left( \boldsymbol{b}_{i}^{o} + \sum_{j} \boldsymbol{U}_{i,j}^{o} \boldsymbol{x}_{j}^{(t)} + \sum_{j} \boldsymbol{W}_{i,j}^{o} \boldsymbol{h}_{j}^{(t-1)}  \right),
+\end{align}
+kde $ \boldsymbol{b}^{o} $, $ \boldsymbol{U}^{o} $ a $ \boldsymbol{W}^{o} $ jsou popoøadì prahovı vektor, váhová matice vstupu a rekurentní váhová matice vıstupní brány \cite{dl, colahLSTM, lstm}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{lstm.png}
+    \caption{Schéma LSTM buòky. Pøevzato z \cite{colahLSTM}.}
+    \label{fig:lstm}
+\end{figure}
+
 \subsubsection{GRU}
+Sítì GRU dále zjednodušují LSTM architekturu ponecháním pouze nezbytnıch komponent. Vıstup buòky a stav buòky je slouèen do jednoho stavu, kterı je øízen jednotkou vzniklou slouèením jednotky s vstupní bránou a zapomínací bránou. Rovnice dopøedného šíøení má tedy tvar
+\begin{equation}
+\boldsymbol{h}_{i}^{(t)} = \boldsymbol{u}_{i}^{(t-1)} \boldsymbol{h}_{i}^{(t-1)} + (1 - \boldsymbol{u}_{i}^{(t-1)}) \sigma \left( \boldsymbol{b}_{i} + \sum_{j} \boldsymbol{U}_{i,j} \boldsymbol{x}_{j}^{(t-1)} + \sum_{j} \boldsymbol{W}_{i,j} r_{j}^{(t-1)} \boldsymbol{h}_{j}^{(t-1)}  \right) ,
+\end{equation}
+kde jednotka $ \boldsymbol{u} $ modifikuje stav buòky
+\begin{equation}
+\boldsymbol{u}_{i}^{(t)} = \sigma \left( \boldsymbol{b}_{i}^{u} + \sum_{j} \boldsymbol{U}_{i,j}^{u} \boldsymbol{x}_{j}^{(t)} + \sum_{j} \boldsymbol{W}_{i,j}^{u} \boldsymbol{h}_{j}^{(t)} \right)
+\end{equation}
+a jednotka $ \boldsymbol{r} $ øídí, které informace stavu budou vyuity pro vıpoèet pøíštího cílového stavu
+\begin{equation}
+\boldsymbol{r}_{i}^{(t)} = \sigma \left( \boldsymbol{b}_{i}^{r} + \sum_{j} \boldsymbol{U}_{i,j}^{r} \boldsymbol{x}_{j}^{(t)} + \sum_{j} \boldsymbol{W}_{i,j}^{r} \boldsymbol{h}_{j}^{(t)} \right ).
+\end{equation}
+Takto definované jednotky s branami umoòují vhodnì vybírat èásti stavového prostoru a uchovávat je ve stavu buòky. Zároveò slouèením vıstupu a stavu buòky dochází k vıznamnému sníení pamìové a vıpoèetní nároènosti \cite{dl, colahLSTM}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.4\textwidth]{gru.png}
+    \caption{Schéma GRU buòky. Pøevzato z \cite{colahLSTM}.}
+    \label{fig:gru}
+\end{figure}
+
 
 \newpage
 \section{Kapacita modelu}
+Základní vlastností kadého modelu by mìla bıt generalizace. To znamená, e model musí bıt schopnı správnì klasifikovat nejen pozorování, na kterıch byl natrénován, ale i vìtšinu novıch, døíve nevidìnıch pozorování. Pøi trénování modelu se tedy bìnì dìlí datová sada na tøi - trénovací, validaèní a testovací, kdy pøedpokládáme, e tyto sady podléhají stejnému rozloení a jednotlivá pozorování jsou nezávislá. Cílem trénování modelu je nalézt takové parametry, pro které bude mít model podobnou chybu na všech tøech datovıch sadách. Model by mìl tedy splòovat tyto vlasnosti:
+\begin{enumerate}
+\item musí minimalizovat chybu na trénovací sadì,
+\item musí minimalizovat rozdíl mezi chybou nad trénovací a testovací (popø. validaèní) sadou.
+\end{enumerate}
+Bìhem optimalizace parametrù èasto dochází ke dvìma neádoucím jevùm:
+\begin{itemize}
+\item \textbf{underfitting} (podtrénování) - k underfittingu dochází, pokud model není schopnı dostateènì minimalizovat chybu na trénovací sadì, tj. není schopnı se nauèit informaèní souvislosti obsaené v trénovacích pozorováních;
+\item  \textbf{overfitting} (pøetrénování) - k overfittingu dochází, pokud model není schopnı minimalizovat rozdíl mezi chybou nad trénovací a testovací sadou, tj. model si "zapamatuje" trénovací data místo toho, aby se nauèil souvislosti obsaené v trénovacích pozorováních a na novıch, dosud nevidìnıch pozorováních selhává \cite{dl, karpathy, hastie}.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{overfitting.eps}
+    \caption{Pøíklad overfittingu a underfittingu.}
+    \label{fig:overfitting}
+\end{figure}
+
+
+Oba tyto jevy lze ovlivnit pomocí tzv. kapacity modelu nebo pomocí regularizaèních metod. Modely s nízkou kapacitou jsou náchylné na underfitting a naopak modely s vysokou kapacitou jsou náchylné na overfitting. Kapacita modelu je vìtšinou dána pøímo zvolenou architekturou, kde sníením poètu parametrù sítì omezíme poèet volnıch stupòù volnosti a tím lze získat vyšší generalizaci \cite{dl, karpathy}.
+
+\subsection{Regularizace}
+Regularizace umoòuje navıšit generalizaci modelu bez toho, aby byla ovlivnìna kapacita modelu - nevyadují zmìnu architektury modelu. Jedná se o modifikaci uèícího se algoritmu, která sniuje generalizaèní chybu, ale zároveò nesniuje chybu trénovací \cite{dl}.
+
+\subsubsection{Penalizace velikosti parametrù}
+Populární metodou pro regularizaci jsou penalizaèní metody a to zejména L1 a L2 penalizace. Tyto penalizaèní metody nepøímo omezují kapacitu modelu pøidáním penalizace $ \Omega(\boldsymbol{\theta}) $, která odpovídá normì parametrù, k cenové funkci $ J $. Regularizovaná cenová funkce pak vypadá následovnì
+\begin{equation}
+\tilde{J}(\boldsymbol{\theta} ; \boldsymbol{x}, \boldsymbol{y}) = J(\boldsymbol{\theta} ; \boldsymbol{x}, \boldsymbol{y}) + \alpha \Omega(\boldsymbol{\theta}),
+\end{equation}
+kde síla regularizace je øízena parametrem $ \alpha $ (s vyšší hodnotou regularizace roste). Trénovací algoritmus pak minimalizuje jak pùvodní cenovou funkci $ J $, tak i zvolenou metriku velikosti parametrù $  \Omega(\boldsymbol{\theta}) $. V pøípadì neuronovıch sítí jsou regularizovány pouze váhy a prahy jsou ponechány bez regularizace  \cite{dl, karpathy}.
+
+\subsubsection{Zanesení šumu}
+Další metodou regularizace, která neovlivòuje model samotnı, je augmentace trénovacích dat ve formì aditivního šumu. Aèkoliv neuronové sítì nejsou obecnì robustní vùèi šumu, vìtšinu klasifikaèních i regresních úloh jsou schopny øešit i pokud jsou vstupní data zatíeny malım náhodnım šumem. Trénovací pozorování jsou tedy vdy pøed vstupem do modelu zatíena novım náhodnım šumem, kterı vede k vyšší generalizaci vısledného modelu \cite{dl}.
+
+\subsubsection{Pøedèasné ukonèení}
+Pøi trénování velkıch modelù s dostateènì velkou reprezentaèní kapacitou èasto dochází k jevu, kdy chyba na trénovací sadì pomalu bìhem èasu klesá, zatímco chyba na validaèní sadì pomalu roste. Vrátíme-li se k nastavení parametrù v èase s nejniší validaèní chybou, mùeme získat lepší model s niší chybou i na testovací sadì.
+
+Algoritmus pøedèasného ukonèení (early stopping) je snadno implementovatelnı a vıpoèetnì nenároènı. Pokadé, kdy dojde k poklesu chyby na validaèní sadì, uloíme si kopii parametrù modelu. Jakmile trénování modelu skonèí, vrátíme se k nejlepšímu souboru parametrù místo ponechání souboru parametrù z poslední trénovací iterace. Trénování je pøedèasnì ukonèeno, pokud ádná zmìna parametrù nevede k niší chybì na validaèní sadì, ne které bylo dosaeno s aktuálnì nejlepším souborem parametrù, pro pøedem danı poèet trénovacích iterací.
+
+Tato forma regularizace nevyaduje témìø ádné zmìny trénovacího procesu èi modifikaci cenové funkce. Tento algoritmus lze vyuít buï samostatnì nebo spolu s libovolnou regularizaèní metodou \cite{dl}.
+
+\subsubsection{Dropout}
+Dropout je vıpoèetnì nenároènou metodou regularizace, která nejlépe funguje pro modely, které vyuívají dávkové uèení s malımi kroky. Pokadé, kdy pozorování vstoupí do dávky, je vytvoøena binární maska, která je pak aplikována na všechny vstupy skrytıch jednotek v síti. Tato maska je pro kadou jednotku vytvoøena náhodnì nezávisle na ostatních. Jednotky, jejich odpovídající prvek v masce je roven nule, jsou pak pro dané pozorování vylouèeny z uèícího se procesu.
+
+Pravdìpodobnost, e v masce na danou pozici bude vybrána hodnota 1, je dána pøedem zvolenım parametrem. Vìtšinou se volí pravdìpodobnost 0.8, e bude pøi trénování vyuita vstupní jednotka, a pravdìpodobnost 0.5, e bude vyuita skrytá jednotka.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.75\textwidth]{dropout.png}
+    \caption{Vlevo - pøed aplikací dropoutu, vpravo - po aplikaci dropoutu. Pøevzato z \cite{dropout}.}
+    \label{fig:overfitting}
+\end{figure}
+
+Maskováním se do uèícího procesu vnáší jistá forma šumu, která má za následek adaptivní poškození informaèního obsahu na vstupu sítì a na vstupu skrytıch jednotek. Tím je zamezeno tomu, aby se urèitá jednotka zamìøila na rozpoznávání jednoho signifikantního pøíznaku, zatímco jiná jednotka by byla témìø nevyuita. Vylouèením náhodnıch jednotek z uèícího se procesu jsou tak jednotky donuceny "rozdìlit" si informace mezi sebou.
+
+Dropout opìt mùe bıt vyuit spolu s ostatními metodami regularizace \cite{dl, karpathy, dropout}.
 
 \newpage
 \section{CTC}
@@ -382,254 +586,10 @@ Algoritmus 3: Zpìtné šíøení.
 
 
 
-\section{Neuronové sítì}
 
 
 
-\subsection{Rekurentní neuronové sítì}
-Rekurentní neuronové sítì (dále RNN) jsou typem neuronovıch sítí, která umí zpracovávat sekvenèní data, tj. sekevenci hodnot $ x^{(1)}, \ldots , x^{(\tau)} $. Abychom mohli od vícevrstvıch sítí pøejít k rekurentním, musíme vyuít principu z ranıch let strojového uèení a statistického modelování z 80. let: sdílení parametrù mezi rùznımi èástmi modelu. Sdílení parametrù umoní rozšíøit a aplikovat model na rùzné tvary pozorování (forms, v tomto pøípadì rùzné délky) a generalizovat mezi nimi. Kdybych mìli samostatné parametry pro kadou hodnotu v kadém èasové bodì (time index), nemohli bychom generalizovat na délky sekvencí, které nebyly vidìny bìhem trénovácí fázi a také bychom nemohli sdílet statistickou sílu (statistical strength) napøíè rùznımi délkami sekvencí a napøíè rùznımi pozicemi v èase. Toto sdílení je zejména dùleité v pøípadech, kdy specifická informace mùe nastat na více pozicích v sekvenci (napø. stejné datum na rùznıch pozicích ve vìtì).
 
-Kadı prvek vıstupu je funkcí prvkù minulıch prvkù vıstupu. Kadı prvek vıstupu je vytvoøen stejnım updatovacím pravidlem jako minulé vıstupy. -> sharing through very deep computitaional graph
-
-Pro jednoduchost pøedpokládejme, e RNN budu pracovat se sekvencí obsahující vektory $ x^{(t)} $ s èasovımi indexy $ t $ v rozsahu $ 1 $ a $ \tau $. Ve skuteènosti RNN vìtšinou pracují s minibatchemi takovıch sekvencí, s tím,  e kadı èlen minibatche mùe mít rùzné $ \tau $.
-
-Abychom zajistili sdílení parametrù, musíme rekurentní vıpoèet "rozvinout" (unfolding) do vıpoèetní grafu s opakující se strukturou. Pøedpokládejme model v klasickém tvaru
-$$
-s^{(t)} = f(s^{(t-1)}; \theta),
-$$
-kde $ s^{(t)} $ nazıváme stavem systému. Tato rovnice (odkaz) je rekurzivní, jeliko definice $ s $ v èase $ t $ závisí na té samé definici v èase $ t-1 $. Pro koneènı poèet èasovıch krokù $ \tau $ mùeme rozvinout graf aplikací vzorce (definition) $ \tau - 1 $-krát. Napø. pro rovnici vıše (odkaz) pro rozvinutí $ \tau = 3 $ èasovıch krokù, získáme
-$$
-s^{(3)} = f(s^{(2)};\theta) = f(f(s^{(1)};\theta);\theta)
-$$
-Tímto opakovanım rozvinutím zajistíme, e rovnice ji neobsahjuja ádnı rekurenci a mle bıt reprezentována tradièním acyklickım directed comp. grafem.
-
-OBRAZEK? DL 370
-
-Pøidáním závislosti na externím vstupu $ x^{(t)} $ mùeme zadefinovat hodnoty skrytıch jednotek. Základní rovnice pro RNN je pak
-$$
-h^{(t)} = f(h^{(t-1)}, x^{(t)};\theta),
-$$
-kde $ h $ je stav. Typická RNN pak rozšíøí tuto rovnici a další architectural feasturas jako napø. vıstupní vrstvu která ète informaci ze skrytıch stavù $ h $ za úèelem predikce.
-
-Pøi trénování sítì na danou úlohu, která vyaduje predikci budoucnosti z minulosti, sí se bìnì uèí jak pouívat $ h^{(t)} $ jako ztrátovou summary relevantních aspektù úlohy z minulosti sekvence od vstupu a po $ t $. Tato summary musí bıt z logiky ztrátová, jeliko mapuje sekvence o promìnné délce $ (x^{(t)}, x^{(t-1)}, x^{(t-2)}, \ldots, x^{(2)}, x^{(1)}) $ do vektoru pevnì dané délky $ h^{(t)} $. V závisloti na trénovacím kritériu, toto summary si mùe ponechat jisté aspekty z minulosti s jinou pøesností ne jiné.
-
-DEEP LEARNING
-
-Nyní mùeme zadefinovat rovnice pro dopøedné šíøení pro RNN zobrazenou v obrázku níe (odkaz). Aèkoliv obrázek pøesnì neurèuje aktivaèní funkci skrytıch jednotek, zde budeme pøedpokládat hyperbolickı tangens, kterı je v RNN vyuíván nejèastìji. Pøirozenou cestou, jak reprezentovat diskrétní promìnné je vracet ve vıstupu $ o $ nenormalizované log pravdìpodobnosti pro kadou monou diskrétní promìnnou. Aplikací operace softmax pak získáme vektor $ \hat{y} $ normalizovanıch pravdìpodobností nad vıstupem. Dopøedné šíøení zaèíná specifikací poèáteèního stavu $ h^{(0)} $. Poté jsou pro kadı èasovı krok $ t = 1 $ a $ t = \tau $ aplikovány následující rovnice updatu:
-$$
-a^{(t)} = b + Wh^{(t-1)} + Ux^{(t)}
-$$
-$$
-h^{(t)} = \tanh(a^{(t)})
-$$
-$$
-o^{(t)} = c + Vh^{(t)}
-$$
-$$
-\hat{y}^{(t)} = \text{softmax}(o^{(t)}),
-$$
-kde parametry jsou bias vektory $ b $ a $ c $ spolus s váhovımi maticemi $ U $, $ V $ a $ W $, které popoøadì odpovídají skrytım spojením (hidden connection) mezi input-to-hidden, hidden-to-output a hidden-to-hidden. Pøedpokládejme naoøíklad RNN, která mapuje vstupní sekvenci na vıstupní sekvenci o stejné délce. Celková ztráta pro danou sekvenci hodnot $ x $ paired with sekvence hodnot $ y $ by byla pouze suma ztrát ve všech èasovıch okamících. Napø. pokud $ L^{(t)} $ je záporní log-likelyhood $ y^{(t)} $ pro $ x^{(1)}, \ldots, x^{(t)} $, pak
-$$
-L\left( \{ x^{(1)}, \ldots, x^{(\tau)} \}, \{ y^{(1)}, \ldots, y^{(\tau)} \}  \right) = \sum_{t}L^{(t)} = - \sum_{t} \log p_{model} \left( y^{(t)} \mid \{ x^{(1)}, \ldots, x^{(t)} \}  \right),
-$$
-kde $ p_{model} \left( y^{(t)} \mid \{ x^{(1)}, \ldots, x^{(t)} \}  \right) $ je dán ètením vstupu $ y^{(t)} $ z vıstupního vektoru modelu $ \hat{y}^{(t)} $. Vıpoèet gradientu této ztrátové funkce vzhledem k parametrùm je drahá operace. Vıpoèet gradientu zahrnuje vıpoèet dopøedné propagace v našem obrázku zleva doprava  rozvinutého grafu následovanı zpìtnou propagací zprava doleva skrz uvedenı graf. Èasová nároènost je $ O(\tau) $ a není moné ji sníit paralelizací, jeliko dopøednı prùchod je sekvenèní a závislı na pøedchozích hodnotách. Algoritmus zpìtného šíøení aplikovanı na rozvinutı graf s cenou $ O(\tau) $ se nazıvá zpìtné šíøení èasem (back-propagation through time, BPPT).
-
-
-OBRAZEK, DL str 373
-
-DEEP LEARNIN|G
-
-
-\subsubsection{Backpropagation through time}
-Vıpoèet gradientu skrze RNN je pøímoèarı. Jedná se pouze o generalizovanou aplikaci algoritmu zpìtného šíøení nad rozvinutım vıpoèetním grafem. Gradienty získané pomocí algoritmu zpìtné šíøení pak mohou bıt vyuity s libovolnou technikou zaloenou na gradientu pro trénování RNN.
-
-Uzly rozvinutého grafu obsahují parametry $ U $, $ V $, $ W $, $ b $ a $ c $ a sekvenci uzlu indexovanıch èasem $ t $ pro $ x^{(t)} $, $ h^{(t)} $, $ o^{(t)} $ a $ L^{(t)} $. Pro kadı uzel grafu $ N $ pak potøebujeme rekurzivnì spoèítat gradient $ \nabla_{N} L $ v závislosti na uzlech grafu, které tento uzel následují. Zaèneme tedy rekurzi v uzlu, kterı bezprostøednì pøedchází vıslednou ztrátu:
-$$
-\dfrac{\partial L}{\partial^{(t)}} = 1.
-$$
-V této derivaci pøedpokládáme, e vıstupy $ o^{(t)} $ jsou pouity jako arguemnt softmax funkce k tomu, abychom získali vektor pravdìpodobností vıstupu $ \hat{y} $. Dále pøedpokládáme, e ztráta je definována jako negative log-likelyhood skuteènéıch targetu $ y^{(t)} $ pro dosud dodanı vstup.  Gradient $ \nabla_{o^{(t)}} L $ nad všemi vıstupy v èase $ t $ pro všechna $ i, t $ vypadá následovnì:
-$$
-(\nabla_{o^{(t)}} L)_{i} = \dfrac{\partial L}{\partial o_{i}^{(t)}} = \dfrac{\partial L}{\partial L^{(t)}} \dfrac{\partial L^{(t)}}{\partial o_{i}^{(t)}} = \hat{y}_{i}^{(t)} - \boldsymbol{1}_{i,y^{(t)}}.
-$$
-Pokraèujeme dále s vıpoètem gradientu pøes další uzly poèínaje koncem sekvence. Ve finálním èasovém kroku $ \tau $, $ \boldsymbol{h}^{(\tau)} $ má jako následníka pouze $ o_{(\tau)} $, tudí vıpoèet gradientu je jednoduchı:
-$$
-\nabla_{h^{(\tau)}} L = V^{\top}\nabla_{o^{(\tau)}}L.
-$$
-Nyní ji mùeme iterovat zpìt v èase a zpìtnì šíøit gradienty od $ t = \tau - 1 $ a k $ t = 1 $ s tím, e $ h^{(t)} $ (pro $ t < \tau $) má jako své pøedchùdce $ o^{(t)} $ a $ h^{(t+1)} $. Gradient skryté vrstvy je pak
-$$
-\nabla_{h^{(t)}} L = \left( \dfrac{\partial h^{(t+1)}}{\partial h^{(t)}}  \right)^{\top} (\nabla_{h^{(t+1)}} L) + \left( \dfrac{\partial o^{(t)}}{\partial h^{(t)}}  \right)^{top} ( \nabla_{o^{(t)}} L ) = W^{\top} (\nabla_{h^{(t+1)}} L) \text{diag} \left(  1 - (h^{(t+1)})^{2} \right) + V^{\top} (\nabla_{o}^{(t)} L),
-$$
-kde $  \text{diag} \left(  1 - (h^{(t+1)})^{2} \right) $ je Jakobián hyperbolického tangensu pro skryté jednotky $ i $ v èase $ t+1 $.
-
-Jakmile máme spoètené gradienty stavù, mùeme dopoèítat gradienty parametrù. Vzhledem k tomu, e parametry jsou sdílené mezi jednotlivımi èasovımi kroky, zavedeme nové promìnné $ W^{(t)} $, resp. $ U^{(t)} $, které jsou kopiemi váhovıch matic $ W $, resp. $ U $ a znaèí, jakou mírou tyto váhy pøíspívají ke gradientu v èase $ t $. Gradienty parametrù tedy mùeme urèit jako
-$$
-\nabla_{c} L = \sum_{t} \left( \dfrac{\partial o^{(t)}}{\partial c} \right)^{\top} \nabla_{o^{(t)}} L = \sum_{t} \nabla_{o^{(t)}} L 
-$$
-
-$$
-\nabla_{b} L = \sum_{t} \left( \dfrac{\partial h^{(t)}}{\partial b^{(t)}} \right)^{\top} \nabla_{h^{(t)}} L = \sum_{t} \text{diag} \left( 1 - (h^{(t)})^{2} \right)  \nabla_{h^{(t)}} L
-$$
-
-$$
-\nabla_{V} L = \sum_{t} \sum_{t} \left( \dfrac{\partial L}{\partial o_{i}^{(t)}} \right) \nabla_{V} o_{i}^{(t)} = \sum_{t} (\nabla_{o^{(t)}} L) h^{(t)\top}
-$$
-
-$$
-\nabla_{W} L = \sum_{t} \sum_{t} \left( \dfrac{\partial L}{\partial h_{i}^{(t)}} \right) \nabla_{W^{(t)}} h_{i}^{(t)} = \sum_{t} \text{diag} \left( 1 - (h^{(t)})^{2} \right) (\nabla_{h}^{(t)} L) h^{(t-1)\top}
-$$
-
-$$
-\nabla_{U} L = \sum_{t} \sum_{t} \left( \dfrac{\partial L}{\partial h_{i}^{(t)}} \right) \nabla_{u^{(t)}} h_{i}^{(t)} = \sum_{t} \text{diag} \left( 1 - (h^{(t)})^{2} \right) (\nabla_{h^{(t)}} L) x^{t\top} 
-$$
-ZKONTROLOVAT VZORCE a ZAROVNAT VLEVO
-
-DEEP LEARNING
-
-\subsection{Bidirectional RNN}
-Zatím jsme se vìnovali pouze rekurentním sítím, které zachycovaly do stavu  v èase $ t $ pouze informaci z minulosti, tedy informace pro vstupy $ x^{(1)}, \ldots, x^{(t-1)} $ a aktuální vstupu $ x^{(t)} $.  Nicménì v mnoha aplikacích vıstupní predikce $ y^{(t)} $ mùe záviset na celé sekvenci. Napøíklad pøi zpracování øeèi je bìné, e správná interpretace fonémù závisí kvùli jevu koartikulace na minuláıch fonémech i na budoucích a na svém blízkém kontextu. Tento problém øeší obousmìrné rekuretní neuronové sítì.
-
-Obousmìrná RNN kombinuje dvì RNN, kdy jedna se pohybuje v èase kupøedu, od zaèátku sekvence, zatímco druhá RNN se pohybuje v èase zpìt, od konce sekvence.
-Tyto sítì mezi sebou sdílí skryté stavy $ h^{(t)} $ (sí dopøedná) a $ g^{(t)} $ (sí zpìtná), co uméní, e vıstupní jednotky $ o^{(t)} $ závisí jak na minulosti, tak na budoucnosti, ale zároveò jsou nejvíce citlivé na vstupní hodnoty okolo èasu $ t $.
-
-OBRAZEK z DL str. 389 plus popisek
-
-DEEP LEARNING
-
-\subsubsection{Long short-term memory network}
-Rekuretní sítì jsou velice náchylné na problém vanishing a exploding gradientu. Hlavnì v pøípadech dlouhodobıch závislostí dochází k velmi malım hodnotám vah vah, které jsou poté násobeny mnoha Jakobiány. Násobíme-li váhu $ w $ nìkolikrát samu s sebou, dojde buï k jejímu témìø vynulování/vymizení èi k explozi v závislosti na øádu $ w$. Obvzál¡ìt pro dlouhodobé vzdálenosti je øád tìchto vah a gtadientu exponencielnì menší ne u krátkodobích vzdáleností. Jednou z moností, jak øešit problém obtíného trénování sítí s dlouhodobımi závilosti je vyuití architektury dlouhıch sítí s krátkodobou pamìtí (long short-term memory network, dále jen LSTM) nebo rekurerní jednotku s branami (gated reccurent unit, dále jen GRU)
-
-OBRAZKY OD COLAHAc NEBO z DL str 405?
-
-Základním principem LSTM a zároveò jejím nejvìtším pøínosem je zavedení smyèek (self-loop), které vytvoøí cesty, kudy mùe gradient po dlouho dobu proudit (flow). Váha tìchto smyèek je pak trénována a mìnìna (conditioned) v závislosti na kontextu. Díky tomu, e je tato váha opatøena tzv. bránou (gated), tedy øízena jinou skrytou jednotkou, mùe bıt èasová integrace této informace mìnìna dynamicky. Díky této vlastnosti se LSTM stala velice úspìšnou pro úlohy jako napøíklad rozpoznání psaného písma, strojového pøekladu, rozpoznávání øeèi èi k popisu obrázkù. 
-
-Rovnice pro dopøedné šíøení pro "mìlkou sí" jsou uvedeny níe. Nicménì byly testovány i hluboké sítì (Graves), které ukázali velkou reprezentativní schopnost.
-
-POPIS diagramu ze strany 405: Jednotlivé jednotky v LSTM jsou nazıvány buòkami a jsou mezi sebou rekurentnì propojeny. Vstupní pøíznak/hodnota  je spoèten(a) obyèejnım perceptronem. Tato hodnotam ùe bıt akumulována ve stavu, pokud to sigmoidální vstupní brána umoní. Stavová jednotka má lineární smyèku, její váha je øízena zapomínací bránou. Vıstup buòky mùe bıt vypnut pomocí vıstupní brány. Všechny jednotky s bránou mají sigmoidální nelinearitu zatímco vstupní jednotka mùe mít libovolnı typ nelineariy. Stavová jednotka mùe bıt také vyuita jako vstup navíc pro ostatní jednotky s bránou.
-
-Místo jednotek, které jednoduše aplikují nelinearity po prvcích k afinní tranformaci vstupu a rekurentních jednotek, LSTM rekurentní sítì mají tzv. "LSTM buòky", které mají kromì vnìjší rekurence RNN i interní rekurenci - smyèku (selfloop). Kadá buòka má stejné vstupy a vıstupy jako obyèejná rekurentní sí ale také má více parametrù a systém jednotek opatøenıch bránou (gating units), které øídí tok informací. Nejdùleitìjší komponent je stavová jednotka (state unit) $ s_{i}^{(t)} $, která je opatøena lineární smyèkou, její váha je øízena jednotkou se zapomínací bránou (forget gate unit) $ f_{i}^{(t)} $ (pro èas $ t $ a buòku $ i $), která nastavuje hodnoty této váhy na hodnoty mezi 0 a 1 pomocí jednotky se sigmoid aktivaèní funkcí (sigmoid unit):
-$$
-f_{i}^{(t)} = \sigma \left( b_{i}^{(t)} + \sum_{j}U_{i,j}^{f} x_{j}^{(t)} + \sum_{j} W_{i,j} h_{j}^{(t-1)}  \right),
-$$
-kde $ x^{(t)} $ je aktuální vstupní vektor a $ h^{(t)} $ je aktuální vektor skryté vrstvy obsahující vıstupy všech LSTM buòek a $ b^{f} $, $ U^{f} $, $ W^{f} $ jsou biasy, váhy vstupu (input weights) a rekurentní váhy (recurrent weights) pro zapomínací brány. Interní/vnitøní stav LSTM buòky je pak updatován následovnì, ale s conditional smyèkou váhou $ f_{i}^{(t)} $:
-$$
-s_{i}^{(t)} = f_{i}^{(t)} s_{i}^{(t-1)} + g_{i}^{(t)} \sigma \left( b_{i} + \sum_{j}U_{i,j} x_{j}^{(t)} + sum_{j} W_{i,j} h_{j}^{(t-1)}  \right),
-$$
-kde $ b $, $ U $ a $ W $ znaèí biasy, vstupní váhy a rekurentní váhy v LSTM buòce. Jednotka s vnìjší vstupní bránou (external input gate unit) $ g_{i}^{(t)} $ je poèítána podobnì jako zapomínací brána (se sigmoidální jednotkou k zisku hodnoty brány (gating value) mezi 0 a 1), ale s vlastními parametry:
-$$
-g_{i}^{(t)} = \sigma \left( b_{i}^{g} + \sum_{j} U_{i,j}^{g} x_{j}^{(t)} + \sum_{j} W_{i,j}^{g} h_{j}^{(t-1)}  \right).
-$$
-Vıstup LSTM buòky $ h_{i}^{(t)} $ mùe bıt vypnut pomocí vıstupní brány $ q_{i}^{(t)} $, která také vyuívá sigmoidální jednotku pro nastavení hodnoty brány (gating.. propustnost?):
-$$
-h_{i}^{(t)} = \tanh (s_{i}^{(t)}) q_{i}^{(t)},
-$$
-$$
-q_{i}^{(t)} = \sigma \left( b_{i}^{o} + \sum_{j} U_{i,j}^{o} x_{j}^{(t)} + \sum_{j} W_{i,j}^{o} h_{j}^{(t-1)}  \right),
-$$
-kde paramtery $ b^{o} $, $ U^{o} $, $ W^{o} $ jsou biasy, vstupní vıhy a rekurentní váhy. 
-
-Ukázalo se, e LS|TM sítì se snadno dokáí nauèit (nebo lépe ne ostastní) dlouhodobé závislosti v datech.
-
-DEEP LEARNING
-
-\subsubsection{Gated Recurrent Units}
-Aèkoliv architektura LSTM je vıraznım vylepšením bìnıch RNN, ne všechny její prvky jsou nezbytnì nutné. Proto byly vyvinuty tzv. rekurentní jednotky s branami (gated recurrent unit, dále jen GRU). Hlavním rozdíl oproti LSTM je, e jediná jednotka s branou (gating unit) souèasnì øídí jak zapomínací faktor, tak i rozhodnutí k update stavové jednotky. Updatovací rovnice vypadají následovnì:
-$$
-h_{i}^{(t)} = u_{i}^{(t-1)} h_{i}^{(t-1)} + (1 - u_{i}^{(t-1)}) \left( b_{i} + \sum_{j} U_{i,j} x_{j}^{(t-1)} + \sum_{j} W_{i,j} r_{j}^{(t-1)} h_{j}^{(t-1)}  \right)
-$$
-kde $ u $ znaèí updatovací bránu a $ r $ znaèí resetovací bránu. Jejich hodnoty jsou definovány jako:
-$$
-u_{i}^{(t)} = \sigma \left( b_{i}^{u} + \sum_{j} U_{i,j}^{u} x_{j}^{(t)} + \sum_{j} W_{i,j}^{u} h_{j}^{(t)} \right)
-$$
-a
-$$
-r_{i}^{(t)} = \sigma \left( b_{i}^{r} + \sum_{j} U_{i,j}^{r} x_{j}^{(t)} + \sum_{j} W_{i,j}^{r} h_{j}^{(t)} \right ).
-$$
-
-Resetovací a updatovací brány mohou samostatnì "ignorovat" èásti stavového vektoru. Updatovací brány se pak mohou vytvoøit kopii libovolné dimenze (jeden extrém sigmodiy) èi kompletnì ignorovat (druhı extrém) tím, e nahradí stav novım cílovım stavem. Resetovací brána pak øídí, které èásti stavu budou pouity pro vıpoèet pøíštího cílového stavu. T|ím zavádí novı nelineární efekt ve vztahu mezi minulım a budoucím stavem.
-
-
-DEEP LEARNING
-
-
-
-
-\subsection{ADAM}
-
-\section{Kapacita modelu, underfitting a overfitting}
-Základní vlastností kadého modelu ve strojovém uèení by mìla bıt generalizace. To znamená, e model musí správnì predikovat i vìtšinu novıch, døíve nevidìnıch pozorování a nejen ta pozorování, na kterıch byl natrénován. Pøi trénování modelu tedy rozdìlíme datovou sadu na tøi: trénovací, validaèní a testovací. Cílem je, abychom po natrénovaní modelu dostali obdobnou trénovací, validaèní i testovací chybu. Pøi rozdìlení datové sady pøedpokládáme, e jednotlivá pozorování jsou navzájem nezávislá a všechny tøi sady podléhají stejnému rozloení. Kvalitní model by tedy mìl splòovat tyto vlastnosti:
-\begin{enumerate}
-\item musí minimalizovat chybu na trénovací sadì
-\item musí minimalizovat rozdíl mezí chybou na trénovací a testovací sadou
-\end{enumerate}
-
-Pøi optimalizaci parametrù ovšem èasto dochází ke dvìma neádoucím jevùm: underfitting a overfitting.
-K underfittingu dochází, pokud model není schopnı dostateènì minimalizovat chybu na trénovací sadì, tj. není schopnı se nauèit informaci obsaenou v trénovacích datech. K overfittingu naopak dochází, pokud model není schopnı splnit druhou podmínku - minimalizaci rozdílu chyby mezi trénovací a testovací sadou, tj. model si spíše zapamatuje trénovací data místo toho, aby se nauèil souvislosti v datech a na novıch, dosud nevidìnıch pozorováních selhává.
-
-
-OBRAZEK NA POLYNOMECH
-
-Oba tyto jevy mùeme ovládat pomocí tzv. kapacity modelu. Modely s nízkou kapacitou jsou náchylné na underfitting a naopak modely s vysokou kapacitou jsou náchylné na overfitting. Jedna z moností, jak ovládat kapacitu modelu, je pomocí vhodného vıbìru prostoru hypotéz neboli omezením vıbìru monıch funkcí, které model mùe vyuít (napø. poèet stupòù volnosti u lineární regrese). Omezením vıbìru funkce zároveò dochází k omezení poètu vyuitelnıch pøíznakù a sníení poètu volnıch parametrù, které model musí optimalizovat.
-
-OBRAZEK OPTIMALNI KAPACITY (DL, 112)
-
-Je zøejmé, e neexistuje jedinı model, kterı dokáe øešit libovolnı problém - vdy je potøeba zvolit vhodnı model pro danou úlohu a odladit jeho parametry.
-
-Deep Learning, 107-115
-
-TODO: generalizace pomocí sníení poètu parametrù
-
-\subsection{Regularizace}
-Jedním ze zpùsobù, jak navıšit generalizaci modelu bez ovlivnìní kapacity modelu, je regularizace. Regularizace  je modifikace uèícího se algoritmu, která sniuje generalizaèní chybu, ale zároveò nesniuje chybu trénovací. Regularizaci lze implementovat mnoha zpùsoby a opìt je tøeba vybrat vhodnou metodu pro danı problém.
-
-Deep Learning, 117
-
-
-Hlavní problémem strojového uèení je, jak zaøídit, aby algoritmus fungoval dobøe nejen na novıch datech, ale také na novıch, dosud nevidìnıch vstupech. Mnoho strategiíí ve strojovém uèení jsou explicitnì navreny tak, aby sníovaly chybu na testovací sadì, ovšem i za ceny vyšší chyby na trénovací sadì.
-
-Existuje mnoho metod regularizace - nìkteré jsou zaloeny na zavedení omezujícíh podmínek modelu/hodnot jeho paraemtrù, jiné zase zavádìjí nové èlney do objective function. Tato omezení a penalizace èasto vycházejí z aprioirní znalosti problému, ale kolikrát jen zavádìjí preferenci po jednodušší tøídì modelu za úèelem vyšší generalizace.
-
-V deep learningu vìtšina regularizaèních strategií regularizuje estimátory pomocá trade-offu vyšší bias za niší variance. Cílem regularizace je sniení overfittingu tak, aby prùbìh nauèené funkce odpovídal skuteènému trendu dat. (tuhle sraèku dhodnì pøepsat).
-
-\subsection{Penalizace normy parametrù}
-
-Populární metodou pro regularizaci jsou penalizaèní metody a to zejména L1 a L2 penalizace. Tyto penalizaèní metody omezují kapacitu modelu pøidáním penalizace $ \Omega(\theta) $ k objective function $ J $, která odpovídá normì parametrù. Regularizovaná objective funtion pak vypadá následnovnì:
-$$
-\tilde{J}(\theta ; X, y) = J(\theta ; X, y) + \alpha \Omega(\theta),
-$$
-kde $ \alpha \in [0, \infty) $ je hyperparametr, kterı váí relativní kontribuce penalizaèního èlenu $ \Omega $ relativnì je standardní funkci $ J $. Pokud $ \alpha = 0 $, poté nedochází k ádné regularizaci a vyšší hodnout regularizace roste.
-
-Kdy pak trénovací algoritmus minimalzucje regularizavnou objective function $ \tilde{J} $, sniuje hosnotu jak originální objec. func. $ J $ na trénovacích datech, tak i nìjakou metriku velikosti parametrù $ \theta $. Rùzné volby normy $ \Omega $ pak vedou na preferenci rùznıch rešení. U neuronovıch sítí regularizujeme pouze váhy a biasy zùstavají bez regularizace.
-
-DEEP LEARNING
-
-\subsection{Noise injection}
-
-Další metoda regularizace, která neovlivòuje model samotnı a byla vyuita jako primární metoda regularizace v této práci, je augmentace trénovacích dat ve formì aditivního šumu. Aèkoliv neuronové sítì nejsou moc robustní vùèi šumu,  pro vìtšinu klasifikaèních i regresních úloh schopny øešit úlohy i po zatíení malım náhodnım šumem pøidanım ke vstupním datùm. Pro nìkteré modely je pøidání šumu ekvivalentní pøidání penalizace normy vah.
-
-DEEP LEARNING
-
-\subsection{Early Stopping}
-Pøi trénování velkıch modelù (s vysokou hloubkou, šíøkou èi obojím) s dostaèující reprezentaèní kapacitou k pøetrénovaná nad úlohou mùeme èasto sledovat, e chyba na térnvoací sadì pomalu a jistì bìhem èasu klesá, zatímco chyba na validaeèní sadì zaène stoupat.
-
-OBRAZEK
-
-Z rtohoto tedy mùeme usoudit, e mùeme získat lepší model s lepší validaèní chybou (a doufejme i s lepší testovací chybou), pokud  se vrátíme k parametrùm v èase s nejniší validaèní chybou. Pokadé, kdy se chyba na validaèní sadì sníí, uloíme si kopii parametrù modelu. Jakmile trénování skonèí, vrátíme se k nejlepšímu souboru parametrù místo ponechání posledních. Algoritmus konèí, pokud se ádná zmìna parametrù nepøekoná dosud nejlepší validaèní chybu pro pøeddefinovanou poèet iterací.
-
-Algoritmus pøedèasného zastavení je forma regularizaxce, která nevyaduje témìø ádné zmìny trénovací procesu, modifikaci ovbjective function nebo souboru monıch hodnot parametrù. Je tedy snadné tento alogritmus pouít bez poškození dynamiky uèení. Early stopping lze vyuít budï samosratnì nebo spolu s vıše zmínìnımi metodami regularizace.
-
-DEEP LEARNING
-
-
-\subsection{Dropout}
-Dropout nabízí vıpoèetnì nenároèné ale vıkonnou metodu regularizace pro širokou škálu modelù. Trénování s dropoutem funguje nejlépe pro uèící algorimty zaloenıch na minibachtchi, kterı dìlá malé kroky, napø. SGD. Pokádé, kdy pozorování vstoupí do minibatche, náhodnım vıbìrem (randomly sample) je vytvoøená different binární maska, která je aplikována na všechny vstupy skrytéch jednotek v síti. Tato maska je pro kadou jednotku samplována nezávisle na ostatních. Pravdìpodobnost samplingu hodnoty jedna v masce (zpùsobijící, e jednotka bude zahrnuta do trénování) je hyperparametr,k terı se urèuje pøed trénováním sítì. Vìtšinou se volí pravdìpobnost 0.8, e vstupní jednotku bude pouita a ppst 0.5, e skrytá jednotka bude pouita. Poté trénování pokraèuje jak obvykle - dopøedné šíøení,  backprop, zpìtné šíøení.
-
-Jednou z hlavních vıchod kromì vıpoèetní a pamìtové nenároènosti je, e nijak vıraznì neomezuej vıbìr modelu a trénovací proceduru, která mùe bıt pouita. Funguje dobøe témìø s kadım modelem,, kterı lze trénovat pomocí SGD (vèetnì rekurntních neuronovıch sítí, kde je tøeba dropout zobecnict na rekurentní spojení jednotek)-
-
-Nejvìtší síla dropout vycházi z toho, e maskování vnáší jistou formu šumu do skrytıch jednotek. Lze na nìj nahlíet jako na adaptivní destrukci informaèního obsahu vstupu ne-li na destrukci raw values inputu. Tím zamezuje, aby se urèitá jednotka zamìøila na rozpoznávání jednoho signifikatního pøíznaku, zatímco jiná jednotka by byla témìø nevyuita. Nághodnou deaktivací jednotek tak donutí ostatní jednotky, aby se také nauèili tuto informaci.
-
-Dropout opìt mùe bıt vyuit spolu s ostatními metodami regularizace.
-
-DEEP LEARNING
 
 
 \section{Connectionist temporal classification}
