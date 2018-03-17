@@ -523,21 +523,127 @@ Tato forma regularizace nevyžaduje témìø žádné zmìny trénovacího procesu èi modi
 \subsubsection{Dropout}
 Dropout je výpoèetnì nenároènou metodou regularizace, která nejlépe funguje pro modely, které využívají dávkové uèení s malými kroky. Pokaždé, kdy pozorování vstoupí do dávky, je vytvoøena binární maska, která je pak aplikována na všechny vstupy skrytých jednotek v síti. Tato maska je pro každou jednotku vytvoøena náhodnì nezávisle na ostatních. Jednotky, jejichž odpovídající prvek v masce je roven nule, jsou pak pro dané pozorování vylouèeny z uèícího se procesu.
 
-Pravdìpodobnost, že v masce na danou pozici bude vybrána hodnota 1, je dána pøedem zvoleným parametrem. Vìtšinou se volí pravdìpodobnost 0.8, že bude pøi trénování využita vstupní jednotka, a pravdìpodobnost 0.5, že bude využita skrytá jednotka.
-
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\textwidth]{dropout.png}
+    \includegraphics[width=0.6\textwidth]{dropout.png}
     \caption{Vlevo - pøed aplikací dropoutu, vpravo - po aplikaci dropoutu. Pøevzato z \cite{dropout}.}
     \label{fig:overfitting}
 \end{figure}
+
+Pravdìpodobnost, že v masce na danou pozici bude vybrána hodnota 1, je dána pøedem zvoleným parametrem. Vìtšinou se volí pravdìpodobnost 0.8, že bude pøi trénování využita vstupní jednotka, a pravdìpodobnost 0.5, že bude využita skrytá jednotka.
 
 Maskováním se do uèícího procesu vnáší jistá forma šumu, která má za následek adaptivní poškození informaèního obsahu na vstupu sítì a na vstupu skrytých jednotek. Tím je zamezeno tomu, aby se urèitá jednotka zamìøila na rozpoznávání jednoho signifikantního pøíznaku, zatímco jiná jednotka by byla témìø nevyužita. Vylouèením náhodných jednotek z uèícího se procesu jsou tak jednotky donuceny "rozdìlit" si informace mezi sebou.
 
 Dropout opìt mùže být využit spolu s ostatními metodami regularizace \cite{dl, karpathy, dropout}.
 
-\newpage
+\clearpage
 \section{CTC}
+Tato práce se vìnuje úloze klasifikace fonémù, jejímž cílem je pro danou zvukovou nahrávku získat odpovídající sekvenci fonému. Zvuková nahrávka je tedy rozdìlena na malé segmenty a tìmto segmentùm jsou pak pøiøazeny fonémy, které se v jednotlivých segmentech vyskytují (více v \cite{bp}). K tomuto oznaèkování segmentù se vìtšinou využívají pøedtrénované modely, které ovšem vyžadují jisté pøedpoklady, mohou být náchylné vùèi šumu a výsledné oznaèkování mùže být nepøesné, jelikož ne vždy lze pøesnì urèit hranici mezi jednotlivými fonémy.
+
+Bìžnì využívané cenové funkce jsou ovšem definovány pro jednotlivé prvky trénovací sekvence (segmenty) a umožòují pouze klasifikaci nezávislých fonému. To znamená, že takto definované cenové funkce je možné využít pouze pro nezávislou predikci fonémù v jednotlivých segmentech, kdy výstupní sekvence má stejnou délku jako vstupní sekvence. K získání výsledné sekvence fonémù je tøeba výstupy sítì dále zpracovat pomocí dekodéru (napø. pro vstupní sekvenci o dvanácti segmentech: $ aahahhoohooj \rightarrow  ahoj $).
+
+V této kapitole si uvedeme metodu CTC (z anglického "connectionist temporal classification"), díky které lze využít rekurentní neuronové sítì pøímo k predikci výsledné sekvence fonémù bez potøeby dalšího zpracování výstupu sítì \cite{bp, distill, ctc}.
+
+
+\subsection{Formální definice úlohy}
+Mìjme trénovací množinu $ S $ z pevnì daného rozložení $ \mathcal{D}_{\mathcal{X} \times \mathcal{Z}} $. Prostor vstupních hodnot $ \mathcal{X} = (\mathcal{R})^{*} $ je množina všech sekvencí tvoøených $ m $ dimenzionálními reálnými vektory. Prostor výstupních hodnot $ \mathcal{Z} = L^{*} $ je množina všech sekvencí nad koneènou abecedou $ L $ znaèek (fonémù). Prvky $ L^{*} $ budeme nazývat sekvencí znaèek (sekvence fonému) èi znaèkováním. Každé pozorování v $ S $ je tvoøeno párem $ (\boldsymbol{x}, \boldsymbol{z}) $, kde cílová sekvence $ \boldsymbol{z} = (z_{1}, z_{2}, \ldots , z_{U}) $ je nejvýše tak dlouhá, jako vstupní sekvence $ \boldsymbol{x} = (x_{1}, x_{2}, \ldots , x_{T}) $, tedy $ U \leq T $. Vzhledem k tomu, že vstupní a cílové sekvence nejsou obecnì stejnì dlouhé, není možné je pøedem zarovnat, tj. pøiøadit prvky cílové sekvence k vstupním prvkùm sekvence.
+
+Cílem je natrénovat klasifikátor $ h: \mathcal{X} \mapsto \mathcal{Z} $ za využití $ S $, který minimalizuje vhodnì zvolenou metriku pro danou úlohu (napø. minimalizace poètu transkripèních chyb) \cite{distill, ctc}.
+
+\subsection{Reprezentace výstupu}
+Aby bylo možné využít RNN spolu s CTC, je tøeba vhodnì zvolit reprezentaci výstupu sítì. Využijeme-li aktivaèní funkci softmax pro výstupní jednotky, mùžeme transformovat výstupy sítì do tvaru podmínìné hustoty pravdìpodobnosti nad danou abecedou znaèek a využít sí jako klasifikátor, kdy vstupní sekvence klasifikujeme výbìrem nejvíce pravdìpodobného znaèkování. Výstupní vrstva zároveò musí obsahovat
+o jednu jednotku více, než je poèet znaèek v $ L $. Aktivace prvních $ |L| $ jednotek je interpretována jako pravdìpodobnost pozorování odpovídajících znaèek a aktivace $ |L| + 1 $ jednotky je interpretována jako pravdìpodobnost pozorování prázdné znaèky. Prázdná znaèka umožòuje zobrazit více prvkù vstupní sekvence na jednu znaèku èi ignorovat prvky sekvence, které odpovídají tichu, a z výsledné sekvence je odstranìn. Celkovou pravdìpodobnost libovolného znaèkování pak mùžeme vyèíslit seètením pravdìpodobností jeho rùzných zarovnání.
+
+Mìjme tedy RNN s $ m $ vstupními jednotkami, $ n $ výstupními jednotkami a váhovým vektorem $ \boldsymbol{w} $, která slouží jako zobrazení $ \mathcal{N}_{\boldsymbol{w}}: (\mathbb{R}^{m})^{T} \mapsto (\mathbb{R}^{n})^{T} $. Dále mìjme výstupní sekvenci sítì $ \boldsymbol{y} = \mathcal{N}_{\boldsymbol{w}}(\boldsymbol{x}) $, jejíž prvky $ \boldsymbol{y}_{k}^{(t)} $ odpovídají aktivaci výstupní jednotky $ k $ v èase $ t $ a lze je interpretovat jako pravdìpodobnost pozorování znaèky $ k $ v èase $ t $. Hustota pravdìpodobnosti znaèkování nad množinou $ L^{'T} $ sekvencí délky $ T $ nad abecedou $ L^{'} = L \cup \{ \textit{prázdná znaèka} \} $,  je pak
+\begin{equation}
+p(\boldsymbol{\pi} \mid \boldsymbol{x}) = \prod _{t=1}^{T} \boldsymbol{y}_{\boldsymbol{\pi}_{t}}^{(t)}, \forall \boldsymbol{\pi} \in L^{'T},
+\end{equation}
+kde $ \boldsymbol{\pi} $ budeme nazývat cestami a odpovídají prvkùm $ L^{'T} $.
+
+Dále definujme zobrazení $ \mathcal{B}: L^{'T} \mapsto L^{\leq T} $, kde $ L^{\leq T} $ je množina všech možných znaèkování, tj. množina výstupních sekvencí o délce menší èí rovné $ T $ nad pùvodní abecedou znaèek $ L $. Toto zobrazení získáme odstranìním opakujících se znaèek a prázdných znaèek ze získaných cest (napø. $ \mathcal{B}(aa-ab-) = \mathcal{B}(a-a-bb) = aab $) a využijeme ho k získání podmínìné pravdìpodobnosti daného znaèkování $ \boldsymbol{l} \in L^{\leq T} $ \cite{distill, ctc}
+\begin{equation}
+p(\boldsymbol{l} \mid \boldsymbol{x}) = \sum_{\boldsymbol{\pi} \in \mathcal{B}^{-1}(\boldsymbol{l})} p(\boldsymbol{\pi} \mid \boldsymbol{x}),
+\end{equation}
+
+\subsection{Dekódování}
+Výstupem klasifikátoru by mìlo být nejvíce pravdìpodobné znaèkování pro vstupní sekvenci
+\begin{equation}
+h(\boldsymbol{x}) = \underset{\boldsymbol{l} \in L^{\leq T}}{\mathrm{argmax}}\text{ } p(\boldsymbol{l} \mid \boldsymbol{x} ).
+\end{equation}
+Proces hledání znaèkování nazýváme dekódováním a pro metodu CTC lze využít dvì aproximativní metody.
+
+První metoda, dekódování nejlepší cesty, je založena na pøedpokladu, že cesta s nejvyšší pravdìpodobností odpovídá nejvíce pravdìpodobnému znaèkování
+\begin{align}
+h(\boldsymbol{x}) &\approx \mathcal{B}(\boldsymbol{\pi}^{*}) , \\
+\boldsymbol{\pi}^{*} &= \underset{\boldsymbol{\pi} \in N^{t}}{\mathrm{argmax}}\ \text{ } p(\boldsymbol{\pi} \mid \boldsymbol{x}).
+\end{align}
+Dekódování nejlepší cesty lze snadno najít zøetìzením výstupu s nejvyšší aktivaèní hodnotou v každém èasovém kroku. Není ovšem zaruèeno, že tato metoda nalezne nejlepší možné znaèkování.
+
+Druhá metoda využívá sluèování cest, které procházejí stejnou sekvencí znaèek, a zaruèuje nalezení nejlepšího znaèkování. Je však výpoèetnì nároèná a aby tato metoda byla upoèitatelná, je tøeba využít další heuristiky (napø. BEAM proøezávání, které umožní kompromis mezi rychlostí výpoètu a pøesností).
+
+Obì tyto metody mohou být zároveò obohaceny o jazykový model
+\begin{equation}
+h(\boldsymbol{x}) = \underset{\boldsymbol{l} \in L^{\leq T}}{\mathrm{argmax}}\text{ } p(\boldsymbol{l} \mid \boldsymbol{x} ) \cdot p(\boldsymbol{l})^{\gamma} \cdot g(\boldsymbol{l})^{\zeta},
+\end{equation}
+kde $ p(\boldsymbol{l}) $ je pravdìpodobnost znaèkování daná jazykovým modelem, $ g(\boldsymbol{l}) $ je penalizace za vložení slova a parametry $ \gamma $ a $ \zeta $ jsou pøedem dané váhy \cite{distill, ctc}.
+
+\subsection{Dopøedný a zpìtný algoritmus}
+Pro získání výsledného znaèkování je tøeba spoèítat podmínìnou pravdìpodobnost $ p(\boldsymbol{l} \mid \boldsymbol{x}) $ jednotlivých znaèkování. To mùže být znaènì problematické, jelikož je potøeba spoèítat sumu pøes všechny cesty odpovídající danému znaèkování. Využijeme k tomu algoritmus dynamického programování, který vychází z pøedpokladu, že suma  všech cest odpovídajících znaèkování mùže být rozložena na iterativní sumu pøes cesty, které v daném èasovém kroku dosáhly stejné znaèky. Tyto iterace pak mohou být snadno spoèteny pomocí  rekurzivních dopøedných a zpìtných promìnných.
+
+Mìjme sekvenci $ \boldsymbol{q} $ délky $ r $, kde $ \boldsymbol{q}_{1:p} $ a $ \boldsymbol{q}_{r-p:r} $ znaèí prvních a posledních $ p $ znaèek. Potom pro znaèkování $ \boldsymbol{l} $ zavedeme dopøednou promìnnou $ \alpha_{t}(s) $, která odpovídá celkové pravdìpodobnosti $ \boldsymbol{l}_{1:s} $ v èase $ t $
+\begin{equation}
+\alpha_{t}(s) = \sum_{\substack{\boldsymbol{\pi} \in N^{T}: \\ \mathcal{B}(\boldsymbol{\pi}_{1:t}) = \boldsymbol{l}_{1:s}}} \prod_{t^{'}=1}^{t} \boldsymbol{y}_{\boldsymbol{\pi}_{t^{'}}}^{(t)^{'}} ,
+\end{equation}
+kde $ \alpha_{t}(s) $ mùže být rekurzivnì spoètena z $ \alpha_{t-1}(s) $ a $ \alpha_{t-1}(s-1) $. Aby bylo možné využít prázdné znaèky ve výstupní cestì, je tøeba upravit znaèkování $ \boldsymbol{l} $ na $ \boldsymbol{l}^{'}  $ vložením prázdné znaèky na zaèátek a konec sekvence a mezi každé dvì znaèky. Délka $ \boldsymbol{l}^{'}  $ je tedy $ 2 |\boldsymbol{l}| + 1  $. Pøi výpoètu pravdìpodobnosti znaèkování $ \boldsymbol{l}^{'}  $ umožníme pøechody mezi prázdnými a neprázdnými znaèkami a také mezi každým párem unikátních neprázdných znaèek. Zároveò musí všechny sekvence zaèínat buï prázdnou znaèkou $ b $ nebo prvním znaèkou v $ l $. Tìmito omezeními získáme inicializaèní hodnoty algoritmus
+\begin{align}
+\alpha_{1}(1) &= \boldsymbol{y}_{b}^{(1)} , \\
+\alpha_{1}(2) &= \boldsymbol{y}_{\boldsymbol{l}_{1}}^{(1)} , \\
+\alpha_{1}(s) &= 0, \forall s > 2
+\end{align}
+a rekurzi
+\begin{equation}
+\alpha_{t}(s) = 
+\begin{cases}
+\bar{\alpha}_{t}(s) \boldsymbol{y}_{\boldsymbol{l}_{s}^{'}}^{(t)} & \text{pokud } \boldsymbol{l}_{s}^{'} = b \text{ nebo } \boldsymbol{l}_{s-2}^{'} = \boldsymbol{l}_{s}^{'} \\
+(\bar{\alpha}_{t}(s) + \alpha_{t-1}(s-2)) \boldsymbol{y}_{\boldsymbol{l}_{s}^{'}}^{(t)} & \text{jinak}
+\end{cases} ,
+\end{equation}
+kde
+\begin{equation}
+\bar{\alpha}_{t}(s) = \alpha_{t-1}(s) + \alpha_{t-1}(s-1) .
+\end{equation}
+Pravdìpodobnost $ \boldsymbol{l} $ je pak dána sumou výsledných pravdìpodobností $ \boldsymbol{l}^{'} $ s prázdnou znaèkou a bez prázdné znaèky v èase $ T $
+\begin{equation}
+p(\boldsymbol{l} \mid \boldsymbol{x}) = \alpha_{T}(|\boldsymbol{l}^{'}|) + \alpha_{T}(|\boldsymbol{l}^{'}| - 1) . 
+\end{equation}
+
+Obdobnì zadefinujeme zpìtnou promìnnou $ \beta_{t}(s) $ jako celkovou pravdìpodobnost $ \boldsymbol{l}_{s:|\boldsymbol{l}|} $ v èase $ t $
+\begin{align}
+&\beta_{t}(s) = \sum_{\substack{ \boldsymbol{\pi} \in N^{T}: \\ \mathcal{B}(\boldsymbol{\pi}_{t:T})=\boldsymbol{l}_{s:|\boldsymbol{l}|}}} \prod_{t^{'}=t}^{T} \boldsymbol{y}_{\boldsymbol{\pi}_{t^{'}}}^{(t)^{'}} , \\
+&\beta_{T}(|\boldsymbol{l}^{'}|) = \boldsymbol{y}_{b}^{(T)} , \\
+&\beta_{T}(|\boldsymbol{l}^{'}| - 1) = \boldsymbol{y}_{\boldsymbol{l}_{\boldsymbol{l}}}^{(T)} , \\
+&\beta_{T}(s) = 0, \forall s < |\boldsymbol{l}^{'}| - 1 , \\
+&\beta_{t}(s) =
+\begin{cases}
+\bar{\beta}_{t}(s) \boldsymbol{y}_{\boldsymbol{l}_{s}^{'}}^{(t)} & \text{pokud } \boldsymbol{l}_{s}^{'} = b \text{ nebo } \boldsymbol{l}_{s+2}^{'} = \boldsymbol{l}_{s}^{'} \\
+(\bar{\beta}_{t}(s) + \beta_{t+1}(s+2)) \boldsymbol{y}_{\boldsymbol{l}_{s}^{'}}^{(t)} & \text{jinak}
+\end{cases} , \\
+&\bar{\beta}_{t}(s) = \beta_{t+1}(s) + \beta_{t+1}(s+1) .
+\end{align}
+
+Aby byla pøi výpoètech zajištìna numerická stabilita, je tøeba dopøedné a zpìtné promìnné pøeškálovat
+\begin{align}
+\hat{\alpha}_{t}(s) &= \dfrac{\alpha_{t}(s)}{\sum_{s} \alpha_{t}(s)} , \\
+\hat{\beta}_{t}(s) &= \dfrac{\beta_{t}(s)}{\sum_{s} \beta_{t}(s)} .
+\end{align}
+Dosazením pøeškálovaných promìnných do vzorcù a jejich úpravou (podrobnìji v \cite{ctc}) pak mùžeme sí natrénovat pomocí metod založených na maximální vìrohodnosti. Zpìtné šíøení gradientu skrz výstupní vrstvu s aktivaèní softmax funkcí je definováno následovnì
+\begin{equation}
+\dfrac{\partial O^{ML} (\{ \boldsymbol{x}, \boldsymbol{z} \},\mathcal{N}_{\boldsymbol{w}})}{\partial \boldsymbol{u}_{k}^{(t)}} = \boldsymbol{y}_{k}^{(t)} - \dfrac{1}{\boldsymbol{y}_{k}^{(t)} Z_{(t)}} \sum_{s \in lab(\boldsymbol{z}, k)} \hat{\alpha}_{t}(s) \hat{\beta}_{t}(s) ,
+\end{equation}
+kde $ \boldsymbol{u}_{k}^{(t)} $ jsou nenormalizované pravdìpodobnosti na výstupu sítì, $ lab(\boldsymbol{z}, k) = lab(\boldsymbol{l}, k) = \{ s : \boldsymbol{l}_{s}^{'} = k \} $ je množina pozic, na kterých se ve znaèkování $ \boldsymbol{l} $ vyskytuje znaèka $ k $, a kde \cite{distill, ctc}
+\begin{equation}
+Z_{t} = \sum_{s=1}^{|\boldsymbol{l}^{'}|} \dfrac{\hat{\alpha}_{t}(s) \hat{\beta}_{t}(s)}{\boldsymbol{y}_{\boldsymbol{l}_{s}^{'}}^{t} } .
+\end{equation}
 
 % PRAKTICKÁ ÈÁST
 \newpage
@@ -565,236 +671,10 @@ Dropout opìt mùže být využit spolu s ostatními metodami regularizace \cite{dl, k
 
 
 
-\newpage
-\newpage
+\clearpage
+\clearpage
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-\section{Connectionist temporal classification}
-Mnoho úloh, kde je tøeba se nauèit sekvence, vyžadují predikci labelù sekvencí ze zašumìných a nesegmentovaných vstupních dat. Napøíklad ve zpracování øeèi je akustický signál pøepsán na slova nebo na jednotky podúrovní slova, napø. fonémy. RNN, jakožto modely schopny se nauèit sekvence, se pro tento typ úloh zdají býti vhodné. Nicménì vyžadují pøedsegmentovaná trénovací data a zároveò je tøeba jistý post-processing jejich výstupu k transformaci na sekvence labelù.
-
-Labelování nepøedsegmentovaných sekvenèích dat je dlouhodobý problém v úlohách, kde je tøeba se nauèit sekvenci. Je to zejména bìžné v úlohách vnímání, jako je napøíklad rozpozánávní ruènì pssaného písma, rozpoznávání øeèi a rozpoznávání gest, kde vstupní data jsou reprezentována jako zašumìný tok (stream) reálných èísel anotovaných pomocí øetìzcù diskrétních labelù, jako jsou napøíklad písmena èi slova.
-
-Na tyto úlohy labelování byly velmi èasto využívány modely jako napøíklad HMM, které ovšem vyžadujíc jisté pøedpoklady k jejich využití: specifická znalost domény úlohy pro správný návrh stavových modelù, pøedpoklad, že vstupní pozorování jsou nezávislá a hlavnì trénování HMM je generativní zatímco úloha olabelování sekvence je diskriminativní. Na druhou stranu RNN nevyžadují žádné pøedešlé znalosti o datech, pouze je tøeba zvolit reprezentaci jejich vstupních a výstupních dat. Zároveò mohou být trénovaný diskriminativnì a jejich vnitøní stavy pøedstavují velmi silný mechaniskus pro modelování èasových øad. Zároveò jsou velice robustní vùèi temporal a spatial šumu.
-
-Døíve ovšem nebylo možné RNN na úlohu olabelování sekvence napøímo využít, jelikož jejich objective functions jsou definovány samostatnì pro každý bod v trénovací sekvenci - jinými slovy, RNN mohou být natrénovíny pouze ke klasifikaci series nezávislých labelù. To znamená, že trénovací data musejí být pøedsegmentována a výstup sítì musí projít jistým post-processingem, abychom získali výslednou sekvenci labelù.
-
-V této kapitole si uvedeme metodu, která nám umožní využít RNN pøímo k predikci sekvence labelù bez toho, abych potøebovali olabelovaná pøedsegmentovaná data a postprocessingu výstupu. Základním principem této metody je interpretovat výstupy sítì jako pravdìpodobnostní rozložení (hustota?) nad všemi možnými sekvencemi labelù v závislosti na vstupní sekvenci. Na základì této hustoty mùžeme odvodit objective function, která pøímo maximalizuje pravdìpodobnost správného olabelování. Vzhledem k tomu, že tarto obj. func. je diferencovatelná, mùžeme pak využít standarní BPTT k natrénovaání sítì.
-
-Úloze labelování nepøedsegmentované sekvence dat budeme øíkat temporal classification a pokud k této úlzoe využijeme RNN, budeme používat connectionist temporal classification (volnì pøeloženo XYZ, dále jen CTC). Oproti tomu, úloze nezávislého labelování každého kroku (framu èi okénka) vstupní sekvence budeme nazývat framewise classification (podrobnyý postup, jak je provedena framewise clf. naleznete v [moje bakaláøka jako zdroj]).))
-
-Nejprve si pøipravíme matematickou formalizaci pro temporal classification, dále si popíšeme reprezentaci výstupu, která nám umožní využít RNN jako temporal klasifikátor a nakonec si uvedeme, jak je taková sí potom trénována.
-
-CTC PAPER
-
-Connectionism is a set of approaches in the fields of artificial intelligence, cognitive science and philosophy of mind, that attempts to represents mental or behavioral phenomena as emergent processes of interconnected networks of simple units.
-
-WIKI
-
-Mìjmì úlohu rozpoznávání øeèi. Pro tuto úlohu máme typicky kdispozici zvukové narhrávjky/stopy a odpodvídající transkripce/pøepisy. Bohužel ale neznáme, které písmeno v pøepisu odpovídá jako èásti zvukové stopy. Proto je tøeba ruènì èi dle pøedtrénovaným modelem pøiøadit ke každému èasovému okamžiku foném, která se v tomto okamžiku vyskytuje. Toto mùže být pro velké datasety pomìrnì pracné a ne vždy je možné pøesnì urèit hranici mezi jednotlivými fonémy.
-
-DISTILLPUB
-
-
-\subsection{Temporální klasifikace}
-Mìjme trénovací množinu $ S $ z pevnì daného rozložení $ \mathcal{D}_{\mathcal{X} \times \mathcal{Z}} $.  Prostor vstupních hodnot $ \mathcal{X} = (\mathcal{R})^{*} $ je množina všech sekvencí tvoøených $ m $ dimenzionálními reálnými vektory. Prostor výstupních hodnot $ \mathcal{Z} = L^{*} $ je množina všech sekvencí nad koneènou abecedou (alphabet) $ L $ labelù. Obecnì budeme nazývat prvky $ L^{*} $ sekvencemi labelù èi labellings. Každé pozorování v $ S $ sestává z páru $ (x, z) $. Cílová (target) sekvence $ z = (z_{1}, z_{2}, \ldots , z_{U}) $ je nejvýše tak dlouhá, jako vstupní sekvence $ x = (x_{1}, x_{2}, \ldots , x_{T}) $, tedy $ U \leq T $. Vzhledem k tomu, že vstupní a cílové sekvence nejsou obecnì stejnì dlouhé, není možné je a priori align them.
-
-Cílem je za využití $ S $ natrénovat temporal klasifikátor $ h: \mathcal{X} \mapsto \mathcal{Z} $, který bude klasifikovat pøedem nevidìné vstupní sekvence tak, aby minimalizoval nìjakou error measure specifickou pro danou úlohu (pro klasifikaci foñému se mùže jednat napøíklad o LER, tj. label error rate, kde je cílem minimalizovat poèet transkripèních chyb).
-
-
-CTC PAPER
-
-Hledáme pøesné zobrazení z $ X $ na $ Y $ s tím, že $ X $ a $ Y $ se mohou lišit svoji délkou a pøesnì neznáme, které prvky $ X $ odpovídají kterým prvkùm $ Y$. CTC tento problém øeší a pro vstupní sekvenci $ X $ najde výstupní rozložení (distribution) nad všemi možnými $ Y $.
-
-DISTILLPUB
-
-\subsection{CTC}
-Dále se budeme vìnovat reprezentacu výstupu, který nám umožní využít RNN spolu s CTC. Zásádním krokem je transformovat výstupy sítì do podmínìné hustoty pravdìpodobnosti nad sekvencemi labelù. Sí pak mùže být použita jako klasifikátor výbìrem nejvíce pravdìpodobného labellingu pro danou vstupní sekvenci.
-
-CTC sí vyžaduje softmax výstupní vrstvu, která obsahuje o jednu jetnoku více, než je poèet labelù v $ L $. Aktivace prvních $ |L| $ je jednotek je interpretována jako pravdìpodobnost pozorování koespundíjících labelù v daných èasech. Aktivace $ |L| + 1 $ jednotky (jednotky navíc) je pak interpretována jako pravdìpodobnost pozorování "blank"/"prázdného" èí žádného labelu. Dohromady tyto výstupy definují pravdìpodobosti všech možných zarovnání (alignment) sekvencí labelù vùèi vstupní sekvencu. Celková pravdìpodobnost libovolné sekvece labelù apk mùže být nalezena seètením pravdìpodobností jejich rùzných zarovnání.
-
-Formálnìjší, pro vstupní sekvence $ x $ délky $ T $ definujeme RNN s $ m $ vstupy, $ n $ výstupy a váhovým vektorem $ w $, který slouží jako spojité zobrazení $ \mathcal{N}_{w}: (\mathbb{R}^{m})^{T} \mapsto (\mathbb{R}^{n})^{T} $. Necht $ y = \mathcal{N}_{w}(x) $ je sekvence výstupu sítì a $ y_{k}^{(t)} $ je aktivace výstupní jednotky $ k $ v èase $ t $. Potom mùžeme $ y_{k}^{(t)} $ interpretovat jako pravdìpodobnost pozorování labelu $ k $ v èase $ t $, které definuje distribution nad množinou $ L^{'T} $ sekvence délky $ T $ nad abecedou $ L^{'} = L \cup \{blank\} $:
-$$
-p(\pi \mid x) = \prod _{t=1}^{T} y_{\pi_{t}}^{(t)}, \forall \pi \in L^{'T}.
-$$
-Prvky $ L^{'T} $ budeme nazývat cestami a budeme je oznaèovat $ \pi $. Z výše uvedené rovnice (odkaz) je implicitní pøedpoklad, že výstup sítì v rùzných èasových okamžicích je conditionally nezávislý, given the interní stav sítì. Toto je zaruèení tím, že neexistuje žádná zpìtná vazba z výstupní vsrtvy sítì zpìt do sebe èí kamkoliv jinak v síti.
-
-Dalším krokem je definece many-to-one zobrazení $ \mathcal{B}: L^{'T} \mapsto L^{\leq T} $, kde $ L^{\leq T} $ je množina možných labbelingu, tj. množina sekvenci o délce menší èi rovné $ T $ nad pùvodní abecenou labelù $ L $). Toto zobrazení získáme jednodušše odstranìním prázdných labelù a labelù, co se opakují ze získaných cest, napø. $ \mathcal{B}(a-ab-) = \mathcal{B}(-aa--abb) = aab $. Nakonec využijeme $ \mathcal{B} $ k definici podmínìné pravdìpodobnosti daného labellingu $ l \in L^{\leq T} $ jako sumu pravdìpodobností všech odpovídajících cest:
-$$
-p(l \mid x) = \sum_{\pi \in \mathcal{B}^{-1}(l)} p(\pi \mid x)
-$$
-
-CTC PAPER
-
-Vzhledem k tomu, že ne pro všechny prvky vstupní sekvence dává smysl mapovat je na výstup, zavádíme nový prázdný token. Díky nim mùžeme napø. ignorovat ticho, které není obsaženo ve výstupu èi povolit nìkolik opakujících se znakù v øadì (aby z neexistuje nevzniklo nexistuje). Tento token neodpovídá žádnému znaku a z výsledné sekvence je odstranìn.
-
-DISTILL PUB
-
-\subsection{Konstrukce klasifikátoru}
-Výstupem klasifkátoru by mìlo být nejvíce pravdìpodobné olabelování pro vstupní sekvenci
-$$
-h(x) = \text{argmax}_{l \in L^{\leq T}} p(l \mid x)
-$$
- (FIXNOUT ARGMIN a UNDERSCRIPT)
-
-V terminologii HMM bychom nazvali tento proces hledání labellingu dekódováním. V tomto pøípadì se pro dekódování nabízí dvì aproximativní metody.
-
-První metoda, dekódování nejlepší cesty (best path decoding), je založeno na pøedpodkladu, že nejpravdìpodobnìjší cesta odpovídá nejpravdìpodobnìjšímu labellingu:
-$$
-h(x) \approx \mathcal{B}(\pi^{*})
-$$
-kde
-$$
-\pi^{*} = \text{argmax}_{\pi \in N^{t}} p(\pi \mid x).
-$$
-
-Dekódování nejlepší cesty lze snadno vypoèítat, jelikož $ \pi^{*} $ je pouze konkatenace nejvíc aktivních výstupù v každém èasovém kroce. Nicménì není zaruèeno, že tato metoda nalezne nejlepší labelling.
-
-Druhá metoda, prefix search decoding, sice zaruèuje nalezení nejlepšího labellingu, alej e výpoèetnì nároènìjší a v jistých pøípadech mùže její heurestika selhat. Tato metoda vyžaduje úpravu dopøedného a zpìtného algortimu uvedeného dále a maximální poèet prefixù, které musí být expandovány roste exponencielnì s rostoucí délkou vstupní sekvence. Aby tato metoda byla upoèitatelná, vìtšinou je kombinována s dalšími heuristikami (napø. BEAM proøezávání).
-
-CTC PAPER
-
-
-\subsection{Trénování sítì}
-Zatím jsme si uvedli, jak reprezentovat výstup sítì tak, abychom mohli použít RNN s CTC. Nyní si odvodíme objective function, která nám uméžní natrénovat CTC sí pomocí metod založených na gradientnm sestupu. 
-
-Objective function odvodíme ze základního principu maximum likelyhood, tedy že minimalizací této funkce maximalizujeme log likelyhood cíloveho olabelování. Váhy této sítì pak mùžeme snadno spoèítat pomocí obyèejného zpìtnného šíøení v èase (BPTT).
-
-CTC PAPER
-
-CTC modely jsou vìšinou trénovány s využitím RNN k odhadu pravdìpodobností v každém kroce $ p_{t}(a_{t} \mid X) $, která vìtšinu funguje velice dobøe díky vzhledem k tomu, že bere ohled i na kontext ve vstupní sekvenci. Nicménì je možné využít libovolný algortimus, který dokáže vygenerovat hustotu pravdìpodobnosti nad výstupními tøídami pro vstup o pevnì dané velikosti.
-
-DIS|TILL PUB
-
-\subsubsection{CTC zpìtný a dopøedný algoritmus}
-Potøebujeme efficient zpùsob, jak spoèítast podmínìnou pravdìpodobnost $ p(l \mid x) $ jednotlivých labellingù. To je znaènì problematické, jelikož je potøeba spoèítat sumu pøes všechny cesty odpovídající danému labbelingu, kterých mùže být velmi mnoho. Proto tento problém vyøešíme pomocí algoritmu dynamického programování, který je podoboný dopøednému-zpìtnému algoritmu pro HMM. Hlavním idea, jak spoèítat sumu všech cest odpovídajících labellingu je, že tato suma mùže být rozložena na iterativní sumu pøes cesty odpovídající prefixu toho labellingu. Iterace pak mohou být eficciently spoèteny pomocí rekurzivních dopøedných a zpìtných promìnných.
-
-Pro nìjakou sekevenci $ q $ délky $ r $ kde $ q_{1:p} $ a $ q_{r-p:r} $ oznaèuí prvních a posledních $ p $ symbolù. Potom pro labelling $ l $ zavedeme dopøednou promìnnou $ \alpha_{t}(s) $, která odpovídá celkové pravdìpodobnosti $ l_{1:s} $ v èase $ t $, tedy
-$$
-\alpha_{t}(s) = \sum_{\pi \in N^{T}: \mathcal{B}(\pi_{1:t})=l_{1:s}} \prod_{t^{'}=1}^{t} y_{\pi_{t^{'}}}^{t^{'}}
-$$
-kde $ \alpha_{t}(s) $ mùže být rekurzivnì spoètena z $ \alpha_{t-1}(s) $ a $ \alpha_{t-1}(s-1) $.
-
-Abychom povolili využití prázdných labelù ve výstupní cestì, pøedpokládejme modifikovanou sekvenci labelù $ l^{'} $, která vloží prázdný label na zaèátek a na konec sekvence a mezi každé dva labely. Délka sekvence $ l^{'} $ je tedy $ 2|l| + 1 $. Pøi výpoètu pravdìpodobností prefixù $ l^{'} $ umožníme pøechody mezi prázdnými a neprázdnými labely a také mezi každým párem unikátních neprázdných labelù. Dále umožníme (allow), aby všechny prefixy zaèínali buï prázdných symbolem $ b $ nebo prvním symbolem v $ l $. Tím získáváme inicializaèní hodnoty algoritmu
-$$
-\alpha_{1}(1) = y_{b}^{(1)}
-$$
-$$
-\alpha_{1}(2) = y_{l_{1}}^{(1)}
-$$
-$$
-\alpha_{1}(s) = 0, \forall s > 2
-$$
-a rekurzi
-\[ 
-\alpha_{t}(s) = \left\{
-\begin{array}{ll}
-     \bar{\alpha}_{t}(s) y_{l_{s}^{'}}^{t} & \text{pokud } l_{s}^{'} = b \text{ nebo } l_{s-2}^{'} = l_{s}^{'} \\
-      (\bar{\alpha}_{t}(s) + \alpha_{t-1}(s-2)) y_{l_{s}^{'}}^{t} & \text{jinak}
-\end{array} 
-\right. 
-\]
-kde
-$$
-\bar{\alpha}_{t}(s) = \alpha_{t-1}(s) + \alpha_{t-1}(s-1)
-$$.
-
-Pravdìpodobnost $ l $ je potom suma výsledných pravdìpodobností $ l^{'} $ s a bez finální prázdného labelu v èase $ T $
-$$
-p(l \mid x) = \alpha_{T}(|l^{'}|) + \alpha_{T}(|l^{'}| - 1)
-$$
-
-Obdobnì zadefinujeme zpìtnou promìnnou $ \beta_{t}(s) $ jako výslednou pravdìpodobnsot $ l_{s:|l|} $ v èase $ t $:
-$$
-\beta_{t}(s) = \sum_{\pi \in N^{T}: \mathcal{B}(\pi_{t:T})=l_{s:|l|}} \prod_{t^{'}=t}^{T} y_{\pi_{t^{'}}}^{t^{'}}
-$$
-$$
-\beta_{T}(|l^{'}|) = y_{b}^{(T)}
-$$
-$$
-\beta_{T}(|l^{'}| - 1) = y_{l_{l}}^{(T)}
-$$
-$$
-\beta_{T}(s) = 0, \forall s < |l^{'}| - 1
-$$
-\[ 
-\beta_{t}(s) = \left\{
-\begin{array}{ll}
-     \bar{\beta}_{t}(s) y_{l_{s}^{'}}^{t} & \text{pokud } l_{s}^{'} = b \text{ nebo } l_{s+2}^{'} = l_{s}^{'} \\
-      (\bar{\beta}_{t}(s) + \beta_{t+1}(s+2)) y_{l_{s}^{'}}^{t} & \text{jinak}
-\end{array} 
-\right. 
-\]
-kde
-$$
-\bar{\beta}_{t}(s) = \beta_{t+1}(s) + \beta_{t+1}(s+1)
-$$.
-
-OBRAZEK Z CTC PAPERU
-
-Aby pøi výpoèty nedošlo k podteèení a byla zajištìna numerická stabilita, zadefinujme si pøeškálované dopøedné a zpìtné promìnné
-$$
-\hat{\alpha}_{t}(s) = \dfrac{\alpha_{t}(s)}{\sum_{s} \alpha_{t}(s)}
-$$
-$$
-\hat{\beta}_{t}(s) = \dfrac{\beta_{t}(s)}{\sum_{s} \beta_{t}(s)}
-$$
-a nahraïmì $ \alpha $ za $ \hat{\alpha} $ v rovnicích (odkaz na tu s vidlièkou a tu pod ní) a $ \beta $ za $ \hat{\beta} $ v rovnicích (odkaz na tu s vidlièkou a tu pod ní).
-
-CTC PAPER
-
-
-Dosazením vzorcù a úpravou vzorcù  (podrobnìjí v [odkaz na CTC paper]) pak mùžeme  sí natrénovat na základì maximum likelihood, kde zpìtné šíøení gradientu skrz softmax vrstvu je definování následovnì
-$$
-\dfrac{\partial O^{ML} (\{x,z\},\mathcal{N}_{w})}{\partial u_{k}^{(t)}} = y_{k}^{(t)} - \dfrac{1}{_{k}^{(t)} Z_{(t)}} \sum_{s \in lab(z,k)} \hat{\alpha}_{t}(s) \hat{\beta}_{t}(s)
-$$
-(POROVNAT ZAVORKY u t)
-
-, kde $ u_{k}^{(t)} $ jsou nenormalizované výstupy a $ lab(z,k) = lab(l, k) = \{ s : l_{s}^{'} = k \} $  je množina pozic  a který se v labellingu $ l $ vyskytuje label $ k $, a kde
-$$
-Z_{t} = \sum_{s=1}^{|l^{'}|} \dfrac{\hat{\alpha}_{t}(s) \hat{\beta}_{t}(s)}{y_{l_{s}^{'}}^{t} }
-$$
-CTC PAPER
-
-Výpoèet CTC mùže být výpoèetnì velice nároèný. Naivním pøístupem pro výpoèert by bylo seèíst skóre všech zarovnání, nicménì poèet zarovnání mùže být velmi velký. Výpoèet tedy vyøešíme algortimem dynamického programování. Hlavní ideou je, že dvì zarovnání, která dosáhla stejné výstupu v daném èasovém okamžice mohou být spojeny.
-
-CTC funkce je diferencovatelná vzhledem k pravdìpodobnostem v každém èasosvém kroku a lze použít gradientní metody.
-
-Lze využít BEAM search  (trade-off mezi accuracy a runtime) a language model modifikací klasifikátoru
-$$
-Y^{*} = \text{argmax } p(y\mid X) \cdot p(Y)^{\gamma} \cdot L(Y)^{\beta}
-$$,
-kde  $ p(y\mid X) $ je podmínìná CTC pravdìpodobnost, $ p(Y)^{\gamma}  $ je pravdìpodobnost daná jazykovýým modelem  a $  L(Y)^{\zeta} $ a je penalizace za vložení slova. Parametry $ \gamma $ a $ \zeta $ jsou vìtšinou získány pomocí crossvalidace.
-
-DISTILL PUB
-
-PREPSAT DO TVARU $ \alpha_{s}^{(t)} $?
-
-\section{Klasifikace fonémù}
-\section{Vyhodnocení}
-\section{Závìr}
 
 
 
