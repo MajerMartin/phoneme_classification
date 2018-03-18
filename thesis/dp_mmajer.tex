@@ -104,7 +104,7 @@ Tímto bych rád podìkoval vedoucímu diplomové práce, Ing. Luboši Šmídlovi, Ph.D.,
 % TEORETICKÁ ÈÁST
 \pagenumbering{arabic}
 \section{Úvod}
-Neuronové sítì byly vyvinuty ji v polovinì minulého století, ale kvùli nedostateèné vıpoèetní kapacitì nemohly bıt plnì vyuity pro øešení reálnıch problémù. A v posledních letech, kdy došlo k vıznamnému vıvoji v oblasti hardwaru jak pro poèítaèe, tak i pro mobilní a vloená zaøízení, zaèali bıt plnì vyuívány a to zejména pro komplexní úlohy v oblasti zpracování obrazu a hlasu, kde stabilnì pøekonávají ostatní algoritmy strojového uèení. Vıvoj vıkonnıch grafickıch karet a optimalizovanıch knihoven pak umonil rychlé trénování tìchto modelù na velkém mnoství dat a díky vıkonnım èipùm lze provádìt predikci v reálném èase i na mobilních zaøízeních.
+Neuronové sítì byly vyvinuty ji v polovinì minulého století, ale kvùli nedostateèné vıpoèetní kapacitì nemohly bıt plnì vyuity pro øešení reálnıch problémù. A v posledních letech, kdy došlo k vıznamnému vıvoji v oblasti hardwaru jak pro poèítaèe, tak i pro mobilní a vloená zaøízení, zaèaly bıt plnì vyuívány a to zejména pro komplexní úlohy v oblasti zpracování obrazu a hlasu, kde stabilnì pøekonávají ostatní algoritmy strojového uèení. Vıvoj vıkonnıch grafickıch karet a optimalizovanıch knihoven pak umonil rychlé trénování tìchto modelù na velkém mnoství dat a díky vıkonnım èipùm lze provádìt predikci v reálném èase i na mobilních zaøízeních.
 
 Tato práce se vìnuje vyuití neuronovıch sítí pro zpracování hlasu a to zejména úloze klasifikace fonémù s vyuitím základních metod zpracování akustického signálu pøedstavenıch v \cite{bp}. Ve zpracování hlasu jsou bìnì vyuívány jak sítì dopøedné, tak i rekurentní, které byly vytvoøeny pro klasifikaci èasovıch øad èi sekvencí a jsou schopny vyuívat kontextu. Pro trénování neuronovıch sítí je potøeba velké mnoství dat, aby byla zajištìna robustnost a schopnost generalizace s tím, e v úloze klasifikace fonémù jsou tato data ve formì zvukovıch nahrávek a odpovídajících pøepisù neboli transkripcí. 
 
@@ -648,10 +648,160 @@ Z_{t} = \sum_{s=1}^{|\boldsymbol{l}^{'}|} \dfrac{\hat{\alpha}_{t}(s) \hat{\beta}
 % PRAKTICKÁ ÈÁST
 \newpage
 \section{Klasifikace fonémù}
+V této práci bylo porovnáno šest architektur neuronovıch sítí pro úlohu klasifikace fonémù. Experimenty byly provedeny nad dvìma datovımi sady pro ètyøi rùzné parametrizace pøíznakù. K implementaci byl vyuit programovací jazyk Python 3.4 spolu s knihovnami pro neuronové sítì Tensorflow a Keras (kód dostupnı na \cite{repo}). Sítì byly trénovány na grafické kartì Nvidia Tesla K20m s pamìtí 5GB a knihovnami CUDA 8.0 a CuDNN 6.0.
+
+\subsection{Pøedzpracování dat}
+Architektury byly testovány na dvou datovıch sadách, ŠkodaAuto a SpeechDat-E, které obsahují èeské nahrávky se vzorkovací frekvencí 8 kHz. Obì tyto sady byly dále rozdìleny na sadu trénovací (75\%), validaèní (12.5\%) a testovací (12.5\%) tak, aby kadı øeèník byl v právì jedné sadì. Základní informace o datovıch sadách jsou uvedeny v tabulce \ref{tab:datasety}.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ |c|c|c| }
+\cline{2-3}
+\multicolumn{1}{c|}{} & ŠkodaAuto & SpeechDat-E \\
+\hline
+poèet øeèníkù & 47 & 924  \\
+\hline
+poèet nahrávek & 14523 & 39560 \\
+\hline
+poèet øeèníkù v trénovací sadì & 35 & 693 \\
+\hline
+poèet øeèníkù ve validaèní sadì & 6 &  115 \\
+\hline
+poèet øeèníkù v testovací sadì & 6 & 116  \\
+\hline
+\end{tabular}
+\caption{Popis datovıch sad a jejich rozdìlení.}
+\label{tab:datasety}
+\end{table}
+
+Pro obì datové sady pak byly spoèteny ètyøi parametrizace pøíznakù \cite{bp}, na které se dále budeme odkazovat tuènì uvedenımi zkratkami:
+\begin{itemize}
+\item \textbf{LFE} - logaritmované energie banky filtrù, pro vıpoèet vyuito 40 filtrù,
+\item \textbf{LFE} + $ \Delta\Delta $ - logaritmované energie banky filtrù, pro vıpoèet vyuito 40 filtrù, vypoèteny delta a delta-delta koeficienty, 
+\item \textbf{MFCC} - mel-frekvenèní kepstrální koeficienty, pro vıpoèet vyuito 40 filtrù, ponecháno 13 koeficientù,
+\item \textbf{MFCC} + $ \Delta\Delta $ - mel-frekvenèní kepstrální koeficienty, pro vıpoèet vyuito 40 filtrù, ponecháno 13 koeficientù, vypoèteny delta a delta-delta koeficienty.
+\end{itemize}
+Všechny parametrizace byly vygenerovány s vyuitím Hammingova okénka o délce 25ms s posunem 10ms (jednotlivé segmenty se pøekrıvají), a 512 bodové FFT.
+
+Takto spoètené pøíznaky pak byly po sloupcích normalizovány tak, aby mìly nulovou støední hodnotu a jednotkovı rozptyl. K tomu byla vyuita Z-score normalizace, která pøetransformuje vstupní data $ \boldsymbol{x} $ na data $ \boldsymbol{z} $ dle vzorce
+\begin{equation}
+\boldsymbol{z} = \dfrac{\boldsymbol{x} - \mu_{\boldsymbol{x}}}{\sigma_{\boldsymbol{x}}} , 
+\end{equation}
+kde $ \mu_{\boldsymbol{x}} $ je støední hodnota $ \boldsymbol{x} $ a $ \sigma_{\boldsymbol{x}} $ je rozptyl $ \boldsymbol{x} $.
+
+\subsection{Architektury a trénování sítí}
+Celkem bylo navrhnuto šest architektur sítí, na které se dále budeme odkazovat tuènì uvedenımi názvy:
+\begin{itemize}
+\item \textbf{dopøedná}
+\begin{table}[H]
+\centering
+\begin{tabular}{ c|c|c }
+typ vrstvy & poèet neuronù & aktivaèní funkce \\
+\hline
+plnì propojená & 1024 & ReLU \\
+dropout (0.5) & - & - \\
+plnì propojená & 512 & ReLU \\
+dropout (0.5) & - & - \\
+plnì propojená & 256 & ReLU \\
+dropout (0.5) & - & - \\
+plnì propojená & 40 & softmax
+\end{tabular}
+\end{table}
+
+\item \textbf{LSTM}
+\begin{table}[H]
+\centering
+\begin{tabular}{ c|c|c }
+typ vrstvy & poèet neuronù/bunìk & aktivaèní funkce \\
+\hline
+LSTM & $ \{ 100, 150, 200, 250 \} $ & tanh \\
+LSTM & $ \{ 100, 150, 200, 250 \} $ & tanh \\
+plnì propojená & 40 & softmax
+\end{tabular}
+\end{table}
+
+\item \textbf{GRU}
+\begin{table}[H]
+\centering
+\begin{tabular}{ c|c|c }
+typ vrstvy & poèet neuronù/bunìk & aktivaèní funkce \\
+\hline
+GRU & $ \{ 100, 150, 200, 250 \} $ & tanh \\
+GRU & $ \{ 100, 150, 200, 250 \} $ & tanh \\
+plnì propojená & 40 & softmax
+\end{tabular}
+\end{table}
+
+\item \textbf{obousmìrná CTC LSTM}
+\begin{table}[H]
+\centering
+\begin{tabular}{ c|c|c }
+typ vrstvy & poèet neuronù/bunìk & aktivaèní funkce \\
+\hline
+obousmìrná LSTM & $ \{ 100, 150, 200, 250 \} $ & tanh \\
+obousmìrná LSTM & $ \{ 100, 150, 200, 250 \} $ & tanh \\
+plnì propojená & 41 & softmax
+\end{tabular}
+\end{table}
+
+\item \textbf{dávková CTC LSTM}
+\begin{table}[H]
+\centering
+\begin{tabular}{ c|c|c }
+typ vrstvy & poèet neuronù/bunìk & aktivaèní funkce \\
+\hline
+LSTM & $ \{ 100, 150, 200, 250 \} $ & tanh \\
+LSTM & $ \{ 100, 150, 200, 250 \} $ & tanh \\
+plnì propojená & 41 & softmax
+\end{tabular}
+\end{table}
+
+\item \textbf{obousmìrná dávková CTC LSTM}
+\begin{table}[H]
+\centering
+\begin{tabular}{ c|c|c }
+typ vrstvy & poèet neuronù/bunìk & aktivaèní funkce \\
+\hline
+obousmìrná LSTM & $ \{ 100, 150, 200, 250 \} $ & tanh \\
+obousmìrná LSTM & $ \{ 100, 150, 200, 250 \} $ & tanh \\
+plnì propojená & 41 & softmax
+\end{tabular}
+\end{table}
+
+\end{itemize}
+
+Dopøedná sí byla trénována pomocí stochastického gradientního sestupu s konstantou uèení $ \epsilon = 0.01 $ a Nesterovovım momentem $ \alpha = 0.9 $. Pokud bìhem 5 trénovacích epoch nedošlo ke sníení ztráty na validaèní sadì, konstanta uèení byla sníena na polovinu. Všechny rekurentní neuronové sítì pak vyuívaly optimalizaèní algoritmus ADAM s doporuèenımi hodnotami \cite{adam}. Všechny sítì byly trénovány po dávkách o velikosti 64 pozorování.
+
+Obousmìrná CTC LSTM vyuívá k predikci celou trénovací sekvenci. Celá sekvence ovšem v pøípadì predikce v reálném èase není dostupná, a proto byly také testovány dávkové CTC sítì, které stejnì jako dopøedné èi LSTM a GRU sítì vyuívají k predikci pouze kratší sekvence o pøedem definované délce .
+
+Dopøedná sí, sí LSTM a sí GRU vyuívají k dekódování vısledné sekvence Viterbiho algoritmus se zerogramovım jazykovım modelem, CTC sítì vyuívají dekódování nejlepší cesty.
+
+Jako regularizaèní metody byly vyuity zanesení šumu do trénovacích dat a pøedèasné ukonèení o toleranci 10 epoch. Gaussovskı šum o smìrodatné odchylce 0.6 \cite{graves} byl novì vygenerován pro kadé pozorování pøed vstupem do sítì v kadé epoše. Metoda dropout mohla bıt vyuita pouze pro dopøednou sí, jeliko pro rekurentní sítì byly vyuity optimalizované vrstvy pro knihovnu CuDNN, které tuto metodu zatím nepodporují. Nicménì se ukázalo, e regularizace metodou zanesení šumù je pro tuto úlohu dostaèující a dropout, jeho rekurentní implementace bıvá vıpoèetnì velice pomalá, není tøeba.
 
 % VYHODNOCENÍ
 \newpage
-\section{Vyhodnocení}
+\section{Experimenty a vyhodnocení}
+
+\textbf{TODO:}
+\begin{itemize}
+\item popsat pøesah u CTC batch augmentation
+\item stackování framù pro dopøednou sí
+\item zaèít popisem HResults a vysvìtlením *, **, ***
+\item tabulky s performance architektur na LFE (architektura, net acc, poèet epoch, htk corr, htk acc, * early stopping / ** overfitting / *** nepodaøilo se natrénovat)
+\item tabulka nejlepších architektur nad všemi datasety - jedna pro Skoda, jedna pro SpeechDat
+\item tabulka nejlepších architektur nad všemi datasety - Skoda i SpeechDat v jedné, jen HTK acc
+\item popsat vyhodnocovací metriky (acc sítì, corr a acc z HTK)
+\item nastínit vıbìr nejlepších sítí na LFE a proè byly pouity na dalších datasetech
+\item popsat proè nebyla zvolena nejlepší verze MLP (preference pro menší poèet parametrù)
+\item pro CTC nebyla monitorována LER ale pouze CTC loss
+\item proè se nepodaøilo natrénovat sítì pro LFE s deltami? (36hod na epochu)
+\item napsat, e z dopøednıch by šlo dostat ještì trochu víc
+\item rozlišit nevhodnou architekturu, která se overfittne ji ve 3. epoše a early stopping nepomùe
+\item rozlišit neschopnost nauèit sí kvùli dlouhému trvání epoch a kvùli explozi gradientu
+\item u tabulek pøes další pøíznaky a celkovì vynechat poèet bunìk, kontexty a délku sekvence - zmínit, e byly vybrány sítì o 100 buòkách a délce sekvence 20 a MLP 10-x-5 pro niší poèet parametrù
+\item zmínit pøípadné realtime vyuití a nevhodnost full BRNN
+\end{itemize}
+
 
 % ZÁVÌR
 \newpage
