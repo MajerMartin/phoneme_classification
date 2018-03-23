@@ -7,6 +7,7 @@
 \usepackage[tworuled]{algorithm2e}
 
 % tables and cline
+\usepackage{makecell}
 \usepackage{multirow}
 \usepackage{regexpatch}
 \makeatletter
@@ -110,91 +111,7 @@ Tato práce se vìnuje vyuití neuronovıch sítí pro zpracování hlasu a to zejména 
 
 Cílem práce je porovnat rùzné architektury neuronovıch sítí, které by mohly bıt vyuity pro pøepis mluvené øeèi do textové podoby (speech-to-text) v reálném èase. Za tímto úèelem byly voleny pøedevším jednodušší sítì s nízkım poètem parametrù. 
 
-V první èásti práce je uvedena obecná teorie optimalizaèních algoritmù a neuronovıch sítí. Druhá èást se pak vìnuje metodì trénování rekurentních neuronovıch sítí, která nevyaduje pøedsegmentovaná trénovací data (více o segmentaci v \cite{bp}). Nakonec jsou porovnány rùzné architektury jak dopøednıch, tak i rekurentních neuronovıch sítí, na nìkolika datovıch sadách, které vznikly vyuitím rùznım typù pøíznakù.
-
-\newpage
-\section{Optimalizaèní algoritmy}
-Vìtšina uèících se algoritmù vyuívá jistou formu optimalizace. Optimalizací rozumíme úlohu, kdy minimalizujeme èi maximalizujeme pøedem danou funkci $ f(\boldsymbol{x}) $ zmìnou parametru $ \boldsymbol{x} $. Hledáme tedy hodnotu $ x $ takovou, aby funkce funkce $ f(\boldsymbol{x}) $ nabıvala minimální èi maximální hodnoty. Vìtšina optimalizaèních metod uvauje minimalizace funkce $ f(\boldsymbol{x}) $ a její pøípadná maximalizace se provádí minimalizací funkce $ -f(\boldsymbol{x}) $.
-
-Funkce, kterou optimalizujeme, nazıváme kritérium (v terminologii strojového uèení se také èasto objevují názvy cenová, ztrátová èi chybová funkce). Tato práce se zabıvá pøedevším optimalizací pro neuronové sítì, kde jsou nejèastìji vyuívány optimalizaèní metody zaloené na gradientu.
-
-Základní metodou zaloenou na gradientu je tzv. gradientní sestup. Pøedpokládejme cenovou funkci $ J(\boldsymbol{\theta}) $ parametrizovanou souborem parametrù $ \boldsymbol{\theta} $. Gradientní sestup hledá optimální soubor parametrù $ \boldsymbol{\theta}^{*} = \text{argmin } J(\boldsymbol{\theta}) $ pomocí iterativního pravidla pro zmìnu parametrù
-\begin{equation}
-\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \epsilon \nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}),
-\end{equation}
-kde $ \epsilon $ je tzv. konstanta uèení, která udává velikost kroku v opaèném smìru nejvìtšího gradientu. Gradientní sestup pro konvexní cenové funkce vdy nalezne globální minimum a pro nekonvexní cenové funkce lokální minimum \cite{dl,karpathy,ruder}.
-
-\subsection{Stochastickı gradientní sestup}
-Aèkoliv je gradientní sestup efektivní optimalizaèní metoda, pøi optimalizaci nad velkım objemem dat mùe bıt velice pomalá a vıpoèetnì nároèná, jeliko pro jednu zmìnu parametrù je tøeba spoèítat gradient nad celou datovou sadou. Jednou z nejpouívanìjších modifikací gradientního sestupu, která tyto problémy øeší, je stochastickı gradientní sestup.
-
-Pøedpokládejme cenovou funkci ve tvaru záporného logaritmu podmínìné pravdìpodobnosti
-\begin{equation}
-J(\boldsymbol{\theta}) =  \mathbb{E}_{\boldsymbol{x},  \boldsymbol{y} \sim p_{data}} L(\boldsymbol{x}, \boldsymbol{y}, \boldsymbol{\theta}) = \dfrac{1}{m} \sum_{i=1}^{m} L(\boldsymbol{x}^{i}, \boldsymbol{y}^{i}, \boldsymbol{\theta}),
-\end{equation}
-kde $ p_{data} $ je mnoina trénovacích dat o velikost $ m $ a $ L(\boldsymbol{x}, \boldsymbol{y}, \boldsymbol{\theta}) = -\log p(\boldsymbol{y} \mid \boldsymbol{x}; \boldsymbol{\theta}) $ je cena pro jedno pozorování v závislosti na souboru parametrù $ \boldsymbol{\theta} $. Pro takto definovanou cenovou funkci by gradientní sestup musel spoèítat gradient
-\begin{equation}
-\nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) = \dfrac{1}{m} \sum_{i=1}^{m} \nabla_{\boldsymbol{\theta}} L(\boldsymbol{x}^{i}, \boldsymbol{y}^{i}, \boldsymbol{\theta}),
-\end{equation}
-jeho komplexita je $ O(m) $. Stochastickı gradientní sestup nahlíí na gradient jako na støední hodnotu a tudí se pøedpokládá, e mùe bıt aproximován menšími soubory pozorování náhodnì vybíranımi z datové sady, tzv. dávky. V optimalizaèním kroku je tedy náhodnì vybrána dávka pozorování $ \boldsymbol{b} = \{ x^{1}, \ldots, x^{m'} \} $, kde $ m' $ se volí jako malé èíslo v závislosti na vıpoèetní kapacitì a velikosti $ m $ úplné datové sady. Pøi trénování modelu na grafické kartì (GPU) je vhodné volit velikost dávky jako mocninu dvou a to v rozmezí 8 a 256, aby mohly bıt plnì vyuity vektorizované operace GPU. Menší dávky mohou mít zároveò regularizaèní efekt díky šumu, kterı vnášejí do uèícího se procesu. Odhad gradientu je pak vypoèten s vyuitím dávky $ \boldsymbol{b} $
-\begin{equation}
-g = \dfrac{1}{m'} \nabla_{\boldsymbol{\theta}} \sum_{i=1}^{m'} L(\boldsymbol{x}^{i}, \boldsymbol{y}^{i}, \boldsymbol{\theta}).
-\end{equation}
-Zmìna parametrù je pak dána dle pravidla
-\begin{equation}
-\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \epsilon g.
-\end{equation}
-Pro pevnì danou velikost modelu tedy vıpoèetní cena nezávisí na velikosti datové sady $ m $  \cite{dl,ruder}.
-
-\subsection{Další modifikace gradientního sestupu}
-Jedním z nejvìtších problémù pøi vyuití gradientního sestupu a gradientního stochastického sestupu je vıbìr konstanty uèení $ \epsilon $. Vysoká hodnota $ \epsilon $ mùe zpùsobit fluktuaci okolo lokálního minima nebo dokonce divergenci optimalizaèního procesu a nízká hodnota $ \epsilon $ mùe mít za následek vırazné zpomalení uèení. Konstanta uèení se tedy v praxi dynamicky mìní v závislosti na poètu epoch $ k $, tedy $ \epsilon_{k} $. Dalším bìnım problémem je uvíznutí v mìlkém lokálním minimu èi sedlovém bodì, co znemoní další uèení. Bylo tedy vytvoøeno nìkolik modifikací základních gradientních algoritmù, které tyto problémy do jisté míry øeší \cite{dl, ruder}.
-
-\subsubsection{Moment}
-Moment byl navren za úèelem zrychlení trénování a to pøedevším pøi optimalizace ztrátovıch funkcí, které
-mají mnoho mìlkıch lokálních minim nebo v pøípadech, kdy jsou gradienty znaènì zašumìné. Algoritmus momentu vyuívá plovoucí prùmìr minulıch gradientù s exponenciálním zapomínáním a pokraèuje v jejich smìru.
-
-Tento algoritmus zavádí parametr $ \alpha $, kterı udává, jakou rychlostí mají bıt minulé gradienty zapomínány. Pravidlo pro zmìnu parametrù pak vypadá následovnì
-\begin{align}
-\boldsymbol{v} &\leftarrow \alpha \boldsymbol{v} - \epsilon \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{m} \sum_{i=1}^{m} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta}), \boldsymbol{y}^{(i)}) \right), \\
-\boldsymbol{\theta} &\leftarrow \boldsymbol{\theta} + \boldsymbol{v}.
-\end{align}
-Promìnná $ \boldsymbol{v} $ akumuluje prvky gradientu $ \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{m} \sum_{i=1}^{m} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta}), \boldsymbol{y}^{(i)}) \right) $ s tím, e èím vìtší je parametr $ \alpha $ vùèi konstantì uèení $ \epsilon $, tím více minulé gradienty ovlivòují aktuální smìr kroku. Stejnì jako u konstanty uèení, i parametr $ \alpha $ mùe bıt mìnen v závislosti na èase. Vìtšinou je jako poèáteèní hodnota zvolena 0.5 a je navyšována a na 0.99 \cite{dl, karpathy, ruder}.
-
-\subsubsection{Nesterovùv moment}
-Dalším variantou je Nesterovùv moment, kterı dále rozšiøuje algoritmus momentu. Pravidlo pro zmìnu parametrù se zmìní na
-\begin{align}
-\boldsymbol{v} &\leftarrow \alpha \boldsymbol{v} - \epsilon \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{m} \sum_{i=1}^{m} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta} + \alpha \boldsymbol{v}), \boldsymbol{y}^{(i)}) \right), \\
-\boldsymbol{\theta} &\leftarrow \boldsymbol{\theta} + \boldsymbol{v},
-\end{align}
-kde parametry $ \alpha $ a $ \epsilon $ odpovídají stejnım parametrùm jako u algoritmu momentu. Hlavním rozdílem oproti algoritmu momentu je, e gradient je vyhodnocen a po aplikaci minulıch gradientù. Nejprve je tedy proveden krok ve smìru akumulovanıch minulıch gradientù a následnì je provedena korekce \cite{dl, karpathy, ruder, nesterov}.
-
-\subsection{ADAM}
-Cenová funkce bıvá èasto citlivá na urèité smìry v prostoru parametrù a naopak necitlivá na smìry jiné. Moment tento problém do urèité míry øeší, ale za cenu zavedení nového parametru, kterı je tøeba správnì nastavit. ADAM je adaptivní metoda, která tento problém øeší tím, e zavede vlastní konstantu uèení pro kadı parametr a tyto konstanty pak automaticky v prùbìhu uèení adaptuje.
-
-ADAM pouívá ke zmìnì parametrù plovoucí prùmìr (první centrální moment) gradientù s exponenciálním zapomínáním $ r $ a druhı necentrální moment $ v $. Poèáteèní hodnota obou momentù je nastavena na nulu a zejména v prvních krocích algoritmu je potøeba momenty opravit korekèním faktorem. Parametry $ \beta_{1} $ a $ \beta_{2} $ udávají rychlost zapomínání a $ \delta $ je malá konstanta  \cite{dl, karpathy, ruder, adam}.
-\\[12pt]
-\begin{algorithm}[H]
-\setstretch{1.25}
-inicializace \\
-$ \boldsymbol{r} = 0 $, $ \boldsymbol{v} = 0 $, $ \boldsymbol{t} = 0 $  \\
-\While{zastavovací podmínka není splnìna}{
- $ t \leftarrow t + 1 $  \\
- vıpoèet gradientu \\
-$ g = \dfrac{1}{m} \nabla_{\boldsymbol{\theta}} \sum_{i} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta}), \boldsymbol{y}^{(i)}) $ \\ 
- zmìna odhadu prvního centrálního momentu \\
- $ \boldsymbol{r} \leftarrow \beta_{1}\boldsymbol{r} + (1 - \beta_{1})g $ \\
- zmìna odhadu druhého necentrálního momentu \\
- $ \boldsymbol{v} \leftarrow \beta_{2}\boldsymbol{v} + (1 - \beta_{2})g \odot g $ \\
- korekce odhadu prvního centrálního momentu \\
- $ \hat{\boldsymbol{r}} \leftarrow \dfrac{\boldsymbol{r}}{1- \beta_{1}^{t}} $ \\
- korekce odhadu druhého necentrálního momentu \\
- $ \hat{\boldsymbol{v}} \leftarrow \dfrac{\boldsymbol{v}}{1- \beta_{2}^{t}} $ \\
- zmìna parametrù \\
- $ \boldsymbol{\theta} \leftarrow \boldsymbol{\theta} + -\epsilon \dfrac{\hat{\boldsymbol{r}}}{\sqrt{\hat{\boldsymbol{v}} + \delta}} $
-}
-\end{algorithm}
-\begin{center}
-Algoritmus 1: ADAM.
-\end{center}
+V první èásti práce je uvedena obecná teorie neuronovıch sítí a optimalizaèních algoritmù. Druhá èást se pak vìnuje metodì trénování rekurentních neuronovıch sítí, která nevyaduje pøedsegmentovaná trénovací data (více o segmentaci v \cite{bp}). Nakonec jsou porovnány rùzné architektury jak dopøednıch, tak i rekurentních neuronovıch sítí, na nìkolika datovıch sadách, které vznikly vyuitím rùznım typù pøíznakù.
 
 \newpage
 \section{Neuronové sítì}
@@ -202,8 +119,11 @@ Neuronová sí je algoritmus, kterı je schopen aproximovat i silnì nelineární fun
 
 Základním rozdílem mezi bìnou optimalizací a optimalizací v neuronovıch sítí je, e optimalizace v neuronovıch sítích a ve strojovém uèení obecnì probíhá nepøímo. To znamená, e aèkoliv optimalizujeme zvolenou metriku $ P $, která v jistém smyslu kvantifikuje vıkon algoritmu na dané úloze, minimalizujeme jinou cenovou funkci $ J(\boldsymbol{\theta}) $ za úèelem minimalizace metriky $ P $. V bìném optimalizaèním problému bychom minimalizovali pøímo cenovou funkci $ J(\boldsymbol{\theta}) $ za úèelem její minimalizace \cite{dl, karpathy, bishop}.
 
+\subsection{Rozpoznávání øeèi pomocí neuronovıch sítí}
+\textbf{TODO}
+
 \subsection{Cenová funkce}
-Jedním ze zásadních aspektù pøi návrhu neuronovıch sítí je právì vıbìr cenové funkce. Vıbìr cenové funkce závisí na dané úloze a poadovaném vıstupu. Cenovou funkci definujeme stejnım zpùsobem jako u ostatních parametrickıch modelù, které generují hustotu pravdìpodobnosti $ p(\boldsymbol{y} \mid \boldsymbol{x} ; \boldsymbol{\theta}) $ a pøi trénování vyuívají principu maximální vìrohodnosti. Vìtšinou tedy cenovou funkci definujeme jako vzájemnou entropii mezi trénovacími daty a predikcemi modelu
+Jedním ze zásadních aspektù pøi návrhu neuronovıch sítí je vıbìr cenové funkce. Vıbìr cenové funkce závisí na dané úloze a poadovaném vıstupu. Cenovou funkci definujeme stejnım zpùsobem jako u ostatních parametrickıch modelù, které generují hustotu pravdìpodobnosti $ p(\boldsymbol{y} \mid \boldsymbol{x} ; \boldsymbol{\theta}) $ a pøi trénování vyuívají principu maximální vìrohodnosti. Vìtšinou tedy cenovou funkci definujeme jako vzájemnou entropii mezi trénovacími daty a predikcemi modelu
 \begin{equation}
 J(\boldsymbol{\theta}) = -\mathbb{E}_{\boldsymbol{x}, \boldsymbol{y} \sim \hat{p}_{data}} \log p_{model} (\boldsymbol{y} \mid \boldsymbol{x}).
 \end{equation}
@@ -217,7 +137,7 @@ Jak název napovídá, tok informací smìøuje od vstupu $ \boldsymbol{x} $ pøes nìko
 Cílem trénování sítì je, aby se nauèila odpovídající zobrazení mezi $ f(\boldsymbol{x}) $ a $ f^{*}(\boldsymbol{x}) $. Uèení probíhá na základì trénovacích dat, která poskytují zašumìná aproximovaná pozorování $ f^{*}(\boldsymbol{x}) $ vyhodnocena v rùznıch bodech. Ke kadému pozorování $ \boldsymbol{x} $ je k dispozici také skuteèná hodnota $ \boldsymbol{y} \approx f^{*}(\boldsymbol{x}) $. Vıstupní vrstva sítì se tedy pro kadou trénovací hodnotu $ \boldsymbol{x} $ snaí vyprodukovat hodnotu blízkou $ \boldsymbol{y} $. Chování skrytıch vrstev není pøímo dáno trénovacími daty a sí se je musí nauèit vyuívat k získání poadovaného vısledku, tedy k aproximaci $ f^{*}(\boldsymbol{x}) $ \cite{dl, bishop}.
 
 \subsubsection{Architektura}
-Klíèovım prvkem pøi návrhu neuronovıch sítí je jejich architektura. Architekturou sítì èi modlu rozumíme celkovou strukturu sítì - kolik má mít jednotek a jak mají bıt tyto jednotky mezi sebou propojeny.
+Klíèovım prvkem pøi návrhu neuronovıch sítí je jejich architektura. Architekturou sítì èi modelu rozumíme celkovou strukturu sítì - kolik má mít jednotek a jak mají bıt tyto jednotky mezi sebou propojeny.
 
 Jak ji bylo uvedeno, neuronové sítì jsou tvoøeny skupinami jednotek, které jsou uspoøádány do jednotlivıch vrstev. Vìtšina architektur tyto vrstvy uspoøádává do øetìzové struktury, kde kadá vrstva je funkcí vrstvy, která ji pøedchází. V této struktuøe je pak první vrstva definována jako
 \begin{equation}
@@ -238,7 +158,7 @@ Aktivaèní funkce softmax je vyuívána pro úlohy, kde je tøeba reprezentovat vıst
 \begin{equation}
 \hat{\boldsymbol{y}} = P(\boldsymbol{y} = 1 \mid \boldsymbol{x}),
 \end{equation}
-kde $ \hat{\boldsymbol{y}} \in \interval{0}{1} $. Aby byla zajištìna numerická stabilita pøi optimalizaci, budeme radìji hodnotu
+kde $ \hat{\boldsymbol{y}} \in \interval{0}{1} $. Aby byla zajištìna numerická stabilita pøi optimalizaci, budeme radìji predikovat hodnotu
 \begin{equation}
 \boldsymbol{z} = \log \tilde{P} (\boldsymbol{y} = 1 \mid \boldsymbol{x}).
 \end{equation}
@@ -476,6 +396,89 @@ Takto definované jednotky s branami umoòují vhodnì vybírat èásti stavového pros
     \label{fig:gru}
 \end{figure}
 
+\newpage
+\section{Optimalizaèní algoritmy}
+Vìtšina uèících se algoritmù vyuívá jistou formu optimalizace. Optimalizací rozumíme úlohu, kdy minimalizujeme èi maximalizujeme pøedem danou funkci $ f(\boldsymbol{x}) $ zmìnou parametru $ \boldsymbol{x} $. Hledáme tedy hodnotu $ x $ takovou, aby funkce funkce $ f(\boldsymbol{x}) $ nabıvala minimální èi maximální hodnoty. Vìtšina optimalizaèních metod uvauje minimalizace funkce $ f(\boldsymbol{x}) $ a její pøípadná maximalizace se provádí minimalizací funkce $ -f(\boldsymbol{x}) $.
+
+Funkce, kterou optimalizujeme, nazıváme kritérium (v terminologii strojového uèení se také èasto objevují názvy cenová, ztrátová èi chybová funkce). Tato práce se zabıvá pøedevším optimalizací pro neuronové sítì, kde jsou nejèastìji vyuívány optimalizaèní metody zaloené na gradientu.
+
+Základní metodou zaloenou na gradientu je tzv. gradientní sestup. Pøedpokládejme cenovou funkci $ J(\boldsymbol{\theta}) $ parametrizovanou souborem parametrù $ \boldsymbol{\theta} $. Gradientní sestup hledá optimální soubor parametrù $ \boldsymbol{\theta}^{*} = \text{argmin } J(\boldsymbol{\theta}) $ pomocí iterativního pravidla pro zmìnu parametrù
+\begin{equation}
+\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \epsilon \nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}),
+\end{equation}
+kde $ \epsilon $ je tzv. konstanta uèení, která udává velikost kroku v opaèném smìru nejvìtšího gradientu. Gradientní sestup pro konvexní cenové funkce vdy nalezne globální minimum a pro nekonvexní cenové funkce lokální minimum \cite{dl,karpathy,ruder}.
+
+\subsection{Stochastickı gradientní sestup}
+Aèkoliv je gradientní sestup efektivní optimalizaèní metoda, pøi optimalizaci nad velkım objemem dat mùe bıt velice pomalá a vıpoèetnì nároèná, jeliko pro jednu zmìnu parametrù je tøeba spoèítat gradient nad celou datovou sadou. Jednou z nejpouívanìjších modifikací gradientního sestupu, která tyto problémy øeší, je stochastickı gradientní sestup.
+
+Pøedpokládejme cenovou funkci ve tvaru záporného logaritmu podmínìné pravdìpodobnosti
+\begin{equation}
+J(\boldsymbol{\theta}) =  \mathbb{E}_{\boldsymbol{x},  \boldsymbol{y} \sim p_{data}} L(\boldsymbol{x}, \boldsymbol{y}, \boldsymbol{\theta}) = \dfrac{1}{m} \sum_{i=1}^{m} L(\boldsymbol{x}^{i}, \boldsymbol{y}^{i}, \boldsymbol{\theta}),
+\end{equation}
+kde $ p_{data} $ je mnoina trénovacích dat o velikost $ m $ a $ L(\boldsymbol{x}, \boldsymbol{y}, \boldsymbol{\theta}) = -\log p(\boldsymbol{y} \mid \boldsymbol{x}; \boldsymbol{\theta}) $ je cena pro jedno pozorování v závislosti na souboru parametrù $ \boldsymbol{\theta} $. Pro takto definovanou cenovou funkci by gradientní sestup musel spoèítat gradient
+\begin{equation}
+\nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) = \dfrac{1}{m} \sum_{i=1}^{m} \nabla_{\boldsymbol{\theta}} L(\boldsymbol{x}^{i}, \boldsymbol{y}^{i}, \boldsymbol{\theta}),
+\end{equation}
+jeho komplexita je $ O(m) $. Stochastickı gradientní sestup nahlíí na gradient jako na støední hodnotu a tudí se pøedpokládá, e mùe bıt aproximován menšími soubory pozorování náhodnì vybíranımi z datové sady, tzv. dávky. V optimalizaèním kroku je tedy náhodnì vybrána dávka pozorování $ \boldsymbol{b} = \{ x^{1}, \ldots, x^{m'} \} $, kde $ m' $ se volí jako malé èíslo v závislosti na vıpoèetní kapacitì a velikosti $ m $ úplné datové sady. Pøi trénování modelu na grafické kartì (GPU) je vhodné volit velikost dávky jako mocninu dvou a to v rozmezí 8 a 256, aby mohly bıt plnì vyuity vektorizované operace GPU. Menší dávky mohou mít zároveò regularizaèní efekt díky šumu, kterı vnášejí do uèícího se procesu. Odhad gradientu je pak vypoèten s vyuitím dávky $ \boldsymbol{b} $
+\begin{equation}
+g = \dfrac{1}{m'} \nabla_{\boldsymbol{\theta}} \sum_{i=1}^{m'} L(\boldsymbol{x}^{i}, \boldsymbol{y}^{i}, \boldsymbol{\theta}).
+\end{equation}
+Zmìna parametrù je pak dána dle pravidla
+\begin{equation}
+\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \epsilon g.
+\end{equation}
+Pro pevnì danou velikost modelu tedy vıpoèetní cena nezávisí na velikosti datové sady $ m $  \cite{dl,ruder}.
+
+\subsection{Další modifikace gradientního sestupu}
+Jedním z nejvìtších problémù pøi vyuití gradientního sestupu a gradientního stochastického sestupu je vıbìr konstanty uèení $ \epsilon $. Vysoká hodnota $ \epsilon $ mùe zpùsobit fluktuaci okolo lokálního minima nebo dokonce divergenci optimalizaèního procesu a nízká hodnota $ \epsilon $ mùe mít za následek vırazné zpomalení uèení. Konstanta uèení se tedy v praxi dynamicky mìní v závislosti na poètu epoch $ k $, tedy $ \epsilon_{k} $. Dalším bìnım problémem je uvíznutí v mìlkém lokálním minimu èi sedlovém bodì, co znemoní další uèení. Bylo tedy vytvoøeno nìkolik modifikací základních gradientních algoritmù, které tyto problémy do jisté míry øeší \cite{dl, ruder}.
+
+\subsubsection{Moment}
+Moment byl navren za úèelem zrychlení trénování a to pøedevším pøi optimalizace ztrátovıch funkcí, které
+mají mnoho mìlkıch lokálních minim nebo v pøípadech, kdy jsou gradienty znaènì zašumìné. Algoritmus momentu vyuívá plovoucí prùmìr minulıch gradientù s exponenciálním zapomínáním a pokraèuje v jejich smìru.
+
+Tento algoritmus zavádí parametr $ \alpha $, kterı udává, jakou rychlostí mají bıt minulé gradienty zapomínány. Pravidlo pro zmìnu parametrù pak vypadá následovnì
+\begin{align}
+\boldsymbol{v} &\leftarrow \alpha \boldsymbol{v} - \epsilon \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{m} \sum_{i=1}^{m} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta}), \boldsymbol{y}^{(i)}) \right), \\
+\boldsymbol{\theta} &\leftarrow \boldsymbol{\theta} + \boldsymbol{v}.
+\end{align}
+Promìnná $ \boldsymbol{v} $ akumuluje prvky gradientu $ \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{m} \sum_{i=1}^{m} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta}), \boldsymbol{y}^{(i)}) \right) $ s tím, e èím vìtší je parametr $ \alpha $ vùèi konstantì uèení $ \epsilon $, tím více minulé gradienty ovlivòují aktuální smìr kroku. Stejnì jako u konstanty uèení, i parametr $ \alpha $ mùe bıt mìnen v závislosti na èase. Vìtšinou je jako poèáteèní hodnota zvolena 0.5 a je navyšována a na 0.99 \cite{dl, karpathy, ruder}.
+
+\subsubsection{Nesterovùv moment}
+Dalším variantou je Nesterovùv moment, kterı dále rozšiøuje algoritmus momentu. Pravidlo pro zmìnu parametrù se zmìní na
+\begin{align}
+\boldsymbol{v} &\leftarrow \alpha \boldsymbol{v} - \epsilon \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{m} \sum_{i=1}^{m} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta} + \alpha \boldsymbol{v}), \boldsymbol{y}^{(i)}) \right), \\
+\boldsymbol{\theta} &\leftarrow \boldsymbol{\theta} + \boldsymbol{v},
+\end{align}
+kde parametry $ \alpha $ a $ \epsilon $ odpovídají stejnım parametrùm jako u algoritmu momentu. Hlavním rozdílem oproti algoritmu momentu je, e gradient je vyhodnocen a po aplikaci minulıch gradientù. Nejprve je tedy proveden krok ve smìru akumulovanıch minulıch gradientù a následnì je provedena korekce \cite{dl, karpathy, ruder, nesterov}.
+
+\subsection{ADAM}
+Cenová funkce bıvá èasto citlivá na urèité smìry v prostoru parametrù a naopak necitlivá na smìry jiné. Moment tento problém do urèité míry øeší, ale za cenu zavedení nového parametru, kterı je tøeba správnì nastavit. ADAM je adaptivní metoda, která tento problém øeší tím, e zavede vlastní konstantu uèení pro kadı parametr a tyto konstanty pak automaticky v prùbìhu uèení adaptuje.
+
+ADAM pouívá ke zmìnì parametrù plovoucí prùmìr (první centrální moment) gradientù s exponenciálním zapomínáním $ r $ a druhı necentrální moment $ v $. Poèáteèní hodnota obou momentù je nastavena na nulu a zejména v prvních krocích algoritmu je potøeba momenty opravit korekèním faktorem. Parametry $ \beta_{1} $ a $ \beta_{2} $ udávají rychlost zapomínání a $ \delta $ je malá konstanta  \cite{dl, karpathy, ruder, adam}.
+\\[12pt]
+\begin{algorithm}[H]
+\setstretch{1.25}
+inicializace \\
+$ \boldsymbol{r} = 0 $, $ \boldsymbol{v} = 0 $, $ \boldsymbol{t} = 0 $  \\
+\While{zastavovací podmínka není splnìna}{
+ $ t \leftarrow t + 1 $  \\
+ vıpoèet gradientu \\
+$ g = \dfrac{1}{m} \nabla_{\boldsymbol{\theta}} \sum_{i} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta}), \boldsymbol{y}^{(i)}) $ \\ 
+ zmìna odhadu prvního centrálního momentu \\
+ $ \boldsymbol{r} \leftarrow \beta_{1}\boldsymbol{r} + (1 - \beta_{1})g $ \\
+ zmìna odhadu druhého necentrálního momentu \\
+ $ \boldsymbol{v} \leftarrow \beta_{2}\boldsymbol{v} + (1 - \beta_{2})g \odot g $ \\
+ korekce odhadu prvního centrálního momentu \\
+ $ \hat{\boldsymbol{r}} \leftarrow \dfrac{\boldsymbol{r}}{1- \beta_{1}^{t}} $ \\
+ korekce odhadu druhého necentrálního momentu \\
+ $ \hat{\boldsymbol{v}} \leftarrow \dfrac{\boldsymbol{v}}{1- \beta_{2}^{t}} $ \\
+ zmìna parametrù \\
+ $ \boldsymbol{\theta} \leftarrow \boldsymbol{\theta} + -\epsilon \dfrac{\hat{\boldsymbol{r}}}{\sqrt{\hat{\boldsymbol{v}} + \delta}} $
+}
+\end{algorithm}
+\begin{center}
+Algoritmus 1: ADAM.
+\end{center}
 
 \newpage
 \section{Kapacita modelu}
@@ -636,13 +639,13 @@ Aby byla pøi vıpoètech zajištìna numerická stabilita, je tøeba dopøedné a zpìtné
 \hat{\alpha}_{t}(s) &= \dfrac{\alpha_{t}(s)}{\sum_{s} \alpha_{t}(s)} , \\
 \hat{\beta}_{t}(s) &= \dfrac{\beta_{t}(s)}{\sum_{s} \beta_{t}(s)} .
 \end{align}
-Dosazením pøeškálovanıch promìnnıch do vzorcù a jejich úpravou (podrobnìji v \cite{ctc}) pak mùeme sí natrénovat pomocí metod zaloenıch na maximální vìrohodnosti. Zpìtné šíøení gradientu skrz vıstupní vrstvu s aktivaèní softmax funkcí je definováno následovnì
+Dosazením pøeškálovanıch promìnnıch do vzorcù a jejich úpravou (podrobnìji v \cite{ctc}) pak mùeme sí natrénovat pomocí metod zaloenıch na maximální vìrohodnosti. Zpìtné šíøení gradientu skrz vıstupní vrstvu s aktivaèní funkcí softmax je definováno následovnì
 \begin{equation}
 \dfrac{\partial O^{ML} (\{ \boldsymbol{x}, \boldsymbol{z} \},\mathcal{N}_{\boldsymbol{w}})}{\partial \boldsymbol{u}_{k}^{(t)}} = \boldsymbol{y}_{k}^{(t)} - \dfrac{1}{\boldsymbol{y}_{k}^{(t)} Z_{(t)}} \sum_{s \in lab(\boldsymbol{z}, k)} \hat{\alpha}_{t}(s) \hat{\beta}_{t}(s) ,
 \end{equation}
 kde $ \boldsymbol{u}_{k}^{(t)} $ jsou nenormalizované pravdìpodobnosti na vıstupu sítì, $ lab(\boldsymbol{z}, k) = lab(\boldsymbol{l}, k) = \{ s : \boldsymbol{l}_{s}^{'} = k \} $ je mnoina pozic, na kterıch se ve znaèkování $ \boldsymbol{l} $ vyskytuje znaèka $ k $, a kde \cite{distill, ctc}
 \begin{equation}
-Z_{t} = \sum_{s=1}^{|\boldsymbol{l}^{'}|} \dfrac{\hat{\alpha}_{t}(s) \hat{\beta}_{t}(s)}{\boldsymbol{y}_{\boldsymbol{l}_{s}^{'}}^{t} } .
+Z_{t} = \sum_{s=1}^{|\boldsymbol{l}^{'}|} \dfrac{\hat{\alpha}_{t}(s) \hat{\beta}_{t}(s)}{\boldsymbol{y}_{\boldsymbol{l}_{s}^{'}}^{(t)} } .
 \end{equation}
 
 % PRAKTICKÁ ÈÁST
@@ -677,9 +680,9 @@ poèet øeèníkù v testovací sadì & 6 & 116  \\
 Pro obì datové sady pak byly spoèteny ètyøi parametrizace pøíznakù \cite{bp}, na které se dále budeme odkazovat tuènì uvedenımi zkratkami:
 \begin{itemize}
 \item \textbf{LFE} - logaritmované energie banky filtrù, pro vıpoèet vyuito 40 filtrù,
-\item \textbf{LFE} + $ \Delta\Delta $ - logaritmované energie banky filtrù, pro vıpoèet vyuito 40 filtrù, vypoèteny delta a delta-delta koeficienty, 
+\item \textbf{LFE} $ \Delta\Delta $ - logaritmované energie banky filtrù, pro vıpoèet vyuito 40 filtrù, vypoèteny delta a delta-delta koeficienty, 
 \item \textbf{MFCC} - mel-frekvenèní kepstrální koeficienty, pro vıpoèet vyuito 40 filtrù, ponecháno 13 koeficientù,
-\item \textbf{MFCC} + $ \Delta\Delta $ - mel-frekvenèní kepstrální koeficienty, pro vıpoèet vyuito 40 filtrù, ponecháno 13 koeficientù, vypoèteny delta a delta-delta koeficienty.
+\item \textbf{MFCC} $ \Delta\Delta $ - mel-frekvenèní kepstrální koeficienty, pro vıpoèet vyuito 40 filtrù, ponecháno 13 koeficientù, vypoèteny delta a delta-delta koeficienty.
 \end{itemize}
 Všechny parametrizace byly vygenerovány s vyuitím Hammingova okénka o délce 25ms s posunem 10ms (jednotlivé segmenty se pøekrıvají), a 512 bodové FFT.
 
@@ -781,1290 +784,501 @@ Jako regularizaèní metody byly vyuity zanesení šumu do trénovacích dat a pøedèa
 % VYHODNOCENÍ
 \newpage
 \section{Experimenty a vyhodnocení}
-
-\textbf{TODO:}
+Nejprve byly provedeny experimenty nad datovou sadou ŠkodaAuto a její parametrizací LFE. Nejlepší nastavení jednotlivıch architektur pak bylo testováno nad zbylımi parametrizacemi jak na datové sadì ŠkodaAuto, tak na datové sadì SpeechDat-E. Byly uvaovány tøi metriky, na které se dále budeme odkazovat tuènì uvedenımi názvy:
 \begin{itemize}
-\item popsat pøesah u CTC batch augmentation
-\item stackování framù pro dopøednou sí
-\item zaèít popisem HResults a vysvìtlením *, **, ***
-\item tabulky s performance architektur na LFE (architektura, net acc, poèet epoch, htk corr, htk acc, * early stopping / ** overfitting / *** nepodaøilo se natrénovat)
-\item tabulka nejlepších architektur nad všemi datasety - jedna pro Skoda, jedna pro SpeechDat
-\item tabulka nejlepších architektur nad všemi datasety - Skoda i SpeechDat v jedné, jen HTK acc
-\item popsat vyhodnocovací metriky (acc sítì, corr a acc z HTK)
-\item nastínit vıbìr nejlepších sítí na LFE a proè byly pouity na dalších datasetech
-\item popsat proè nebyla zvolena nejlepší verze MLP (preference pro menší poèet parametrù)
-\item pro CTC nebyla monitorována LER ale pouze CTC loss
-\item proè se nepodaøilo natrénovat sítì pro LFE s deltami? (36hod na epochu)
-\item napsat, e z dopøednıch by šlo dostat ještì trochu víc
-\item rozlišit nevhodnou architekturu, která se overfittne ji ve 3. epoše a early stopping nepomùe
-\item rozlišit neschopnost nauèit sí kvùli dlouhému trvání epoch a kvùli explozi gradientu
-\item u tabulek pøes další pøíznaky a celkovì vynechat poèet bunìk, kontexty a délku sekvence - zmínit, e byly vybrány sítì o 100 buòkách a délce sekvence 20 a MLP 10-x-5 pro niší poèet parametrù
-\item zmínit pøípadné realtime vyuití a nevhodnost full BRNN
+\item \textbf{pøesnost modelu [\%]} - pøesnost klasifikace modelu vyhodnocována po jednotlivıch segmentech nahrávek
+\begin{equation}
+\text{pøesnost modelu } = \dfrac{C_{s}}{N_{s}} \cdot 100,
+\end{equation}
+kde $ C_{s} $ je poèet správnì klasifikovanıch pozorování (segmentù) a $ N_{s} $ je poèet všech pozorování,
+\item \textbf{fonémù správnì [\%]} - procento správnì klasifikovanıch fonémù do dekódování
+\begin{equation}
+\text{fonémù správnì } = \dfrac{C_{f}}{N_{f}} \cdot 100,
+\end{equation}
+kde $ C_{f} $ je poèet správnì klasifikovanıch fonémù a $ N_{f} $ je poèet všech fonémù,
+\item \textbf{pøesnost dekódování [\%]} - pøesnost modelu po dekódování
+\begin{equation}
+\text{pøesnost dekódování } = \dfrac{C_{f} - I}{N_{f}} \cdot 100 ,
+\end{equation}
+kde $ C_{f} $ je poèet správnì klasifikovanıch fonémù, $ I $ je poèet navíc vloenıch znakù (fonémù) a $ N_{f} $ je poèet všech fonémù.
 \end{itemize}
+Pro sítì vyuívající metodu CTC nebyla sledována pøesnost modelu, ale pouze pøesnost dekódování. Bìhem trénování modelù pak docházelo ke tøem jevùm
+\begin{enumerate}
+\item pøedèasné ukonèení z dùvodu stagnace uèícího se procesu, tj. chyba na validaèní sadì se po dobu 10 epoch témìø nezmìnila (*),
+\item pøedèasné ukonèení z dùvodu overfittingu, tj. chyba na validaèní sadì zaèala rùst a trénování bylo ukonèeno (**),
+\item sí se nepodaøilo natrénovat (***).
+\end{enumerate}
+Zároveò je tøeba rozlišit tøi dùvody, proè se sí nepodaøilo natrénovat:
+\begin{enumerate}
+\item sí se nepodaøilo natrénovat kvùli vysoké vıpoèetní a èasové nároènosti (napø. pro datovou sadu SpeechDat-E s parametrizací LFE $ \Delta\Delta $ trvala jedna epocha trénování dopøedné sítì pøes 45 hodin ),
+\item sí se nepodaøilo natrénovat kvùli jevùm jako je exploze èi vymizení gradientu (napø. sítì GRU pro datovou sadu ŠkodaAuto s parametrizací LFE),
+\item sí se nepodaøilo natrénovat kvùli neznámé chybì v knihovnì Keras, kdy bìhem jedné epochy dojde k vıraznému poklesu pøesnosti - pravdìpodobnì numerická nestabilita (napø. sítì LSTM a GRU pro datovou sadu SpeechDat-E s parametrizacemi LFE a LFE $ \Delta\Delta $ ).
+\end{enumerate}
 
+\subsection{Experimenty nad datovou sadou ŠkodaAuto}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ |c|c|c|c|c|c|c| }
+\hline
+\makecell{levı \\ kontext} & \makecell{pravı \\ kontext} & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+0 & 0 & 60.54 & 64.79 & 	53.17 & 150 & 710604 \\
+\hline
+10 & 5 & 81.27 & 87.26 & 79.99 & 150 & 1327404 \\
+\hline
+20 & 5 & 82.07 & 87.46 & 81.19 & 150 & 1738604 \\
+\hline
+20 & 10 & 83.34 & 87.13 & 82.09 & 150 & 1994204 \\
+\hline
+\end{tabular}
+\caption{Vısledky experimentù pro dopøednou sí pro parametrizaci LFE nad datovou sadou ŠkodaAuto.}
+\label{tab:sa_lfe_dopredna}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ |c|c|c|c|c|c|c| }
+\hline
+\makecell{poèet \\ bunìk} & \makecell{délka \\ sekvence} & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+100 & 10 & 70.37* & 79.35 & 67.73 & 31 & 141640 \\
+\hline
+150 & 10 & 72.12* & 81.83 & 69.54 & 30 & 302440 \\
+\hline
+200 & 10 & 72.80* & 82.89 & 70.39 & 25 & 523240 \\
+\hline
+250 & 10 & 73.49* & 83.35 & 69.79 & 31 & 804040 \\
+\hline
+100 & 20 & 76.03* & 84.37 & 76.45 & 58 & 141640 \\
+\hline
+150 & 20 & 77.73**	 & 85.11 & 76.31 & 48 & 302440 \\
+\hline
+200 & 20 & 78.51**	 & 86.42 & 77.66 & 27 & 523240 \\
+\hline
+250 & 20 & 78.63**	 & 86.72 & 77.76 & 19 & 804040 \\
+\hline
+100 & 30 & 79.59**	 & 78.45 & 73.12 & 39 & 141640 \\
+\hline
+150 & 30 & 81.57**	 & 79.95 & 74.76 & 24 & 302440 \\
+\hline
+200 & 30 & 82.02** & 	80.93 & 75.23 & 25 & 523240 \\
+\hline
+250 & 30 & 82.70**	 & 80.93 & 75.24 & 26 & 804040 \\
+\hline
+\end{tabular}
+\caption{Vısledky experimentù pro LSTM sí pro parametrizaci LFE nad datovou sadou ŠkodaAuto.}
+\label{tab:sa_lfe_lstm}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ |c|c|c|c|c|c|c| }
+\hline
+\makecell{poèet \\ bunìk} & \makecell{délka \\ sekvence} & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+100 & 10 & 69.22 & 77.99 & 66.81 & 41 & 107240 \\
+\hline
+150 & 10 & 70.32* & 79.91 & 68.30 & 34 & 228340 \\
+\hline
+200 & 10 & 70.86* & 80.75 & 68.70 & 39 & 394440 \\
+\hline
+250 & 10 & 71.14* & 81.05 & 68.46 & 56 & 605540 \\
+\hline
+100 & 20 & 73.63* & 80.40 & 72.84 & 30 & 107240 \\
+\hline
+150 & 20 & 56.13*** & 62.28 & 55.41 & 25 & 228340 \\
+\hline
+200 & 20 & 50.45***$ ^{2} $ & 55.69 & 49.19 & 16 & 394440 \\
+\hline
+250 & 20 & 52.18***$ ^{2} $ & 57.89 & 51.03 & 12 & 605540 \\
+\hline
+100 & 30 & 53.80***$ ^{2} $ & 53.23 & 47.22 & 43 & 107240 \\
+\hline
+150 & 30 & 56.00***$ ^{2} $ & 56.92 & 49.57 & 18 & 228340 \\
+\hline
+200 & 30 & 48.02***$ ^{2} $ & 45.62 & 40.04 & 15 & 394440 \\
+\hline
+250 & 30 & 49.97***$ ^{2} $ & 48.87 & 43.43 & 12 & 605540 \\
+\hline
+\end{tabular}
+\caption{Vısledky experimentù pro GRU sí pro parametrizaci LFE nad datovou sadou ŠkodaAuto.}
+\label{tab:sa_lfe_gru}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ |c|c|c|c|c| }
+\hline
+\makecell{poèet \\ bunìk} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+100 & 94.03 & 92.97** & 124 & 363441 \\
+\hline
+150 & 94.07 & 92.65** & 68 & 785141 \\
+\hline
+200 & 94.32 & 93.36** & 60 & 1366841 \\
+\hline
+250 & 95.18 & 94.43** & 67 & 2108541 \\
+\hline
+\end{tabular}
+\caption{Vısledky experimentù pro obousmìrnou CTC LSTM sí pro parametrizaci LFE nad datovou sadou ŠkodaAuto.}
+\label{tab:sa_lfe_ctclstm}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ |c|c|c|c|c|c| }
+\hline
+\makecell{poèet \\ bunìk} & \makecell{délka \\ sekvence} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+100 & 20 (pøesah 10) & 81.31 & 63.04* & 	73 & 141741 \\
+\hline
+100 & 20 & 78.61 & 61.55* & 63 & 141741 \\
+\hline
+200 & 10 (pøesah 5) & 85.8 & 51.13* & 72 & 523441 \\
+\hline
+200 & 10 & 83.76 & 45.61* & 54 & 523441 \\
+\hline
+\end{tabular}
+\caption{Vısledky experimentù pro pro dávkovou CTC LSTM sí pro parametrizaci LFE nad datovou sadou ŠkodaAuto.}
+\label{tab:sa_lfe_batchctclstm}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ |c|c|c|c|c|c| }
+\hline
+\makecell{poèet \\ bunìk} & \makecell{délka \\ sekvence} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+100 & 20 (pøesah 10) & 87.55 & 72.31* & 73 & 363441 \\
+\hline
+100 & 20 & 86.42 & 67.93** & 	65 & 363441 \\
+\hline
+200 & 10 (pøesah 5) & 87.34 & 53.22* & 67 & 1366841 \\
+\hline
+200 & 10 & 85.83 & 49.39** & 42 & 1366841 \\
+\hline
+\end{tabular}
+\caption{Vısledky experimentù pro pro obousmìrnou dávkovou CTC LSTM sí pro parametrizaci LFE nad datovou sadou ŠkodaAuto.}
+\label{tab:sa_lfe_batchbictclstm}
+\end{table}
+
+Nejlepší nastavení jednotlivıch architektur uvedenıch vıše, která byla vyuita pro další experimenty, jsou shrnuty v tabulce \ref{tab:architektury}.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ |c|c|c| }
+\hline
+architektura & levı kontext & pravı kontext  \\
+\hline
+dopøedná & 10 & 5 \\
+\hline \hline
+architektura & poèet bunìk & délka sekvence  \\
+\hline
+LSTM & 100 & 20 \\
+\hline
+GRU & 100 & 20 \\
+\hline
+obousmìrná CTC LSTM & 100 & - \\
+\hline
+dávková CTC LSTM & 100 & 20 (pøesah 10) \\
+\hline
+obousmìrná dávková CTC LSTM & 100 & 20 (pøesah 10) \\
+\hline
+\end{tabular}
+\caption{Nejlepší nastavení jednotlivıch architektur získané experimenty.}
+\label{tab:architektury}
+\end{table}
+
+\begin{table}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c| }
+\hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+dopøedná & 81.27 & 87.26 & 79.99 & 150 & 1327404 \\
+\hline \hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+LSTM & 76.03* & 84.37 & 76.45 & 58 & 141640 \\
+\hline
+GRU & 73.63* & 80.40	 & 72.84 & 30 & 107240 \\
+\hline
+obousmìrná CTC LSTM & -** & 94.03 & 92.97 & 124 & 363441 \\
+\hline
+dávková CTC LSTM & -* & 81.31 & 63.04 & 73 & 141741 \\
+\hline
+\makecell{obousmìrná \\ dávková CTC LSTM} & -* & 87.55 & 72.31 & 73 & 363441 \\
+\hline
+\end{tabular}}
+\caption{Vısledky experimentù pro parametrizaci LFE nad datovou sadou ŠkodaAuto.}
+\label{tab:sa_lfe}
+\end{table}
+
+\begin{table}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c| }
+\hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+dopøedná & 80.15 & 87.10 & 80.15 & 150 & 2643244 \\
+\hline \hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+LSTM & 77.13** & 85.39 & 78.17 & 59 & 173640 \\
+\hline
+GRU & 72.53* & 81.23 & 73.49 & 22 & 131240 \\
+\hline
+obousmìrná CTC LSTM & -** & 94.22 & 93.34 & 120 & 427441 \\
+\hline
+dávková CTC LSTM & -* & 86.05 & 68.58 & 98 & 173741 \\
+\hline
+\makecell{obousmìrná \\ dávková CTC LSTM} & -** & 89.97 & 72.74 & 83 & 427441 \\
+\hline
+\end{tabular}}
+\caption{Vısledky experimentù pro parametrizaci LFE $ \Delta\Delta $ nad datovou sadou ŠkodaAuto.}
+\label{tab:sa_lfedd}
+\end{table}
+
+\begin{table}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c| }
+\hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+dopøedná & 81.16 & 87.06 & 79.63 & 150 & 883308 \\
+\hline \hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+LSTM & 71.53** & 81.01 & 67.10 & 32 & 501640 \\
+\hline
+GRU & 73.70* & 80.56 & 73.12 & 35 & 	99140 \\
+\hline
+obousmìrná CTC LSTM & -** & 94.20 & 93.03 & 116 & 341841 \\
+\hline
+dávková CTC LSTM & -* & 80.34 & 65.28 & 69 & 130941 \\
+\hline
+\makecell{obousmìrná \\ dávková CTC LSTM} & -* & 87.54 & 72.19 & 68 & 341841 \\
+\hline
+\end{tabular}}
+\caption{Vısledky experimentù pro parametrizaci MFCC nad datovou sadou ŠkodaAuto.}
+\label{tab:sa_mfcc}
+\end{table}
+
+\begin{table}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c| }
+\hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+dopøedná & 82.35 & 87.76 & 81.06 & 150 & 1310956 \\
+\hline \hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+LSTM & 78.82** & 86.58 & 79.56 & 44 & 141240 \\
+\hline
+GRU & 77.03** & 84.61 & 77.65 & 71 & 106940 \\
+\hline
+obousmìrná CTC LSTM & -**	 & 94.66 & 93.70 & 12 & 5	362641 \\
+\hline
+dávková CTC LSTM & -* & 87.02 & 70.80 & 73 & 141341 \\
+\hline
+\makecell{obousmìrná \\ dávková CTC LSTM} & -** & 90.93 & 75.19 & 45 & 362641 \\
+\hline
+\end{tabular}}
+\caption{Vısledky experimentù pro parametrizaci MFCC $ \Delta\Delta $ nad datovou sadou ŠkodaAuto.}
+\label{tab:sa_mfccdd}
+\end{table}
+
+\subsection{Experimenty nad datovou sadou SpeechDat-E}
+
+\begin{table}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c| }
+\hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+dopøedná & 72.5 & 71.68 & 68.65 & 150 & 1329717 \\
+\hline \hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+LSTM & -***$ ^{3} $ & - & - & - & 142549 \\
+\hline
+GRU & -***$ ^{3} $ & - & - & - & 108149 \\
+\hline
+obousmìrná CTC LSTM & -** & 83.10 & 	81.22 & 104 & 365250 \\
+\hline
+dávková CTC LSTM & -* & 69.40 & 58.32 & 50 & 142650 \\
+\hline
+\makecell{obousmìrná \\ dávková CTC LSTM} & -* & 73.12 & 62.42 & 40 & 365250 \\
+\hline
+\end{tabular}}
+\caption{Vısledky experimentù pro parametrizaci LFE nad datovou sadou SpeechDat-E.}
+\label{tab:se_lfe}
+\end{table}
+
+\begin{table}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c| }
+\hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+dopøedná & -***$ ^{1} $ & - & - & - & 2645557 \\
+\hline \hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+LSTM & -***$ ^{1} $ &	- & - & - & 174549 \\
+\hline
+GRU & -***$ ^{1} $ & - & - & - & 132149 \\
+\hline
+obousmìrná CTC LSTM & -** & 83.79 & 82.11 & 112 & 429250 \\
+\hline
+dávková CTC LSTM & -* & 73.28 & 60.87 & 61 & 174650 \\
+\hline
+\makecell{obousmìrná \\ dávková CTC LSTM} & -* & 77.85 & 66.81 & 28 & 429250 \\
+\hline
+\end{tabular}}
+\caption{Vısledky experimentù pro parametrizaci LFE $ \Delta\Delta $ nad datovou sadou SpeechDat-E.}
+\label{tab:se_lfedd}
+\end{table}
+
+\begin{table}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c| }
+\hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+dopøedná & 72.45 & 71.99 & 68.92 & 150 & 885621 \\
+\hline \hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+LSTM & 65.41* & 66.64 & 62.87 & 41 & 131749 \\
+\hline
+GRU & 63.37* & 63.31 & 59.86 & 23 & 100049 \\
+\hline
+obousmìrná CTC LSTM & -** & 81.73 & 80.42 & 96 & 343650 \\
+\hline
+dávková CTC LSTM & -* & 70.70 & 60.05 & 86 & 131850 \\
+\hline
+\makecell{obousmìrná \\ dávková CTC LSTM} & -* & 73.66 & 63.42 & 25 & 343650 \\
+\hline
+\end{tabular}}
+\caption{Vısledky experimentù pro parametrizaci MFCC nad datovou sadou SpeechDat-E.}
+\label{tab:se_mfcc}
+\end{table}
+
+\begin{table}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c| }
+\hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+dopøedná & 73.13 & 72.64 & 69.88 & 150 & 1313269 \\
+\hline \hline
+architektura & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
+\hline
+LSTM & 69.94* & 72.18 & 68.80 & 73 & 142149 \\
+\hline
+GRU & 67.34 & 70.23 & 65.53 & 42 & 107489 \\
+\hline
+obousmìrná CTC LSTM & -* & 84.82 & 83.23 & 71 & 364450 \\
+\hline
+dávková CTC LSTM & -* & 75.07 & 63.81 & 91 & 142250 \\
+\hline
+\makecell{obousmìrná \\ dávková CTC LSTM} & -* & 78.21 & 67.87 & 48 & 364450 \\
+\hline
+\end{tabular}}
+\caption{Vısledky experimentù pro parametrizaci MFCC $ \Delta\Delta $ nad datovou sadou SpeechDat-E.}
+\label{tab:se_mfccdd}
+\end{table}
+
+\subsection{Porovnání vısledku nad ŠkodaAuto a SpeechDat-E}
+\begin{table}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c|c|c|c| }
+\cline{2-9}
+\multicolumn{1}{c}{} & \multicolumn{4}{|c|}{pøesnost modelu [\%]} & \multicolumn{4}{c|}{pøesnost dekódování [\%]} \\
+\hline
+architektura & LFE & \makecell{LFE \\ $ \Delta\Delta$} & MFCC &  \makecell{MFCC \\ $ \Delta\Delta$} & LFE &  \makecell{LFE \\ $ \Delta\Delta$} & MFCC &  \makecell{MFCC \\ $ \Delta\Delta$} \\
+\hline
+dopøedná & 81.27 & 80.15 & 81.16 & 82.35 & 79.99 & 80.15 & 79.63 & 81.06 \\
+\hline
+LSTM & 76.03 & 77.13 & 71.53 & 78.82 & 76.45 & 78.17 & 67.10 & 79.56 \\
+\hline
+GRU & 73.63 & 72.53 & 73.70 & 77.03 & 72.84 & 73.49 & 73.12 & 77.65 \\
+\hline
+obousmìrná CTC LSTM & - & - & - & - & 92.97 & 93.34 & 93.03 & 93.70 \\
+\hline
+dávková CTC LSTM & - & - & - & - & 63.04 & 68.58 & 65.28 & 70.80 \\
+\hline
+\makecell{obousmìrná \\ dávková CTC LSTM} & - & - & - & - & 72.31 & 72.74 & 72.19 & 75.19 \\
+\hline
+\end{tabular}}
+\caption{Vısledky experimentù pro datovou sadou ŠkodaAuto.}
+\label{tab:sa}
+\end{table}
+
+\begin{table}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c|c|c|c| }
+\cline{2-9}
+\multicolumn{1}{c}{} & \multicolumn{4}{|c|}{pøesnost modelu [\%]} & \multicolumn{4}{c|}{pøesnost dekódování [\%]} \\
+\hline
+architektura & LFE & \makecell{LFE \\ $ \Delta\Delta$} & MFCC &  \makecell{MFCC \\ $ \Delta\Delta$} & LFE &  \makecell{LFE \\ $ \Delta\Delta$} & MFCC &  \makecell{MFCC \\ $ \Delta\Delta$} \\
+\hline
+dopøedná & 72.50 & - & 72.45 & 73.13 & 68.65 & - & 68.92 & 69.88 \\
+\hline
+LSTM & - & - & 65.41 & 69.94 & - & - & 62.87 & 68.80 \\
+\hline
+GRU & - & - & 63.37 & 67.34 & - & - & 59.86 & 65.53 \\
+\hline
+obousmìrná CTC LSTM & - & - & - & - & 81.22 & 82.11 & 80.42 & 83.23 \\
+\hline
+dávková CTC LSTM & - & - & - & - & 58.32 & 60.87 & 60.05 & 63.81 \\
+\hline
+\makecell{obousmìrná \\ dávková CTC LSTM} & - & - & - & - & 62.42 & 66.81 & 63.42 & 67.87 \\
+\hline
+\end{tabular}}
+\caption{Vısledky experimentù pro datovou sadou SpeechDat-E.}
+\label{tab:se}
+\end{table}
 
 % ZÁVÌR
 \newpage
 \section{Závìr}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-\clearpage
-\clearpage
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-\section{Úvod}
-V posledních letech došlo k vıznamnému vıvoji v oblasti mobilních zaøízení a s tím i k nárùstu popularity hlasového ovládání. Aplikace spoleènosti Google nabízejí monost vyhledávání hlasem, Apple a Microsoft vytvoøili inteligentní osobní asistentky Siri, resp. Cortana a stále èastìji se hlasové ovládání zaèíná objevovat i v automobilovém prùmyslu.
-
-Jedním z øešenıch problémù hlasového ovládání je detekce klíèovıch frází  v proudu øeèi (KWS - Keyword spotting). Na pozadí zaøízení nepøetritì bìí KWS systém, kterı naslouchá mluvenému slovu a pøi zaznìní klíèové fráze provede urèitou akci. V dnešní dobì se nejèastìji pouívají dva typy KWS systémù - systémy s pøeddefinovanımi klíèovımi frázemi a systémy vyuívající obsáhlı slovník øeèi v textové podobì (LVCSR - Large vocabulary continuous speech recognition). LVCSR systémy jsou vıpoèetnì velmi nároèné, jeliko je potøeba nejprve pøevést mluvenou øeè do textové podoby a následnì vyhledat klíèovou frázi v databázi. Vzhledem k tomu, e tyto systémy neumoòují vytvoøení vlastní bezpeèné klíèové fráze, propojují se vìtšinou se systémem pro identifikaci øeèníka\cite{lvcsr}.
-
-Bylo by tedy vhodné vytvoøit KWS systém, kterı by nebyl závislı na pøedem definovanıch frázích a umonil by uivateli volbu vlastních klíèovıch frází v libovolném jazyce. Také by mìl bıt vıpoèetnì nenároènı, aby byla zajištìna odezva v reálném èase na mobilních zaøízeních. Tyto poadavky splòuje metoda Query-by-Example, kdy si uivatel vytvoøí vzorovou klíèovou frázi a všechny budoucí promluvy jsou porovnávány vùèi ní\cite{chen,hazen}.
-
-Práce se vìnuje zpracování akustického signálu a pøedevším problematice rozpoznání izolovanıch slov. Uvedeme si nejèastìji vyuívané algoritmy strojového uèení a porovnáme jejich rozpoznávací schopnosti a jejich vhodnost potenciálního vyuití v KWS systému.
-
-\newpage
-\section{Klasifikace}
-Klasifikace neboli rozpoznávání je úloha, kde je cílem správnì zaøadit objekt do jedné z~$ k $ tøíd. Aby bylo moné objekt klasifikovat, je tøeba ho nejprve vhodnì popsat pomocí tzv. pøíznakového vektoru (obrazu). Pøíznakovı vektor se skládá z pøíznakù, které reprezentují jednotlivé mìøitelné èi pozorovatelné vlastnosti objektu. Pøíznaky je tøeba volit v závislosti na øešeném problému tak, aby dostateènì popisovaly pozorovanı objekt. Mùe se zdát, e vytvoøením pøíznakového vektoru ze všech mìøitelnıch velièin objektu získáme dokonalı popis objektu, kterı pøispìje k pøesnosti klasifikace. Opak je však pravdou, jeliko velké mnoství pøíznakù s nedostateènou informativní hodnotou mùe mít negativní vliv na pøesnost klasifikace a vést k pøetrénování modelu\cite{psutka1}.
-
-Algoritmus, kterı provádí klasifikaci, se nazıvá klasifikátor. Tato práce se zabıvá pøedevším klasifikátory zaloenımi na uèení s uèitelem a klasifikátoru podle minimální vzdálenosti k vzorovım obrazùm.
-
-Uèící se klasifikátor pracuje ve dvou fázích - trénovací fáze a klasifikaèní fáze:
-\begin{enumerate}
-	\item \textbf{trénovací fáze} - v trénovací fází jsou klasifikátoru pøedkládány dvojice $ \lbrace x_{i}, y_{i}\rbrace $, $ i = 1, 2, \dots, l $, kde $ x_{i} $ jsou pøíznakové vektory a $ y_{i} $ jsou cílové tøídy jednotlivıch obrazù z trénovací mnoiny. Klasifikátor vypoète svùj vıstup pro pøíznakovı vektor $ x_{i} $ (odhadovaná tøída) a porovná jej s cílovou tøídou. V pøípadì neshody odhadované a cílové tøídy upraví své parametry tak, aby minimalizoval danou chybovou funkci (jedná se tedy o optimalizaèní úlohu). Trénovací dvojice jsou klasifikátoru pøedkládány tak dlouho, dokud nedosáhne optimálního nastavení.
-	\item \textbf{klasifikaèní fáze} - klasifikátoru pøedkládáme neznámé obrazy a na základì \newline natrénovanıch parametrù klasifikujeme do jedné z $ k $ tøíd\cite{alpaydin,duda}.
-\end{enumerate}
-
-Pøi trénování dochází velmi èasto k tzv. pøetrénování modelu (overfitting). Klasifikátor se nauèí dokonale rozpoznávat pozorování z trénovací mnoiny, ale ztrácí schopnost generalizace a nová, neznámá pozorování klasifikuje chybnì. Overfitting je zpùsoben volbou pøíliš komplexního modelu, nedostatkem trénovacích dat nebo vysokou dimenzí obrazù. Komplexitu modelu je tedy tøeba volit s ohledem na povahu klasifikovanıch dat, popø. lze vyuít jednu z metod, která overfitting omezí (regularizace, cross-validation, dropout vrstvy u neuronovıch sítí, atd.)\cite{abu-mostafa}. Opaènım pøípadem overfittingu je tzv. underfitting, kdy model na úkor generalizace ztrácí klasifikaèní schopnosti. Vliv volby modelu s rùznım poètem stupòù volnosti mùeme vidìt na obrázku \ref{fig:overfitting}.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\textwidth]{overfitting.eps}
-    \caption{Pøíklad overfittingu a underfittingu.}
-    \label{fig:overfitting}
-\end{figure}
-
-\newpage
-\section{Zpracování akustického signálu}
-Základním krokem pro klasifikaci øeèi je samotné zpracování akustickıch signálù a jejich transformace na pøíznakové vektory. Pøi zpracování akustického signálu pøedpokládáme, e se jeho vlastnosti mìní pomalu a na krátkıch úsecích je témìø stacionární (v èasové i~frekvenèní oblasti). Signál je tedy rozdìlen na kratší úseky neboli mikrosegmenty, které jsou zpracovány samostatnì, jako by se jednalo o rùzné signály. Pro kadı mikrosegment pak vypoèteme èíslo (pøíznak), popøípadì vektor èísel na základì zvolené metriky. Délka mikrosegmentù se nejèastìji volí mezi 10 a 25ms a jednotlivé mikrosegmenty na sebe mohou navazovat nebo se i pøekrıvat. Díky tomu lze celı signál popsat posloupností èísel (pøíznakovı vektor), její délka je pøímo úmìrná délce slova a poètu mikrosegmentù\cite{psutka1}.
-
-\subsection{Okénková funkce}
-Jednotlivé mikrosegmenty jsou ze signálu vybírány pomocí okénka o urèité délce, které se posouvá o danı poèet vzorkù signálu. Okénko také slouí k pøidìlení vah zpracovávanım vzorkùm signálu. Mezi nejèastìji pouívané okénkové funkce pøi zpracování øeèi patøí pravoúhlé a Hammingovo okénko:
-\begin{itemize}
-	\item \textbf{pravoúhlé okénko} - pravoúhlé okénko pøidìlí všem vzorkùm mikrosegmentu stejnou váhu. Lze jej definovat vztahem
-\begin{equation}
-w(n) =
-\begin{cases}
-1 & \quad \text{pro } 0 \leq n \leq N-1 \\
-0 & \quad \text{jinak,}
-\end{cases}
-\end{equation}
-kde $ N $ je poèet vzorkù mikrosegmentu.
-	\item \textbf{Hammingovo okénko} - Hammingovo okénko je vhodné pouít v pøípadì, kdy je tøeba potlaèit vzorky na krajích zpracovávaného mikrosegmentu\cite{psutka1, scipy}. Lze jej definovat vztahem
-\begin{equation}
-w(n) =
-\begin{cases}
-0.54 - 0.46\cos\left( \dfrac{2\pi n}{N-1} \right) & \quad \text{pro } 0 \leq n \leq N-1 \\
-0 & \quad \text{jinak.}
-\end{cases}
-\end{equation}
-\end{itemize}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\textwidth]{window.eps}
-    \caption{Aplikace Hammingova okénka na funkci $ f(x) = \sin (10\pi x) $.}
-    \label{fig:window}
-\end{figure}
-
-\subsection{Pøíznaky v èasové a frekvenèní oblasti}
-\subsubsection{Krátkodobá energie signálu}
-Funkce krátkodobé energie signálu je definována vztahem
-\begin{equation}
-E_{n} = \sum_{k=-\infty}^{\infty} \left[ s(k)w(n-k)\right]^2,
-\end{equation}
-kde $ s(k) $ je vzorek signálu v èase $ k $ a $ w(n) $ je danı typ okénka. 
-Hodnoty této funkce poskytují informaci o prùmìrné hodnotì energie v kadém mikrosegmentu signálu. Hlavním nedostatkem funkce krátkodobé energie signálu je její vysoká citlivost na velké vıkyvy v~amplitudì signálu.
-
-\subsubsection{Krátkodobá intenzita signálu}
-Funkce krátkodobé intenzity signálu je definována vztahem
-\begin{equation}
-I_{n} = \sum_{k=-\infty}^{\infty} |s(k)|w(n-k).
-\end{equation}
-Na rozdíl od funkce krátkodobé energie signálu není tato funkce citlivá na velké zmìny amplitudy signálu. 
-
-\subsubsection{Krátkodobé prùchody nulou}
-Funkce krátkodobıch prùchodù nulou je definována vztahem
-\begin{equation}
-Z_{n} = \dfrac{1}{2} \sum_{k=-\infty}^{\infty} |sign\left[ s(k) \right] - sign\left[ s(k-1) \right]|w(n-k).
-\end{equation}
-Funkce krátkodobıch prùchodù nulou nese informaci o frekvenci signálu - èím více prùchodù nulou, tím vyšší je v daném úseku frekvence signálu a naopak. Frekvenci prùchodù signálu nulovou úrovní mùeme tedy vyuít jako jednoduchou charakteristiku, která popisuje spektrální vlastnosti signálu. Hodnoty této funkce se nejèastìji vyuívají k detekci øeèi v~akustickém signálu (urèení zaèátku a konce promluvy)\cite{psutka1, psutka2}.
-
-\subsubsection{Mel-frekvenèní kepstrální koeficienty}
-Nejèastìji pouívanım typem pøíznakù v rozpoznávání øeèi jsou mel-frekvenèní kepstrální koeficienty (MFCC). Jedná se o velice robustní typ pøíznakù ve frekvenèní oblasti, kterı respektuje nelineární vlastnosti vnímání zvukù lidskım uchem. Lineární frekvence $ f $[Hz] je pøevedena na frekvenci $ f_{m} $[mel] v nelineární melovské frekvenèní škále
-\begin{equation}
-f_{m} = 2595 \log_{10} \left( \dfrac{f}{700} \right).
-\end{equation}
-
-Pøi vıpoètu MFCC se nejèastìji volí segmentace signálu na mikrosegmenty o délce 10 a 30ms, na které se aplikuje Hammingovo okénko s posunem o 10ms. Segmentovanı signál je následovnì zpracován rychlou Fourierovou transformací (FFT), díky které získáme amplitudové spektrum $ |S(f)| $ analyzovaného signálu. Vzhledem k pouití FFT je vhodné volit poèet vzorkù okénka pøi dané frekvenci roven mocninì 2.
-
-Dalším krokem vıpoètu je melovská filtrace, pøi ní vyuijeme banku trojúhelníkovıch pásmovıch filtrù. Jednotlivé trojúhelníkové filtry jsou rozloeny pøes celé frekvenèní pásmo on nuly a do Nyquistovy frekvence a jejich støední frekvence jsou rovnomìrnì rozloeny podél frekvenèní osy v melovské škále. Støední hodnoty filtrù $ b_{m}$ lze vyjádøit vztahem
-\begin{equation}
-b_{m,i} = b_{m,i-1} + \Delta_{m},
-\end{equation}
-kde $ i = 1, 2,\dots,M^{*} $ je poèet trojúhelníkovıch filtrù v bance, $ b_{m,0} = 0 $ mel a $ \Delta_{m} = B_{m,w} / (M^{*} + 1)$.
-
-Dále je tøeba vypoèítat odezvy všech filtrù, èeho dosáhneme jejich vyjádøením ve frekvenèní škále s mìøítkem v herzích za vyuití pùvodních koeficientù získanıch FFT. Pøepoèteme tedy všechny støední frekvence v melovské škále $ b_{m,i}, i=1,\dots ,M^{*}+1 $ pomocí inverzního vztahu $ f = 700[exp(0.887\cdot 10^{-3}f_{m})-1] $ na støední frekvence $ b_{i}, i=1,\dots ,M^{*}+1 $. Nyní mùeme trojúhelníkové filtry vyjádøit vztahem
-\begin{equation}
-u(f, i) =
-\begin{cases}
-\dfrac{1}{b_{i}-b_{i-1}}(f-b_{i-1}) & \quad \text{pro } b_{i-1} \leq f < b_{i} \\
-\dfrac{1}{b_{i}-b_{i+1}}(f-b_{i+1}) & \quad \text{pro } b_{i} \leq f < b_{i+1} \\
-0 & \quad \text{jinak}
-\end{cases}
-\end{equation}
-a odezvy jednotlivıch filtrù $ y_{m}(i) $ vztahem
-\begin{equation}
-y_{m}(i) = \sum_{f=b_{i-1}}^{b_{i+1}} |S(f)|u(f,i),
-\end{equation}
-kde $ i = 1,2,\dots ,M^{*} $ a $ f $ jsou frekvence vyuité pøi vıpoètu FFT. Pøi prùchodu signálu filtrem je kadı koeficient FFT násoben odpovídajícím ziskem filtru a vısledky pro jednotlivé filtry jsou akumulovány a následnì zlogaritmovány. Tím dojde k dekorelaci energií filtrù a získané hodnoty lze pouít jako plnohodnotné pøíznaky.
-
-Nakonec provedeme zpìtnou diskrétní kosinovou transformaci (DCT). Znaènou vıhodou DCT je vysoká nekorelovanost vzniklıch koeficientù. Koeficienty jsou dány vztahem
-\begin{equation}
-c_{m}(j) = \sum_{i=1}^{M^{*}}\log y_{m}(i) \cos \left( \dfrac{\pi j}{M^{*}} (i-0.5) \right) \quad \text{pro } j=0,1,\dots,M,
-\end{equation}
-kde $ M $ je poèet mel-frekvenèních kepstrálních koeficientù\cite{psutka2,mfcc}.
-
-\subsection{Delta a delta-delta koeficienty}
-Pøi vıpoètu pøíznakovıch vektorù pøedpokládáme, e signál je na krátkém úseku stacionární. Je tedy zøejmé, e tyto pøíznakové vektory budou popisovat pouze statické vlastnosti signálu a dynamické vlastnosti se ztrácí. Tento nedostatek mùeme vyøešit rozšíøením pøíznakovıch vektorù o dynamické koeficienty.
-
-Vyuívají se delta (diferenèní) koeficienty a delta-delta (akceleraèní) koeficienty, které odpovídají první, respektive druhé derivaci pøíznakového vektoru. Delta koeficienty lze definovat vztahem
-\begin{equation}
-d_{t} = \dfrac{\sum_{n=1}^{N} n(c_{t+n} - c_{t-n})}{2\sum_{n=1}^{N}n^{2}},
-\end{equation}
-kde $ d_{t} $ je delta koeficient v èase $ t $ a $ N $ je volitelnı parametr. Tento parametr se vìtšinou volí $ N=1 $ nebo $ N=2 $ a urèuje, z kolika sousedních mikrosegmentù budou vypoèítány delta koeficienty (jeden, resp. dva leví a praví sousedé mikrosegmentu). Delta-delta koeficienty lze spoèítat vyuitím stejného vztahu s tím rozdílem, e se nepoèítají ze statickıch koeficientù, ale z delta koeficientù\cite{psutka2,mfcc}.
-
-\subsection{Normalizace pøíznakù}
-Jednotlivé pøíznaky se mohou pohybovat na rùznıch definièních oborech hodnot a~pøi klasifikaèních úlohách se mohou projevit s rùznou váhou. Proto je vhodné pøíznaky transformovat na stejnı definièní obor hodnot, popø. do rozdìlení o stejnıch parametrech, a tím zaruèit, e všechny pøíznaky budou mít stejnı vliv. Tuto transformaci nazıváme normalizací dat a v praxi se nejèastìji pouívají následující dvì metody:
-\begin{itemize}
- \item \textbf{Z-score normalizace} - tato metoda se pouívá v pøípadì, kdy data odpovídají normálnímu rozloení. Z-score normalizací pøetransformujeme vstupní data $ x$, na data $ z $, které odpovídají normálnímu rozdìlení o støední hodnotì $ \mu = 0 $ s rozptylem $ \sigma = 1 $.
-\begin{equation}
-z = \dfrac{x-\mu}{\sigma}
-\end{equation}
- \item \textbf{Min-Max normalizace} - Min-Max normalizace pøeškáluje data do definovaného intervalu (nejèastìji $ [0, 1] $ nebo $ [-1, 1] $, popø. $ [0, 255] $ pøi zpracování obrazu). Tím dosáhneme menšího rozptylu a eliminujeme vliv odlehlıch bodù (tzv. outliers).
-\begin{equation}
-x_{norm} = \dfrac{x - x_{min}}{x_{max} - x_{min}}
-\end{equation}
-\end{itemize}
-
-Nìkteré klasifikaèní algoritmy pøímo vyadují, aby data byla normalizována. Pøíkladem mohou bıt algoritmy zaloené na gradientních metodách (logistická regrese, SVM, neuronové sítì, atd.), kdy jsou zmìny parametrù modelu pøi trénování pøímo závislé na vstupním pøíznakovém vektoru. Pøi velkıch rozdílech definièních oborù jednotlivıch pøíznakù se tedy nìkteré parametry mohou mìnit vıraznì rychleji ne ostatní. Normalizací dat zajistíme rychlejší a stabilnìjší konvergenci parametrù. Dalším pøíkladem mohou bıt shlukovací algoritmy pracující s Euklidovou vzdáleností, kde je vhodné, aby všechny pøíznaky mìly na shlukování stejnı vliv\cite{raschka}.
-
-
-\newpage
-\section{Support Vector Machine}
-Pøedpokládejme, e máme trénovací mnoinu $ \lbrace x_{i}, y_{i}\rbrace $, $ i = 1, 2, \dots, l $, $ y_{i} \in \lbrace -1, 1 \rbrace $, která je sloena z pøíznakovıch vektorù $ x_{i} $ a odpovídajících cílovıch tøíd
-$ y_{i} $ (binární klasifikace). Pro tuto mnoinu si odvodíme lineární klasifikátor zaloenı na podpùrnıch vektorech pro separabilní a neseparabilní pøípad a nelineární klasifikátor. Nakonec si uvedeme metody, jak lze klasifikovat do více tøíd\cite{burges,svec}.
-
-\subsection{Nadrovina}
-Pro odvození klasifikátoru SVM (a pozdìji i pro odvození neuronové sítì) je vhodné nejprve zavést pojem nadrovina. Pøedpokládejme tedy, e máme $ p $-dimenzionální prostor. Nadrovinou pak rozumíme libovolnı afinní podprostor o dimenzi $ p-1 $. Napøíklad ve dvoudimenzionálním prostoru je nadrovinou jednodimenzionální podprostor - pøímka, ve tøídimenzionálním prostoru je nadrovinou plocha. Nadrovinu o dimenzi $ p $ lze definovat následovnì
-\begin{equation} \label{eq:hyperplane}
-b + w_{1}x_{1} + w_{2}x_{2} + \dots w_{p}x_{p} = 0,
-\end{equation}
-kde $ x = (x_{1}, x_{2}, \dots, x_{p})^{T} $ je bod v $ p $-dimenzionálním prostoru vyhovující rovnici. Bod $ x $ tedy leí na nadrovinì.
-
-V pøípadì, e bod $ x $ nevyhovuje rovnici \ref{eq:hyperplane}, tedy
-\begin{equation}
-b + w_{1}x_{1} + w_{2}x_{2} + \dots w_{p}x_{p} > 0,
-\end{equation}
-bod leí na jedné stranì poloroviny, resp. pokud
-\begin{equation}
-b + w_{1}x_{1} + w_{2}x_{2} + \dots w_{p}x_{p} < 0,
-\end{equation}
-bod leí na druhé stranì poloroviny. Nadrovina tedy dìlí $ p $-dimenzionální prostor na dvì poloviny, tzv. poloprostory. Náleitost bodu do tìchto poloprostorù pak mùeme zjistit jednoduchım vıpoètem znaménka levé strany rovnice \ref{eq:hyperplane}\cite{james}.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.7\textwidth]{hyperplane.eps}
-    \caption{Nadrovina oddìlující body ve dvoudimenzionálním prostoru\cite{sklearn}.}
-    \label{fig:hyperplane}
-\end{figure}
-
-\subsection{Lineárnì separabilní pøípad}
-Pøedpokládejme, e existuje nadrovina, která oddìlí body trénovací mnoiny jednotlivıch tøíd od sebe (oddìlující nadrovina). Body $ x $, které leí na této rovinì splòují rovnici $ w\cdot x + b = 0 $, kde $ w $ je normála nadroviny. Dále si definujme kolmou vzdálenost oddìlující nadroviny k poèátku jako $ \frac{|b|}{||w||} $, kde $ ||w|| $ je Euklidovská norma $ w $.
-
-Dále si zaveïme nejkratší vzdálenost $ d_{+} $ ($ d_{-} $) mezi oddìlující rovinou a pozitivním (negativním) pøíkladem a tzv. margin (odstup) jako $ d_{+} + d_{-} $. Pro lineárnì separabilní pøípad hledá klasifikátor takovou nadrovinu, pro kterou nabıvá margin nejvyšší hodnoty. Všechny body trénovací mnoiny tedy splòují tyto podmínky
-\begin{align}
-x_{i} \cdot w + b &\geq +1 \quad \text{pro } y_{i}=+1, \label{eq:h1}\\
-x_{i} \cdot w + b &\leq -1 \quad \text{pro } y_{i}=-1, \label{eq:h2}
-\end{align}
-které lze slouèit do jedné mnoiny nerovností
-\begin{equation}
-y_{i}(x_{i} \cdot w + b) - 1 \geq 0 \quad \forall i. \label{eq:h_united}
-\end{equation}
-
-Body, pro které v nerovnici \ref{eq:h1} platí rovnost, leí na nadrovinì $ H_{1}: x_{i} \cdot w + b = +1 $ a jejich kolmou vzdálenost vùèi poèátku lze vyjádøit jako $ \frac{|1-b|}{||w||} $. Obdobnì body, pro které v nerovnici \ref{eq:h2} platí rovnost, leí na nadrovinì $ H_{2}: x_{i} \cdot w + b = -1 $ v kolmé vzdálenosti od poèátku $ \frac{|-1-b|}{||w||} $. Z toho plyne, e $ d_{+} = d_{-} = \frac{1}{||w||} $ a margin je roven $ \frac{2}{||w||} $. Nadroviny $ H_{1} $ a $ H_{2} $ mají stejnou normálu $ w $ (jsou rovnobìné) a nenachází se mezi nimi ádnı bod z trénovací mnoiny. Nalezení takovıch nadrovin, které maximalizují margin, provedeme minimalizací $ ||w||^{2} $ za respektování omezujících podmínek.
-
-Body leící na nadrovinách $ H_{1} $ a $ H_{2} $ se nazıvají podpùrné vektory (support vectors, zvıraznìné body na obrázku \ref{fig:svm_hyperplane}) a oddìlující rovina je na nich pøímo závislá. Pokud dojde k jejich pohybu nebo odstranìní, zmìní se i vısledné øešení.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.7\textwidth]{svm_hyperplane.eps}
-    \caption{Vizualizace podpùrnıch vektorù\cite{sklearn}.}
-    \label{fig:svm_hyperplane}
-\end{figure}
-
-Formulujme si nyní tento problém pomocí Lagrangeovıch multiplikátorù $ \alpha_{i}$, $ i=1, 2, \dots ,l $ - jeden pro kadou nerovnost \ref{eq:h_united}, neboli jeden pro kadı prvek trénovací mnoiny $  \lbrace x_{i}, y_{i}\rbrace $. Dostáváme Lagrangeovu funkci
-\begin{equation}
-L_{P} \equiv \dfrac{1}{2}||w||^{2} - \sum_{i=1}^{l}\alpha_{i}y_{i}(x_{i}\cdot w + b) + \sum_{i=1}^{l}\alpha_{i}. \label{eq:lagrangian1}
-\end{equation}
-Nyní staèí minimalizovat $ L_{P} $ podle $ w $ a $ b $ a zároveò poadujeme, aby $ \frac{\partial L_{P}}{\partial \alpha_{i}} = 0 $, $ \alpha_{i} \geq 0 $ (oznaème si tuto mnoinu omezujících podmínek $ \mathcal{C}_{1} $). Vzhledem k tomu, e se jedná o úlohu konvexního kvadratického programování, mùeme ekvivalentnì øešit duální problém: maximalizace $ L_{P} $ za omezujících podmínek $ \frac{\partial L_{P}}{\partial w} = 0 $ a $ \frac{\partial L_{P}}{\partial b} = 0 $ a zároveò $ \alpha_{i} \geq 0 $ (oznaème tuto mnoinu omezujících podmínek jako $ \mathcal{C}_{2} $). Tato duální formulace problému má tu vlastnost, e maximum $ L_{P} $ za podmínek $ \mathcal{C}_{2} $ nastává pøi stejnıch hodnotách  $ w $, $ b $ a $ \alpha $ jako minimum $ L_{P} $ za podmínek $ \mathcal{C}_{1} $.
-
-Omezeními gradientu $ \frac{\partial L_{P}}{\partial w} = 0 $ a $ \frac{\partial L_{P}}{\partial b} = 0 $ získáme rovnice
-\begin{align}
-&w = \sum_{i} \alpha_{i} y_{i} x_{i}, \label{eq:sum1}\\
-&\sum_{i} \alpha_{i} y_{i} = 0. \label{eq:sum2}
-\end{align}
-
-Dosazením rovnic \ref{eq:sum1} a \ref{eq:sum2} do \ref{eq:lagrangian1} dostaneme
-\begin{equation}
-L_{D} = \sum_{i} \alpha_{i} - \dfrac{1}{2} \sum_{i,j} \alpha_{i} \alpha_{j} y_{i} y_{j} x_{i} \cdot x_{j}.
-\end{equation}
-
-Po vyøešení optimalizaèní úlohy (trénovací fáze) mùeme klasifikovat libovolnı vektor $ x $ na základì toho, na které stranì oddìlující nadroviny leí. Tøída vektoru $ x $ tedy bude $ \text{sgn}(w\cdot x + b) $\cite{burges}.
-
-\subsection{Lineárnì neseparabilní pøípad}
-Pokud pouijeme vıše zmínìnı algoritmus na lineárnì neseparabilní data, nenalezneme ádné pøijatelné øešení, jeliko duální Langrangeova funkce $ L_{D} $ poroste nade všechny meze. Chceme-li algoritmus rozšíøit i pro neseparabilní data, musíme uvolnit podmínky \ref{eq:h1} a \ref{eq:h2}. Toho dosáhneme zavedením volnıch (slack) promìnnıch $ \varepsilon_{i} $, $ i=1,2,\dots,l $
-\begin{align}
-&x_{i} \cdot w + b \geq +1 - \varepsilon_{i} \quad \text{pro } y_{i}=+1 \\
-&x_{i} \cdot w + b \leq -1 + \varepsilon_{i} \quad \text{pro } y_{i}=-1 \\
-&\varepsilon_{i} \geq 0 \quad \forall i.
-\end{align}
-Chyba klasifikace tedy nastane v pøípadì, e $ \varepsilon > 1 $. Horní mez poètu chyb klasifikace prvkù trénovací mnoiny je tedy $ \sum_{i} \varepsilon_{i} $. Vhodnım zpùsobem, jak navıšit hodnotu kriteriální funkce za kadou chybu, je minimalizovat $ \frac{||w||^{2}}{2} + C(\sum_{i}\varepsilon_{i})^{k} $ místo pùvodního kritéria $ \frac{||w||^{2}}{2} $. Parametr $ C $ se volí a odpovídá penalizaci za chybnou klasifikaci - èím vyšší hodnota $ C $, tím vìtší penalizace. Pro $ k > 0 $, $ k \in \mathbb{Z} $ se jedná o úlohu konvexního programování, pro $ k = 2 $ a $ k = 1 $ se jedná pøímo o úlohu kvadratického programování. Volbou $ k = 1 $ navíc zajistíme, e $ \varepsilon_{i} $ ani jejich multiplikátory se neobjeví v definici duálního problému
-\begin{equation}
-L_{D} \equiv \sum_{i} \alpha_{i} - \dfrac{1}{2}\sum_{i,j}\alpha_{i}\alpha_{j}y_{i}y_{j}x_{i}\cdot x_{j} \label{eq:lagrangian2}
-\end{equation}
-za podmínek
-\begin{align}
-0 \leq \alpha_{i} \leq C, \label{eq:cond1}\\
-\sum_{i}\alpha_{i}y_{i} = 0. \label{eq:cond2}
-\end{align}
-Øešením je pak
-\begin{equation}
-w = \sum_{i=1}^{N_{S}}\alpha_{i}y_{i}x_{i},
-\end{equation}
-kde $ N_{S} $ je poèet podpùrnıch vektorù.
-
-Primární úloha je dána Lagrangeovou funkcí
-\begin{equation}
-L_{P} = \dfrac{1}{2}||w||^{2} + C\sum_{i}\varepsilon_{i} - \sum_{i}\alpha_{i}\lbrace y_{i}(x_{i}\cdot w + b) - 1 + \varepsilon_{i} \rbrace - \sum_{i}\mu_{i}\epsilon_{i}, \label{eq:lagrangian3}
-\end{equation}
-kde $ \mu_{i} $ jsou Lagrangeovské multiplikátory zajištující kladnost $ \varepsilon_{i} $. Øešitelnost \ref{eq:lagrangian3} je dána Karush-Kuhn-Tucker podmínkami (více v \cite{burges}). Pro vıpoèet prahu $ b $ postaèí pouze dvì z~Karush-Kuhn-Tucker podmínek
-\begin{align}
-\alpha_{i}\lbrace y_{i}(x_{i}\cdot w + b) - 1 + \varepsilon_{i} \rbrace = 0,\\
-\mu_{i}\epsilon_{i} = 0.
-\end{align}
-
-Aèkoliv k vıpoètu prahu $ b $ staèí znát pouze jeden prvek trénovací mnoiny splòující podmínku $ 0 < \alpha_{i} < C $ a zároveò $ \varepsilon_{i} = 0 $, z numerického hlediska je rozumnìjší urèit vıslednı práh jako prùmìr prahù pøes všechny prvky trénovací mnoiny\cite{burges}.
-
-\subsection{Nelineárnì separabilní pøípad}
-Uvaujme nyní pøípad, kdy oddìlující nadrovina není lineární funkcí trénovacích dat - potøebujeme tedy zobecnit rovnice \ref{eq:lagrangian2}, \ref{eq:cond1} a \ref{eq:cond2} pro nelineární oddìlující nadrovinu. Všimnìme si, e v tìchto rovnicích se data trénovací mnoiny vyskytují vdy jako skalární souèin $ x_{i} \cdot x_{j} $. Pøedpokládejme, e existuje zobrazení $ \Phi $ z $ n $-dimenzionálního prostoru do jiného Euklidovského prostoru $ \mathcal{H} $ o vyšší dimenzi (a nekoneènìdimenzionálního)
-\begin{equation}
-\Phi: \mathbb{R}^{n} \mapsto \mathcal{H}.
-\end{equation}
-Potom by trénovací algoritmus závisel pouze na skalárních souèinech $ \Phi (x_{i}) \cdot \Phi (x_{j}) $ v~prostoru $ \mathcal{H} $. Definujme si tedy jádrovou funkci (kernel function) $ K(x_{i},x_{j}) = \Phi (x_{i}) \cdot \Phi (x_{j}) $, kterou mùeme nahradit skalární souèin $ x_{i} \cdot x_{j} $ v trénovacím algoritmu \ref{eq:lagrangian2} a opìt dopoèítat normálu $ w $ oddìlující nadroviny. Nemusíme tedy explicitnì znát zobrazení $ \Phi $, pouze jádrovou funkci.
-
-Klasifikaci libovolného bodu $ x $ provedeme vıpoètem znaménka funkce $ f(x) $
-\begin{equation}
-f(x) = \sum_{i=1}^{N_{S}}\alpha_{i}y_{i}\Phi (s_{i})\cdot\Phi (x) + b = \sum_{i=1}^{N_{S}}\alpha_{i}y_{i}K(s_{i},x) + b, \label{eq:svm}
-\end{equation}
-kde $ s_{i} $ jsou podpùrné vektory\cite{burges,friedman}.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\textwidth]{svm_kernels.eps}
-    \caption{SVM s lineární a polynomiální jádrovou funkcí\cite{sklearn}.}
-    \label{fig:svm_kernels}
-\end{figure}
-
-\subsection{Klasifikace do více tøíd}
-Zatím jsme se zabıvali pouze klasifikaci do dvou tøíd neboli binární klasifikací. Nyní uvaujme trénovací mnoinu  $ \lbrace x_{i}, y_{i}\rbrace $, $ i = 1, 2, \dots, l $, $ y_{i} \in \lbrace 1,2,\dots , k \rbrace $, kde $ k > 2 $ je poèet cílovıch tøíd. Uveïme si dva základní pøístupy, jak do tìchto tøíd klasifikovat:
-\begin{itemize}
-	\item \textbf{One-Versus-One} - natrénujeme $ \frac{k(k-1)}{2} $ binárních klasifikátorù, kde kadı z nich porovnává dvì rùzné tøídy navzájem. Klasifikace testovacího vektoru je pak zaloena na hlasování, kdy kadı klasifikátor hlasuje pro jednu tøídu a testovací vektor je zaøazen do té tøídy, která dostala nejvíce hlasù.
-	\item \textbf{One-Versus-All} - natrénujeme $ k $ binárních klasifikátorù, kde kadı z nich porovnává jednu z $ k $ tøíd oproti zbylım $ k-1 $ tøídám. Testovací vektor je zaklasifikován do té tøídy, pro kterou nabıvá oddìlující nadrovina \ref{eq:svm} nejvyšší hodnoty (tj. bod leí nejdále od oddìlující nadroviny a byl zaklasifikován s nejvìtší "jistotou")\cite{friedman,svec}.
-\end{itemize}
-
-\newpage
-\section{Neuronové sítì}
-Neuronová sí je algoritmus inspirovanı funkcí neuronù a jejich propojením v lidském mozku. Skládá se z mnoha vıpoèetních jednotek (neurony) propojenıch pomocí numerickıch parametrù (synapse) a úpravou tìchto parametrù je schopna se uèit. Tato práce je omezena pouze na dopøedné neuronové sítì a jejich trénování pomocí uèení s uèitelem.
-
-\subsection{Perceptron a aktivaèní funkce}
-Základní vıpoèetní jednotkou neuronovıch sítí je tzv. perceptron. Vıstupní hodnota perceptronu je dána vztahem
-\begin{equation}
-y = f\left( \sum_{i=1}^{n} w_{i}x_{i} + w_{0} \right) = f(w^{T}x + w_{0}),
-\end{equation}
-kde $ w = [w_{1}, w_{2}, \dots ,w_{n}]^{T} $ je váhovı vektor, $ x = [x_{1}, x_{2}, \dots ,x_{n}]^{T} $ je vstupní vektor, $ w_{0} $ je práh a $ f(\cdot) $ je aktivaèní funkce. Práh reprezentuje váhu vedoucí od jednotkového vstupního bodu, kterı se zavádí z dùvodu generalizace sítì.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.35\textwidth]{perceptron.eps}
-    \caption{Perceptron.}
-    \label{fig:perceptron}
-\end{figure}
-
-Pro zjednodušení následujících odvození si rozšiøme váhovı vektor $ w $ o práh 
-$ w_{0} $ a~vstupní vektor o jednotkovı vstupní bod
-\begin{align}
-w &= [w_{0}, w_{1}, \dots ,w_{n}]^{T}, \\
-x &= [1, x_{1}, \dots ,x_{n}]^{T}.
-\end{align}
-
-Uveïme si také pøíklady nejznámìjších aktivaèních funkcí:
-\begin{itemize}
- \item \textbf{Sigmoidální aktivaèní funkce} - sigmoidální aktivaèní funkce transformuje reálné èíslo do intervalu $ (0,1) $. Nevıhodou tohoto rozsahu je, e velmi malá èísla jsou transformována na hodnoty blízké nule, co má za následek i velice nízkou hodnotu lokálního gradientu a neuronem tak projde minimum signálu (více u algoritmu back\-propagation). Pøi inicializaci vah vysokımi hodnotami naopak mùe dojít k~saturaci signálu a sí nebude schopná se uèit. Vıstupy neuronu s touto aktivaèní funkcí zároveò nemají støední hodnotu v nule, co má za následek, e pro kladnı vstup budou mít všechny váhy vedoucí k neuronu stejné znaménko.
-\begin{equation}
-f(\xi) = \dfrac{1}{1 + e^{-\xi}}
-\end{equation}
- \item \textbf{Tanh} - aktivaèní funkce tanh transformuje reálnì èíslo do intervalu $ (-1,1) $. Vıstupní interval má støední hodnotu v nule a øeší nedostatky sigmoidální aktivaèní funkce.
-\begin{equation}
-f(\xi) = \tanh (\xi) = \dfrac{2}{1 + e^{-2\xi}} - 1
-\end{equation}
- \item \textbf{ReLU (Rectified Linear Unit)} - aktivaèní funkce ReLU je lineární aktivaèní funkce s prahem v hodnotì nula. Oproti vıše zmínìnım aktivaèním funkcím vıraznì urychluje konvergenci gradientu a není tak vıpoèetnì nároèná. Pøi nevhodnì zvolené konstantì uèení však mue dojít k "deaktivaci" neuronù, kdy jejich gradient poklesne na nulu a tyto neurony ji nikdy nebudou aktivovány.
-\begin{equation}
-f(\xi) = \max (0, \xi)
-\end{equation}
- \item \textbf{Maxout} - Maxout je generalizací aktivaèní funkce ReLU. Na rozdíl od vıše zmínìnıch aktivaèních funkcí nemá stejnı funkcionální tvar $ f(w^{T}x+b) $, ale poèítá hodnotu funkce $ \max(w_{1}^{T}x+b_{1},w_{2}^{T}x+b_{2}) $. Maxout øeší nedostatky ReLU, ovšem za cenu zdvojnásobení poètu parametrù pro kadı neuron\cite{karpathy}.
-\end{itemize}
-
-Mùeme si všimnout, e argument aktivaèní funkce definuje nadrovinu v $ n $-dimenzionálním prostoru. Volbou aktivaèní funkce
-\begin{equation}
-f(\xi) = \text{sign}(\xi) = 
-\begin{cases}
-1 & \quad \text{pro } \xi \geq 0 \\
-0 & \quad \text{jinak}\\
-\end{cases}
-\end{equation}
-získáme jednoduché rozhodovací pravidlo, které pøiøazuje body do poloroviny na základì znaménka argumentu aktivaèní funkce. Jedná se tedy o jednoduchı klasifikátor, kterı dokáe klasifikovat do dvou tøíd (jedná se o analogii lineárnì separabilního pøípadu u~klasifikátoru SVM).
-
-Paralelním spojením více perceptronù získáme nejjednodušší typ dopøedné neuronové sítì, tzv. jednovrstvou neuronovou sí\cite{alpaydin, mitchell}.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.45\textwidth]{single_layer.eps}
-    \caption{Jednovrstvá neuronová sí s $ n $ vstupy, aktivaèní funkcí $ f(\cdot) $ a $ m $ vıstupy.}
-    \label{fig:slp}
-\end{figure}
-
-\subsection{Trénování jednovrstvé neuronové sítì}
-Jedním ze zpùsobù trénování jednovrstvé neuronové sítì je tzv. perceptronové pravidlo. Nejprve síti pøidìlíme náhodné váhy (vìtšinou se volí malá èísla v okolí nuly) a poté pøivádíme na vstup sítì jednotlivé pøíznakové vektory z trénovací mnoiny. V pøípadì, e sí zaklasifikuje bod chybnì, dojde k úpravì hodnot vah. Tento proces probíhá tak dlouho, dokud nejsou všechny body zaklasifikovány správnì.
-
-Jednotlivé váhy $ w_{i} $ vedoucí od $ i $-tého vstupu $ x_{i} $ jsou modifikovány pomocí perceptronového pravidla
-\begin{equation}
-w_{i}(k+1) = w_{i}(k) + \Delta w_{i}(k) = w_{i}(k) + \alpha(t-y)x_{i},
-\end{equation}
-kde $ k $ je iterace uèícího algoritmu, $ t $ je oèekávanı vıstup neuronu, $ y $ je skuteènı vıstup neuronu a $ \alpha \in \mathbb{R}^{+} $ je konstanta uèení. V pøípadì, e je vhodnì zvolena konstanta uèení $ \alpha $ a data jsou lineárnì separabilní, algoritmus uèení dokonverguje k optimálnímu nastavení vah.
-
-Druhım zpùsobem uèení je tzv. delta pravidlo, které zajišuje konvergenci i pro lineárnì neseparabilní data. Pro zavedení delta pravidla si nejprve definujme trénovací chybu
-\begin{equation}
-E(w) = \dfrac{1}{2}\sum_{i=0}^{n} (t_{i}-y_{i})^{2},
-\end{equation}
-kde $ n $ je poèet prvkù trénovací mnoiny. 
-
-Cílem uèení je tuto chybu minimalizovat, èeho dosáhneme pomocí gradientního sestupu (gradient descent). Jedná se o iterativní algoritmus, kterı opìt zaèíná s náhodnì inicializovanımi hodnotami vah a v kadém kroku je upraví ve smìru nejvìtšího sestupu gradientu. Tento proces probíhá tak dlouho, dokud není nalezeno globální minimum chybové funkce. Modifikace vah je tedy závislá na gradientu $ E(w) $ podle $ w $
-\begin{equation}
-\nabla E = \left[ \dfrac{\partial E}{\partial w_{0}}, \dfrac{\partial E}{\partial w_{1}}, \dots, \dfrac{\partial E}{\partial w_{n}} \right].
-\end{equation}
-Gradient $ \nabla E(w) $ udává smìr nejvìtšího rùstu chybové funkce - jeho zápornou hodnotou tedy získáme smìr nejvìtšího poklesu a trénovací pravidlo v maticovém tvaru bude
-\begin{equation}
-w(k+1) = w(k) + \Delta w(k) = w(k) - \alpha \nabla E(w) = w(k) - \alpha(t-y)x^{T}.
-\end{equation}
-
-Vzhledem k tomu, e daná chybová funkce má pouze jedno globální minimum, gradientní sestup pøi vhodnì zvolené konstantì uèení vdy dokonverguje k takovému váhovému vektoru, kterı zajišuje minimální chybu\cite{mitchell}.
-
-\subsection{Vícevrstvá dopøedná neuronová sí}
-Jak ji bylo zmínìno, jednovrstvé neuronové sítì umoòují vyjádøit pouze lineární rozhodovací hranici. Nelineární hranici mùeme vyjádøit pomocí vícevrstvé sítì, která se skládá z jedné vstupní vrstvy, jedné nebo více skrytıch vrstev a vıstupní vrstvy. Kadá skrytá vrstva se skládá z libovolného poètu neuronù a prahové jednotky a jednotlivé skryté vrstvy mohou mít rùzné aktivaèní funkce.
-
-Pro zjednodušení následujících odvození pøedpokládejme sí se vstupní vrstvou s $ I $ vstupními jednotkami, skrytou vrstvu s $ J $ neurony a vıstupní vrstvu s $ K $ vıstupními jednotkami. Neurony ve skryté vrstvì mají aktivaèní funkci $ f(\cdot) $ a vıstupní vrstva má aktivaèní funkci $ g(\cdot) $ (znázornìno na obrázku \ref{fig:mlp}). Opìt rozšíøíme váhovou matici $ w $ o~práh $ w_{0} $ vedoucí k jednotkovému vstupnímu bodu $ x_{0} $, kterım rozšíøíme vstupní vektor $ x $. Vıstup neuronu $ j $ ve skryté vrstvì tedy mùeme zapsat jako
-\begin{align}
-net_{j}  &= \sum_{i=1}^{I}x_{i}w_{ji} + x_{0}w_{j0} = \sum_{i=0}^{I}x_{i}w_{ji} = w^{T}_{j}x, \\
-z_{j} &= f(net_{j}),
-\end{align}
-kde $ w_{ji} $ znaèí váhu mezi $ j $-tım neuronem skryté vrstvy a $ i $-tou vstupní jednotkou. Obdobnì lze vypoèítat vıstup $ k $-té vıstupní jednotky
-\begin{align}
-net_{k} &= \sum_{j=1}^{J}z_{j}w_{kj} + z_{0}w_{k0} = \sum_{j=0}^{J}z_{j}w_{kj} = w^{T}_{k}z, \\
-y_{k}  &= g\left(net_{k}\right).
-\end{align}
-Úpravou lze $ k $-tı vıstup zapsat jako
-\begin{equation}
-y_{k} = g\left(\sum_{j=1}^{J}w_{kj}f\left( \sum_{i=1}^{I}x_{i}w_{ji} + x_{0}w_{j0} \right)  + w_{k0} \right).
-\end{equation}
-
-Obdobnım zpùsobem lze vyjádøit vıstup pro neuronovou sí s libovolnım poètem skrytıch vrstev.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{mlp.eps}
-    \caption{Dvouvrstvá neuronová sí.}
-    \label{fig:mlp}
-\end{figure}
-
-\subsection{Trénování vícevrstvé neuronové sítì}
-Pro trénování vícevrstvıch neuronovıch sítí se vyuívá algoritmus backpropagation neboli algoritmus zpìtného šíøení chyby, kterı je stejnì jako delta pravidlo zaloen na minimalizaci chybové funkce pomocí gradientu. Definujme si tedy trénovací chybu $ E $ jako kvadrát sumy rozdílù mezi skuteènım vıstupem $ k $-té vıstupní jednotky $ y_{k} $ a oèekávanım vıstupem $ t_{k} $
-\begin{equation}
-E(w) = \dfrac{1}{2}\sum_{k=1}^{K}(t_{k} - y_{t})^{2} = \dfrac{1}{2}(t - y)^{2}. \label{eq:error}
-\end{equation}
-
-Algoritmus backpropagation, stejnì jako delta pravidlo, vychází z algoritmu gradientního sestupu. Jednotlivé váhy jsou inicializovány náhodnımi malımi èísly a jsou modifikovány ve smìru nejvìtšího poklesu chybové funkce
-\begin{equation}
-\Delta w = -\alpha\dfrac{\partial E}{\partial w},
-\end{equation}
-èím opìt získáme pravidlo pro modifikaci vah
-\begin{equation}
-w(k+1) = w(k) + \Delta w(k).
-\end{equation}
-
-Nejprve si odvoïme pravidlo pro modifikaci vah mezi skrytou a vıstupní vrstvou. Vzhledem k tomu, e chybová funkce není pøímo závislá na $ w_{jk} $, musíme pouít øetìzové pravidlo.
-\begin{equation}
-\dfrac{\partial E}{\partial w_{jk}} = \dfrac{\partial E}{\partial net_{k}} \dfrac{\partial net_{k}}{\partial w_{jk}} = \delta_{k} \dfrac{\partial net_{k}}{\partial w_{jk}} \quad\Rightarrow\quad \delta_{k} = -\dfrac{\partial E}{\partial net_{k}}
-\end{equation}
-Hodnotu $ \delta_{k} $ nazıváme citlivost neuronu a popisuje, jak se zmìní celková chyba pøi jeho aktivaci. Derivací rovnice \ref{eq:error} získáme hledané pravidlo
-\begin{equation}
-\Delta w_{jk} = \alpha \delta_{k}z_{j} = \alpha (t_{k}-y_{k})f'(net_{k})z_{j}.
-\end{equation}
-Obdobnım zpùsobem vyjádøíme pravidlo pro modifikaci vah mezi vstupní a skrytou vrstvou
-\begin{align}
-\dfrac{\partial E}{\partial w_{ji}} &= \dfrac{\partial E}{\partial z_{j}}\dfrac{\partial z_{j}}{\partial net_{j}}\dfrac{\partial net_{j}}{\partial w_{ji}} \quad\Rightarrow\quad \delta_{j}=f'(net_{j})\sum_{k=1}^{K}w_{kj}\delta_{k}, \\
-\Delta w_{ji} &= \alpha x_{i}\delta_{j} = \alpha x_{i} f'(net_{j} \sum_{k=1}^{K}w_{kj}\delta_{k}).
-\end{align}
-Podrobnìjší odvození algoritmu backpropagation lze nalézt v \cite{duda,mitchell}.
-
-\subsubsection{Momentum}
-Chybová funkce vícevrstvé sítì mùe mít více lokálních minim a na rozdíl od chybové funkce jednovrstvé sítì (parabolická funkce s jedním globálním minimem) gradientní sestup nezaruèuje nalezení globálního minima, ale pouze lokálního minima. Z tohoto dùvodu se zavádí tzv. momentum (setrvaènost), které zabraòuje uváznutí uèícího algoritmu v~mìlkém lokálním minimu a urychluje konvergenci na plochıch èástech povrchu chybové funkce. Pøidáním momentového èlenu získáme následující pravidlo pro úpravu vah
-\begin{equation}
-\Delta w_{ji}(k) = \alpha x_{i}\delta_{j} + \mu \Delta w_{ji}(k-1),
-\end{equation}
-kde $ 0 < \mu < 1 $ je momentum a $ k $ je iterace uèícího algoritmu. Zmìna vah tedy závisí i na zmìnì vah v minulé iteraci\cite{mitchell,duda}.
-
-\subsubsection{Sekvenèní a dávkové uèení}
-Jak ji bylo zmínìno, pøi trénování s uèitelem jsou neuronové síti pøedkládány obrazy z trénovací mnoiny, která se pak snaí minimalizovat celkovou chybu mezi vıstupy sítì a oèekávanımi hodnotami. V kadém trénovacím cyklu algoritmu jsou síti pøedloeny všechny obrazy z trénovací mnoiny. V praxi se nejèastìji pouívají dva typy trénování neuronovıch sítí:
-\begin{itemize}
-	\item \textbf{sekvenèní uèení} - neuronové síti jsou postupnì pøedkládány jednotlivé obrazy z~trénovací mnoiny (vìtšinou v náhodném poøadí), pro kadı obraz je spoètena chyba klasifikace a následnì jsou upraveny parametry sítì.
-	\item \textbf{dávkové uèení} - neuronové síti jsou postupnì pøedkládány jednotlivé obrazy z~trénovací mnoiny, jednotlivé chyby klasifikace jsou akumulovány a k úpravì parametrù sítì dojde a na konci trénovacího cyklu s ohledem na celkovou chybu klasifikace\cite{duda}.
-\end{itemize}
-
-\newpage
-\section{Dynamic Time Warping}
-Rozpoznávání øeèi je velmi obtíná úloha, jeliko ádné dvì promluvy nejsou stejné. Hlasy rùznıch osob se liší a stejnì tak se liší i jejich artikulace nebo tempo a barva øeèi. Ani promluvy jedné osoby nejsou stejné - jedna promluva mùe bıt pronesena potichu, druhá nahlas nebo šeptem, mohou bıt proneseny rùznì rychle nebo napø. pod vlivem nachlazení. Na akustickém signálu se dále projevuje pøítomnost šumu a rušení na pozadí\cite{psutka2}.
-
-Jedním z øešení tohoto problému je vyuití klasifikátoru podle minimální vzdálenosti k vzorovım obrazùm. Pøi klasifikaci se slovo zpracovává jako celek a je zaøazeno do té tøídy, k jejímu vzorovému obrazu má nejmenší vzdálenost.
-Základním problémem je urèení této vzdálenosti, jeliko obrazy mají rùzné délky v závislosti na délce signálu. Odlišnosti mezi podobnımi signály tedy nejsou ve spektrální oblasti, ale v èasové oblasti. K urèení vzdálenosti mezi dvìma signály se tedy vyuívá algoritmus Dynamic Time Warping (DTW), neboli nelineární "borcení" èasové osy, kterı je zaloen na metodì dynamického programování. "Borcením" èasové osy obrazu jedné z nahrávek dojde k maximalizaci shody mezi nahrávkami.
-
-\subsection{Základní algoritmus}
-Pøedpokládejme, e máme dvì nahrávky, které jsou reprezentovány svımi obrazy. Oznaème obraz testovaného slova
-\begin{equation}
-A = \left\lbrace a_{1}, a_{2}, \dots, a_{n}, \dots, a_{I} \right\rbrace
-\end{equation}
-a obraz referenèního slova
-\begin{equation}
-B = \left\lbrace b_{1}, b_{2}, \dots, b_{m}, \dots, b_{J} \right\rbrace,
-\end{equation}
-kde $ a_n $ je $ n $-tı pøíznak testovaného slova a $ b_m $ je $ m $-tı pøíznak referenèního slova. Algoritmus DTW pak hledá v rovinì ($ n $,$ m $) optimální cestu $ m = \Psi(n) $, která minimalizuje vzdálenost mezi obrazy $ A $ a $ B $
-\begin{equation}
-D(A,B) = \sum_{n=1}^{I} \hat{d} \left( a_{n}, b_{\Psi(n)} \right),
-\end{equation}
-kde $ \hat{d} ( a_{n}, b_{\Psi(n)} ) $ je vzdálenost mezi $ n $-tım prvkem testovaného obrazu a $ m $-tım prvkem referenèního obrazu.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{dtw_threeway.eps}
-    \caption{Prùbìh funkce DTW pro $ sin(x) $ se šumem a $ cos(x) $.}
-    \label{fig:dtw_threeway}
-\end{figure}
-
-\subsection{Omezení pohybu funkce}
-Optimální cesta by mìla zachovávat základní vlastnosti èasovıch os obou obrazù (souvislost, monotónnost, atd.). Z toho dùvodu se zavádí omezení na pohyb funkce DTW. Zavedeme obecnou èasovou promìnnou $ k $ a èasové promìnné $ m $ a $ n $ vyjádøíme jako funkce $ k $
-\begin{align}
-n &= i(k), \\
-m &= j(k),
-\end{align}
-kde $ k = 1,2,\dots,K $ a $ K $ je délka obecné èasové osy.
-
-\subsubsection{Omezení na hranièní body}
-Hranièní body funkce DTW jsou dány podmínkami
-\begin{align}
-i(1) = 1 \quad i(K)=I, \\
-j(1) = 1 \quad j(K)=J.
-\end{align}
-
-\subsubsection{Omezení na lokální souvislost}
-Pøi prùchodu funkce DTW mùe dojít k nadmìrné expanzi èi kompresi èasové osy. Proto je vhodné omezit lokální monotónnost a souvislost DTW funkce
-\begin{align}
-0 \leq i(k) - i(k-1) \leq \bar{I}, \\
-0 \leq j(k) - j(k-1) \leq \bar{J},
-\end{align}
-pøièem $ \bar{I} $ a $ \bar{J} $ jsou volitelné konstanty. Nejèastìji volíme hodnoty $ \bar{I}, \bar{J} = 1,2,3 $ s tím, e pøi hodnotì vìtší ne 1 mùe funkce DTW pøi porovnávání nìkteré mikrosegmenty pøeskoèit.
-
-\subsubsection{Omezení na lokální strmost}
-Pro funkci není vhodnı pøíliš velkı, ani pøíliš malı pøírùstek, a tak se zavádí omezení na lokální strmost. Pokud se zastupující bod $ \left[ i(k),j(k)\right] $ pohybuje ve smìru jedné osy $ \bar{n} $-krát po sobì pøi rostoucím $ k $, pak se v tomto smìru nesmí nadále pohybovat, dokud neudìlá $ \bar{m} $ krokù v jiném smìru.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.9\textwidth]{dtw_local.eps}
-    \caption{Nejèastìji pouívaná lokální omezení (více v \cite{psutka1,sakoe}).}
-    \label{fig:dtw_local}
-\end{figure}
-
-\subsubsection{Globální vymezení oblasti pohybu funkce}
-Splnìním podmínek pro omezení na hranièní body a zobecnìním podmínek omezení na lokální strmost na celou rovinu $ (n,m) $ lze vymezit pøípustnou oblast prùchodu funkce DTW
-\begin{align}
-1 + \alpha\left[i(k)-1 \right] &\leq j(k) \leq 1 + \beta\left[ i(k)-1\right], \\
-J + \beta\left[ i(k)-I\right] &\leq j(k) \leq J + \alpha\left[i(k)-I \right],
-\end{align}
-kde $ \alpha $ je minimální smìrnice a $ \beta $ maximální smìrnice pøímky vymezující pøípustnou oblast.
-
-Pøedpokládejme, e pøi porovnání testovaného a referenèního obrazu, které reprezentují stejné slovo, nemùe dojít k zásadním èasovım rozdílùm mezi pøíslušnımi úseky stejnıch obrazù zapøíèinìnıch kolísáním tempa øeèi. S ohledem na tento pøedpoklad lze tedy stanovit podmínku pro druhé globální vymezení oblasti pohybu funkce DTW
-\begin{equation}
-|i(k) - j(k)| \leq w,
-\end{equation}
-kde $ w $ je celé èíslo, které urèuje šíøku okénka. Šíøka okénka musí bıt menší ne $ |J-I| $, aby do pøípustné oblasti funkce DTW bylo moné zahrnout i koncovı bod $ (I,J) $.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.85\textwidth]{dtw_global.eps}
-    \caption{Globální vymezení oblasti pohybu funkce.}
-    \label{fig:dtw_global}
-\end{figure}
-
-\subsection{Minimální vzdálenost}
-Celkovou minimální vzdálenost mezi testovacím obrazem $ A $ a referenèním obrazem $ B $ lze vyjádøit vztahem
-\begin{equation}
-D(A,B) = \min_{\lbrace i(k), j(k), K \rbrace} \left[ \dfrac{\sum_{k=1}^{K}d\left[ i(k),j(k) \right] \hat{W}(k)}{N(\hat{W})} \right],\label{eq:dist1}
-\end{equation}
-kde $ d[i(k),j(k)] $ je lokální vzdálenost mezi $ n $-tım úsekem testovaného obrazu $ A $ a $ m $-tım úsekem referenèního obrazu $ B $, $ \hat{W}(k) $ je hodnota váhové funkce pro $ k $-tı úsek a $ N(\hat{W}) $ je normalizaèní faktor, jen je funkcí váhové funkce. Váhová funkce je závislá pouze na lokální cestì funkce DTW.
-
-Implementace váhové funkce se volí na základì zvolenıch lokálních omezení funkce DTW. Nejèastìji se vyuívá jeden z tìchto ètyø typù váhovıch funkcí:
-\begin{enumerate}[label=\alph*)]
-	\item symetrická váhová funkce
-\begin{equation}
-\hat{W}(k) = \left[ i(k)-i(k-1)\right] + \left[ j(k)-j(k-1)\right],\label{eq:sym}
-\end{equation}
-	\item asymetrická váhová funkce
-	\begin{enumerate}[label=b\arabic*)]
-		\item
-		\begin{equation}
-		\hat{W}(k) = i(k) - i(k-1),\label{eq:asym1}
-		\end{equation}
-		\item
-		\begin{equation}
-		\hat{W}(k) = j(k) - j(k-1),\label{eq:asym2}
-		\end{equation}
-	\end{enumerate}
-	\item 
-\begin{equation}
-\hat{W}(k) = \min \left[ i(k)-i(k-1), j(k)-j(k-1) \right],
-\end{equation}
-	\item 
-\begin{equation}
-\hat{W}(k) = \max \left[ i(k)-i(k-1), j(k)-j(k-1) \right],
-\end{equation}
-\end{enumerate}
-pøièem $ i(0)=j(0)=0 $.
-
-\subsection{Normalizaèní faktor}
-Normalizaèní faktor $ N(\hat{W}) $ kompenzuje poèet krokù funkce DTW, kterı se pro rùznì dlouhé testovací a referenèní sekvence mùe vıraznì lišit. Lze jej definovat jako
-\begin{equation}
-N(\hat{W}) = \sum_{k=1}^{K}\hat{W}(k).
-\end{equation}
-Dosazením vztahù \ref{eq:sym}, \ref{eq:asym1}, \ref{eq:asym2} pro váhové funkce typu a) a b) získáme normalizaèní faktory
-\begin{align}
-N(\hat{W}_{a}) &= \sum_{k=1}^{K} \left[ i(k)-i(k-1) + j(k)-j(k-1)\right] = \\
-&= i(K)-i(0)+j(K)-j(0) = I + J, \\
-N(\hat{W}_{b1}) &= \sum_{k=1}^{K} \left[ i(k)-i(k-1)\right] = i(K)-i(0) = I, \\
-N(\hat{W}_{b2}) &= \sum_{k=1}^{K} \left[ j(k)-j(k-1)\right] = j(K)-j(0) = J.
-\end{align}
-
-Ze vztahù je patrné, e pro váhové funkce typu a) a b) je hodnota normalizaèního faktoru nezávislá na konkrétním prùbìhu funkce DTW. Pro váhové funkce typu c) a d) je hodnota normalizaèního faktoru silnì závislá na prùbìhu funkce DTW a nelze ji urèit pomocí metod dynamického programování. Pro tyto pøípady se hodnota normalizaèního faktoru volí nezávisle na prùbìhu funkce DTW, aby bylo moné pouít rekurzivní algoritmus.
-\begin{equation}
-N(\hat{W}_{c}) = N(\hat{W}_{d}) = I
-\end{equation}
-
-\subsection{Rekurzivní algoritmus}
-Díky nezávislosti normalizaèního faktoru na prùbìhu funkce DTW lze vztah \ref{eq:dist1} pro vıpoèet celkové minimální vzdálenosti mezi dvìma obrazy $ A $ a $ B $ zjednodušit do tvaru
-\begin{equation}
-D(A,B) = \dfrac{1}{N(\hat{W})}\lbrace \min_{\lbrace i(k), j(k), K \rbrace}  \sum_{k=1}^{K}d\left[ i(k),j(k) \right] \hat{W}(k) \rbrace \label{eq:dist2}
-\end{equation}
-Vıslednou hodnotu vztahu \ref{eq:dist2} lze urèit rekurzivnì algoritmem dynamického programování, kdy zavedeme funkci $ g $ èásteèné akumulované vzdálenosti:
-\begin{enumerate}
-	\item Inicializace
-\begin{equation}
-g\left[ i(1), j(1) \right] = d\left[ i(1), j(1) \right]\hat{W}(1)
-\end{equation}
-	\item Rekurze
-\begin{equation}
-g\left[ i(k), j(k) \right] = \min_{\lbrace i(k),j(k)\rbrace} \lbrace g\left[ i(k-1), j(k-1) \right] +  d\left[ i(k), j(k) \right]\hat{W}(k) \rbrace
-\end{equation}
-	\item Koneèná normalizovaná vzdálenost
-\begin{equation}
-D(A,B) = \dfrac{1}{N(\hat{W})} g\left[ i(K), j(K) \right] = \dfrac{1}{N(\hat{W})} g\left[ I,J \right]
-\end{equation}
-\end{enumerate}
-Rekurzivní vztahy pro rùzné typy lokálních omezení lze odvodit dosazením za $ \hat{W}(k) $\cite{psutka1,sakoe}.
-
-% PRAKTICKÁ ÈÁST
-\newpage
-\section{Klasifikace izolovanıch slov}
-Pro porovnání jednotlivıch metod byla vytvoøena datová sada obsahující 240 nahrávek od šesti øeèníkù. Mezi øeèníky byli ètyøi mui (v tabulkách s vısledky znaèeni èísly 1, 2, 3 a~6) a dvì eny (znaèeny èísly 4, 5). Kadı øeèník pronesl ètyøikrát po sobì èíslovky nula a devìt. První dvì nahrávání probìhla v tichém prostøedí, druhá dvì za mírného okolního šumu, díky èemu lze lépe porovnat robustnost zkoumanıch metod. Tato datová sada byla následnì rozdìlena na referenèní a testovací sadu. Jako referenèní nahrávky byly zvoleny èíslovky nula a devìt z prvního nahrávání kadého øeèníka, ostatní nahrávky tvoøí testovací sadu.
-
-Nahrávky z referenèní sady pak byly vyuity jako trénovací data pro klasifikátor SVM a neuronovou sí. Pro pøíznaky generované neuronovou sítí byla trénovací sada rozšíøena o nahrávky vytvoøené pøi vıvoji hlasového rozhraní pro Škoda Auto, kdy kadı øeèník tøikrát pronesl povely hlasového ovládání navigace, rádia, telefonu a poté promluvy mìsta, ulice a èíslovek nula a devìt.
-
-Porovnávané metody byly implementovány v programovacím jazyce Python s vyuitím knihoven pro vìdecké vıpoèty NumPy a SciPy\cite{scipy}, knihovny pro strojové uèení scikit-learn\cite{sklearn} a knihovny pro neuronové sítì Lasagne\cite{lasagne}.
-
-\subsection{Zpracování akustického signálu}
-Prvním krokem pro klasifikaci izolovanıch slov je extrakce pøíznakù z akustického signálu. Pro tyto úèely byl vytvoøen samostatnı modul obsahující metody pro zpracování akustického signálu a transformaci pøíznakovıch vektorù. Modul umoòuje segmentaci signálu s vyuitím pravoúhlého, Hammingova nebo Hanningova okénka s volitelnou délkou v milisekundách a volitelnım posunem. 
-
-Z dùvodu úspornìjšího zápisu vısledkù si zaveïme znaèení pro jednotlivé typy pøíznakù, které modul implementuje:
 \begin{table}[H]
 \centering
-\singlespacing
-\def\arraystretch{1.5}
-\begin{tabular}{ l|l }
-znaèení & typ pøíznakù \\ \hline
-ste & krátkodobá energie \\ \hline
-sti & krátkodobá intenzita \\ \hline
-stzcr & krátkodobé prùchody nulou \\ \hline
-ste\_sti\_stzcr & \vtop{\hbox{\strut kombinace pøíznakù krátkodobé energie, intenzity a prùchodù nulou}\hbox{\strut (tvoøí matici, kde sloupce odpovídají jednotlivım typùm pøíznakù v èase)}} \\ \hline
-log\_fb\_en & logaritmované energie banky filtrù \\ \hline
-mfcc & \vtop{\hbox{\strut mel-frekvenèní kepstrální koeficienty}\hbox{\strut (implementace byla pøevzata z modulu \cite{pymfcc})}} \\
-\end{tabular}
-\caption{\label{tab:znaceni}Znaèení typù pøíznakù.}
-\end{table}
-Po vygenerování pøíznakového vektoru je moné aplikovat Z-score nebo Min-Max normalizaci a dopoèítat delta a delta-delta koeficienty (implementace byla pøevzata z modulu LibROSA\cite{librosa}).
-
-Vygenerované parametrizace pøíznakù jsou uvedeny v tabulce \ref{tab:parametrizace}. První èíslo v názvu pøíznakù znaèí délku okénka v milisekundách, druhé posun okénka v milisekundách. Vyuití Hammingova okénka je znaèeno zkratkou \textit{ham} (pokud není uvedeno, pøíznak byl vygenerován za vyuití pravoúhlého okénka), delta a delta-delta koeficienty zkratkou \textit{deltas} a normalizované pøíznaky \textit{norm}, napø.:
-\begin{itemize}
-\item log\_fb\_en\_25\_10\_ham\_deltas - logaritmované energie banky filtrù, segmentováno pomocí Hammingova okénka o délce 25ms s posunem 10ms, vypoèteny delta a delta-delta koeficienty,
-\item stzcr\_10\_10\_norm - krátkodobé prùchody nulou, segmentováno pomocí pravoúhlého okénka o délce 10ms s posunem 10ms, normalizovány
-\end{itemize}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{ c|c }
-ste\_10\_10 & ste\_10\_10\_norm \\ \hline
-sti\_10\_10 & sti\_10\_10\_norm \\ \hline
-stzcr\_10\_10 & stzcr\_10\_10\_norm \\ \hline
-ste\_sti\_stzcr\_10\_10 & ste\_sti\_stzcr\_10\_10\_norm \\ \hline
-log\_fb\_en\_25\_10\_ham & log\_fb\_en\_25\_10\_ham\_norm \\ \hline
-log\_fb\_en\_25\_10\_ham\_deltas & log\_fb\_en\_25\_10\_ham\_deltas\_norm \\ \hline
-mfcc\_25\_10\_ham & mfcc\_25\_10\_ham\_norm \\ \hline
-mfcc\_25\_10\_ham\_deltas & mfcc\_25\_10\_ham\_deltas\_norm \\
-\end{tabular}
-\caption{\label{tab:parametrizace}Vygenerované parametrizace pøíznakù.}
-\end{table}
-
-Z tabulky \ref{tab:parametrizace} je patrné, e všechny pøíznaky v èasové oblasti byly vygenerovány s~vyuitím pravoúhlého okénka o délce 10ms, které se posouvá o 10ms. Nedochází tedy k~pøesahu mezi jednotlivımi mikrosegmenty. Pøíznaky ve frekvenèní oblasti byly vygenerovány s~vyuitím Hammingova okénka o délce 25ms s posunem 10ms (jednotlivé mikrosegmenty se èásteènì pøekrıvají) a 512 bodové FFT. Pro vıpoèet logaritmovanıch energií banky filtrù bylo vyuito 40 filtrù, pro vıpoèet MFCC 26 filtrù.
-
-\subsection{Dynamic Time Warping}
-Pro vıpoèet DTW vzdálenosti byl vytvoøen modul, kterı obsahuje základní DTW algoritmus bez globálního vymezení pohybu funkce a vyuívá symetrické omezení na lokální strmost (první zleva na obrázku \ref{fig:dtw_local}). Jako vzdálenostní metrika pro všechny typy pøíznakù kromì \textit{ste\_sti\_stzcr} byla zvolena Euklidova vzdálenost.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.7\textwidth]{dtw_alignment.eps}
-    \caption{Krátkodobé energie pro dvì rùzné nahrávky èíslovky 7.}
-    \label{fig:dtw_alignment}
-    \includegraphics[width=0.7\textwidth]{dtw_test.eps}
-    \caption{Prùbìh funkce DTW pro dva rùzné obrazy reprezentující èíslovku 7.}
-    \label{fig:dtw_test}
-\end{figure}
-
-\subsubsection{Optimalizace parametrù vzdálenostní metriky}
-Pro kombinaci pøíznakù sloenou z krátkodobé energie, intenzity a prùchodù nulou byla vyuita vlastní vzdálenostní metrika
-\begin{equation}
-d(a_{i}, b_{j}) = \alpha |a_{ste,i} - b_{ste,j}| + \beta |a_{sti,i} - b_{sti,j}| + \gamma |a_{stzcr,i} - b_{stzcr,j}|,
-\end{equation}
-kde $ a_{i} $ je $ i $-tı pøíznak testovaného obrazu $ A $, $ b_{j} $ je $ j $-tı pøíznak referenèního obrazu $ B $ a~$ \alpha $, $ \beta $, $ \gamma $ jsou volitelné parametry.
-
-Pro nenormalizovanou verzi byly zvoleny parametry $ \alpha = \beta = \gamma = 1 $, pro normalizovanou verzi byla provedena optimalizace parametrù, aby bylo moné urèit, kterı z~pøíznakù v~èasové oblasti má nejvìtší informativní hodnotu pro problém klasifikace izolovanıch slov. Pro optimalizaci byla zvolena brute-force metoda, kdy byl procházen seznam monıch parametrù s krokem 0.1 za podmínky $ \alpha + \beta + \gamma = 1 $. Pro kadou trojici parametrù pak byla vyhodnocena pøesnost klasifikace.
-
-Nejvyšší pøesnosti klasifikace v rámci jednoho øeèníka bylo dosaeno s parametry $ \alpha = 0.3 $, $ \beta = 0.3 $, $ \gamma = 0.4 $ - kadı typ pøíznakù se tedy projeví pøiblinì stejnou mírou. Optimalizací mezi všemi øeèníky pak byly získány parametry $ \alpha = 0 $, $ \beta = 0.6 $, $ \gamma = 0.4 $ - je tedy zøejmé, e krátkodobá energie v kombinaci s krátkodobou intenzitou a prùchody nulou negativnì ovlivòuje pøesnost klasifikace (pravdìpodobnì z dùvodu závislosti na øeèníkovi, viz. kapitola Vyhodnocení).
-
-Na tyto dvì parametrizace se dále budeme odkazovat jako \textit{ste\_sti\_stzcr\_10\_10\break\_norm\_single}, resp. \textit{ste\_sti\_stzcr\_10\_10\_norm\_all}.
-
-\subsection{Support Vector Machine}
-Ke klasifikaci normalizovanıch pøíznakù byl vyuit také SVM klasifikátor s pøedpoèítanou jádrovou funkcí ve tvaru
-\begin{equation}
-K(A,B) = 1 - DTW(A,B).
-\end{equation}
-Jádrová funkce byla vypoètena ze všech referenèních obrazù navzájem a funkcionálnì odpovídá Gramovì matici $ G = X^{T}X $.
-
-\subsection{Neuronová sí}
-Pro kadého øeèníka byla natrénována tøívrstvá neuronová sí (znázornìna na obrázku \ref{fig:nn}). Vstupem této sítì je DTW vzdálenost testované nahrávky vùèi referenèním nahrávkám, vıstupem pak vektor obsahující pravdìpodobnosti náleitosti do danıch tøíd (zajištìno aktivaèní funkcí Softmax). Po otestovaní nìkolika rùznıch parametrizací neuronové sítì byly zvoleny dvì skryté vrstvy o 200 neuronech s aktivaèní funkcí ReLU.
-
-Sí byla trénována 1500 trénovacích epoch s vyuitím dávkového uèení s dávkami o~velikosti 10. Váhy sítì byly modifikovány stochastickım gradientním sestupem rozšíøenım o~Nesterovo momentum $ \mu = 0.9 $. Konstanta uèení byla zvolena $ \alpha = 0.01 $. Kvùli pøedpokladùm tohoto klasifikaèního algoritmu byla neuronová sí natrénována pouze pro normalizovaná data.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{nn.eps}
-    \caption{Tøívrstvá neuronová sí.}
-    \label{fig:nn}
-\end{figure}
-
-\subsection{Bottleneck}
-Pro generování pøíznakù pomocí neuronové sítì byl pouit tzv. bottleneck. Bottleneckem je nazıvána taková struktura neuronové sítì, kdy jedna ze skrytıch vrstev (bottleneck vrstva) obsahuje vıraznì niší poèet neuronù ne její sousední vrstvy. Po natrénování neuronové sítì je bottleneck vrstva vyuita jako vıstupní vrstva a všechny následující vrstvy jsou odstranìny. Tím dochází ke kompresi vstupní informace do pøíznakového vektoru o~konstantní délce.
-
-Bottleneck byl vytvoøen natrénováním ètyøvrstvé neuronové sítì a odstranìním vıstupní a poslední skryté vrstvy (znázornìno na obrázku \ref{fig:bn}). První a tøetí skrytá vrstva se skládá z 1024 neuronù s aktivaèní funkcí Tanh, druhá (bottleneck) vrstva a vıstupní vrstva mají aktivaèní funkci Softmax.  
-
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{bn.eps}
-    \caption{Ètyøvrstvá neuronová sí.}
-    \label{fig:bn}
-\end{figure}
-
-Neuronová sí byla natrénována pro dvì rùzné datové sady - pùvodní datovou sadu šesti øeèníkù a pùvodní datovou sadu rozšíøenou o nahrávky pro Škoda Auto. Vstupem neuronové sítì je vektor o velikosti 440 sloenı z logaritmované energie banky filtru pro jeden foném (vektor o velikosti 40) a jeho kontextu zleva a zprava (vektory o velikosti $ 5 \cdot 40 = 200 $). 
-
-Sí byla trénována pro klasifikaci 20 fonému pro pùvodní datovou sadu s 8 a 16 neurony v bottleneck vrstvì a pro klasifikaci 40 fonému s 8, 16 a 32 neurony pro rozšíøenou sadu. Pro pøehlednìjší vyhodnocení si opìt zavedeme znaèení pro vygenerované pøíznaky:
-\begin{itemize}
-\item \textit{bn\_X} - neuronová sí natrénovaná pro pùvodní datovou sadu,
-\item \textit{bn\_SA\_X} - neuronová sí natrénovaná pro rozšíøenou datovou sadu,
-\end{itemize}
-kde \textit{X} znaèí poèet neuronù bottleneck vrstvy.
-
-
-% VYHODNOCENÍ
-\newpage
-\section{Vyhodnocení}
-Pøi vyhodnocení procentuální pøesnosti klasifikace jednotlivıch metod byly uvaovány tøi rùzné varianty:
-\begin{enumerate}
- \item pøesnost klasifikace v rámci jednoho øeèníka (testovací nahrávky jednoho øeèníka vùèi svım referenèním nahrávkám)
- \item pøesnost klasifikace v rámci jednoho øeèníka vùèi ostatním (testovací nahrávky všech øeèníkù vùèi referenèním nahrávkám jednoho øeèníka)
- \item pøesnost klasifikace mezi všemi øeèníky (testovací nahrávky všech øeèníkù vùèi referenèním nahrávkám všech øeèníkù) 
-\end{enumerate}
-
-\begin{algorithm}[H]
-\setstretch{1.25}
-\For{speaker \textbf{\emph{in}} speakers}{
-	reference\_features, reference\_targets = get\_references(speaker) \\
-	test\_features, test\_targets = get\_test(speaker) \\
-	model = train(reference\_features, reference\_targets) \\
-	prediction = predict(test\_features) \\
-	accuracy = calculate\_accuracy(prediction, test\_targets)	}
-\end{algorithm}
-\begin{center}
-Algoritmus 1: Vyhodnocení pøesnosti klasifikace v rámci jednoho øeèníka.
-\end{center}
-
-\begin{algorithm}[H]
-\setstretch{1.25}
-\For{speaker \textbf{\emph{in}} speakers}{
-	\tcc{combine test features/targets of all speakers}
-	test\_features, test\_targets += get\_test(speaker) \\
-}
-\For{speaker \textbf{\emph{in}} speakers}{
-	reference\_features, reference\_targets = get\_references(speaker) \\
-	model = train(reference\_features, reference\_targets) \\
-	prediction = predict(test\_features) \\
-	accuracy = calculate\_accuracy(prediction, test\_targets)	
-}
-\end{algorithm}
-\begin{center}
-Algoritmus 2: Vyhodnocení pøesnosti klasifikace v rámci jednoho øeèníka vùèi ostatním.
-\end{center}
-
-\begin{algorithm}[H]
-\setstretch{1.25}
-\For{speaker \textbf{\emph{in}} speakers}{
-	\tcc{combine reference and test features/targets of all speakers}
-	reference\_features, reference\_targets += get\_references(speaker) \\
-	test\_features, test\_targets += get\_test(speaker) \\
-}
-model = train(reference\_features, reference\_targets) \\
-prediction = predict(test\_features) \\
-accuracy = calculate\_accuracy(prediction, test\_targets)
-\end{algorithm}
-\begin{center}
-Algoritmus 3: Vyhodnocení pøesnosti klasifikace mezi všemi øeèníky.
-\end{center}
-
-\subsection{Pøesnost klasifikace v rámci jednoho øeèníka}
-Z tabulky \ref{tab:dtw_single_speaker} je zøejmé, e nejvyšší pøesnosti klasifikace v rámci jednoho øeèníka je dosaeno vyuitím pøíznakù generovanıch neuronovou sítí. Pro pøíznaky generované neuronovou sítí natrénovanou nad pùvodní sadou s bottleneck vrstvou o 8 neuronech je dokonce dosaeno nejvyšší pøesnosti ze všech zkoumanıch metod.
-
-Velice vysoké pøesnosti také dosahují pøíznaky ve frekvenèní oblasti s tím, e Z-score normalizace jejich pøesnost mírnì sniuje. Aèkoliv by pøidáním delta a delta-delta koeficientù mìlo dojít k nárùstu pøesnosti klasifikace, z neznámıch dùvodù došlo k jejímu poklesu. V pøípadì normalizovanıch pøíznakù se tento pokles pohybuje dokonce mezi 25-30\%.
-
-Jednotlivé pøíznaky v èasové oblasti dle oèekávání nedosahují vysokıch pøesností. Pro krátkodobou energii a intenzitu ovšem velmi pomáhá normalizace dat. Dále si mùeme povšimnout, e pøesnost nenormalizované krátkodobé energie je stejná jako pøesnost nenormalizované kombinace pøíznakù krátkodobé energie, intenzity a prùchodù nulou. To je zpùsobeno tím, e nenormalizované hodnoty krátkodobé energie se pohybují v øádech desetitisícù, zatímco hodnoty krátkodobé intenzity a prùchodù nulou v øádech desítek a oproti krátkodobé energii se projeví jen minimálnì. Normalizací a kombinací tìchto tøí typù pøíznakù pak dostáváme typ pøíznaku s pomìrnì vysokou informaèní hodnotou. Optimalizací parametrù vzdálenostní metriky skuteènì došlo k navıšení pøesnosti a to o~1.1\%.
-
-\begin{table}[H]
-\centering
-\resizebox{0.9\textwidth}{!}{\begin{tabular}{|l|r|r|r|r|r|r|r|}
-\cline{2-8}
-\multicolumn{1}{c}{} & \multicolumn{7}{|c|}{Pøesnost klasifikace [\%]} \\
+\resizebox{0.95\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c|c|c|c| }
+\cline{2-9}
+\multicolumn{1}{c}{} & \multicolumn{4}{|c|}{ŠkodaAuto} & \multicolumn{4}{c|}{SpeechDat-E} \\
 \hline
-\multicolumn{1}{|c|}{\multirow{2}{*}{Typ pøíznakù}} & \multicolumn{6}{|c|}{Øeèník} & \multicolumn{1}{c|}{\multirow{2}{*}{Prùmìr}} \\
-\cline{2-7}
- & \multicolumn{1}{c|}{1} & \multicolumn{1}{c|}{2} & \multicolumn{1}{c|}{3} & \multicolumn{1}{c|}{4} & \multicolumn{1}{c|}{5} & \multicolumn{1}{c|}{6} & \\
+architektura & LFE & \makecell{LFE \\ $ \Delta\Delta$} & MFCC &  \makecell{MFCC \\ $ \Delta\Delta$} & LFE &  \makecell{LFE \\ $ \Delta\Delta$} & MFCC &  \makecell{MFCC \\ $ \Delta\Delta$} \\
 \hline
-bn\_8 & 90.0 & 93.3 & 96.7 & 96.7 & 93.3 & 100.0 & 95.0 \\
+dopøedná & 79.99 & 80.15 & 79.63 & 81.06 & 68.65 & - & 68.92 & 69.88 \\
 \hline
-bn\_16 & 100.0 & 90.0 & 93.3 & 96.7 & 86.7 & 90.0 & 92.8 \\
+LSTM & 76.45 & 78.17 & 67.10 & 79.56 & - & - & 62.87 & 68.8 \\
 \hline
-bn\_SA\_8 & 90.0 & 83.3 & 86.7 & 83.3 & 83.3 & 93.3 & 86.7 \\
+GRU & 72.84 & 73.49 & 73.12 & 77.65 & - & - & 59.86 & 65.53 \\
 \hline
-bn\_SA\_16 & 96.7 & 93.3 & 93.3 & 96.7 & 86.7 & 80.0 & 91.1 \\
+obousmìrná CTC LSTM & 92.97 & 93.34 & 93.03 & 93.70 & 81.22 & 82.11 & 80.42 & 83.23 \\
 \hline
-bn\_SA\_32 & 93.3 & 93.3 & 96.7 & 93.3 & 76.7 & 93.3 & 91.1 \\
+dávková CTC LSTM & 63.04 & 68.58 & 65.28 & 70.80 & 58.32 & 60.87 & 60.05 & 63.81 \\
 \hline
-log\_fb\_en\_25\_10\_ham & 80.0 & 83.3 & 100.0 & 93.3 & 83.3 & 93.3 & 88.9 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_norm & 86.7 & 86.7 & 93.3 & 90.0 & 76.7 & 93.3 & 87.8 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_deltas & 70.0 & 83.3 & 96.7 & 86.7 & 80.0 & 93.3 & 85.0 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_deltas\_norm & 63.3 & 60.0 & 73.3 & 76.7 & 66.7 & 76.7 & 69.4 \\
-\hline
-mfcc\_25\_10\_ham & 86.7 & 83.3 & 100.0 & 93.3 & 90.0 & 90.0 & 90.6 \\
-\hline
-mfcc\_25\_10\_ham\_norm & 90.0 & 90.0 & 96.7 & 86.7 & 86.7 & 90.0 & 90.0 \\
-\hline
-mfcc\_25\_10\_ham\_deltas & 86.7 & 83.3 & 100.0 & 86.7 & 80.0 & 90.0 & 87.8 \\
-\hline
-mfcc\_25\_10\_ham\_deltas\_norm & 70.0 & 60.0 & 76.7 & 70.0 & 66.7 & 76.7 & 70.0 \\
-\hline
-ste\_10\_10 & 60.0 & 20.0 & 33.3 & 46.7 & 43.3 & 26.7 & 38.3 \\
-\hline
-ste\_10\_10\_norm & 56.7 & 40.0 & 43.3 & 50.0 & 46.7 & 56.7 & 48.9 \\
-\hline
-ste\_sti\_stzcr\_10\_10 & 60.0 & 20.0 & 33.3 & 46.7 & 43.3 & 26.7 & 38.3 \\
-\hline
-ste\_sti\_stzcr\_10\_10\_norm & 96.7 & 86.7 & 80.0 & 80.0 & 66.7 & 76.7 & 81.1 \\
-\hline
-ste\_sti\_stzcr\_10\_10\_norm\_single & 96.7 & 90.0 & 83.3 & 83.3 & 66.7 & 73.3 & 82.2 \\
-\hline
-sti\_10\_10 & 63.3 & 36.7 & 40.0 & 66.7 & 70.0 & 66.7 & 57.2 \\
-\hline
-sti\_10\_10\_norm & 76.7 & 43.3 & 56.7 & 70.0 & 56.7 & 70.0 & 62.2 \\
-\hline
-stzcr\_10\_10 & 56.7 & 70.0 & 60.0 & 63.3 & 60.0 & 60.0 & 61.7 \\
-\hline
-stzcr\_10\_10\_norm & 60.0 & 66.7 & 53.3 & 60.0 & 43.3 & 53.3 & 56.1 \\
+\makecell{obousmìrná \\ dávková CTC LSTM} & 72.31 & 72.74 & 72.19 & 75.19 & 62.42 & 66.81 & 63.42 & 67.87 \\
 \hline
 \end{tabular}}
-\caption{Pøesnost klasifikace v rámci jednoho øeèníka pro DTW.}
-\label{tab:dtw_single_speaker}
+\caption{Porovnání pøesnosti dekódování [\%] mezi datovou sadou ŠkodaAuto a SpeechDat-E.}
+\label{tab:sa_se}
 \end{table}
 
-Vısledky dosaené klasifikátorem SVM (tabulka \ref{tab:svm_single_speaker}) jak pro pøíznaky ve frekvenèní oblasti, tak pro bottleneck pøíznaky, jsou niší ne vısledky dosaené metodou DTW. Pøidáním dynamickıch koeficientù opìt došlo k vıraznému poklesu pøesnosti - 48.9\% pro logaritmované energie banky filtrù a 32.3\% pro MFCC. Pøesnosti dosaené u pøíznakù v~èasové oblasti jsou srovnatelné s pøesnostmi metody DTW.
+..
 
-\begin{table}[H]
-\centering
-\resizebox{0.85\textwidth}{!}{\begin{tabular}{|l|r|r|r|r|r|r|r|}
-\cline{2-8}
-\multicolumn{1}{c}{} & \multicolumn{7}{|c|}{Pøesnost klasifikace [\%]} \\
-\hline
-\multicolumn{1}{|c|}{\multirow{2}{*}{Typ pøíznakù}} & \multicolumn{6}{|c|}{Øeèník} & \multicolumn{1}{c|}{\multirow{2}{*}{Prùmìr}} \\
-\cline{2-7}
- & \multicolumn{1}{c|}{1} & \multicolumn{1}{c|}{2} & \multicolumn{1}{c|}{3} & \multicolumn{1}{c|}{4} & \multicolumn{1}{c|}{5} & \multicolumn{1}{c|}{6} & \\
-\hline
-bn\_8 & 83.3 & 86.7 & 93.3 & 90.0 & 90.0 & 93.3 & 89.4 \\
-\hline
-bn\_16 & 90.0 & 83.3 & 90.0 & 93.3 & 86.7 & 86.7 & 88.3 \\
-\hline
-bn\_SA\_8 & 86.7 & 73.3 & 80.0 & 70.0 & 80.0 & 90.0 & 80.0 \\
-\hline
-bn\_SA\_16 & 83.3 & 80.0 & 76.7 & 90.0 & 76.7 & 76.7 & 80.6 \\
-\hline
-bn\_SA\_32 & 80.0 & 70.0 & 86.7 & 80.0 & 70.0 & 80.0 & 77.8 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_norm & 80.0 & 90.0 & 80.0 & 83.3 & 76.7 & 86.7 & 82.8 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_deltas\_norm & 60.0 & 46.7 & 20.0 & 20.0 & 26.7 & 30.0 & 33.9 \\
-\hline
-mfcc\_25\_10\_ham\_norm & 70.0 & 56.7 & 76.7 & 76.7 & 70.0 & 73.3 & 70.6 \\
-\hline
-mfcc\_25\_10\_ham\_deltas\_norm & 60.0 & 46.7 & 30.0 & 30.0 & 26.7 & 36.7 & 38.3 \\
-\hline
-ste\_10\_10\_norm & 60.0 & 33.3 & 46.7 & 43.3 & 50.0 & 53.3 & 47.8 \\
-\hline
-ste\_sti\_stzcr\_10\_10\_norm & 90.0 & 76.7 & 73.3 & 60.0 & 66.7 & 73.3 & 73.3 \\
-\hline
-sti\_10\_10\_norm & 73.3 & 40.0 & 43.3 & 60.0 & 53.3 & 66.7 & 56.1 \\
-\hline
-stzcr\_10\_10\_norm & 60.0 & 63.3 & 53.3 & 50.0 & 40.0 & 50.0 & 52.8 \\
-\hline
-\end{tabular}}
-\caption{Pøesnost klasifikace v rámci jednoho øeèníka pro SVM.}
-\label{tab:svm_single_speaker}
-\end{table}
+..
 
-Pøesnost klasifikace pomocí neuronové sítì (tabulka \ref{tab:nn_single_speaker}) pro pøíznaky ve frekvenèní oblasti je srovnatelná s pøesností pøíznakù generovanıch neuronovou sítí a klasifikovanıch pomocí DTW. Pøidání dynamickıch koeficientù tuto pøesnost opìt sniuje. Vysokıch pøesností také dosahují bottleneck pøíznaky. Pøesnost pøíznakù v èasové oblasti je mírnì horší ne u SVM.
+..
 
-\begin{table}[H]
-\centering
-\resizebox{0.9\textwidth}{!}{\begin{tabular}{|l|r|r|r|r|r|r|r|}
-\cline{2-8}
-\multicolumn{1}{c}{} & \multicolumn{7}{|c|}{Pøesnost klasifikace [\%]} \\
-\hline
-\multicolumn{1}{|c|}{\multirow{2}{*}{Typ pøíznakù}} & \multicolumn{6}{|c|}{Øeèník} & \multicolumn{1}{c|}{\multirow{2}{*}{Prùmìr}} \\
-\cline{2-7}
- & \multicolumn{1}{c|}{1} & \multicolumn{1}{c|}{2} & \multicolumn{1}{c|}{3} & \multicolumn{1}{c|}{4} & \multicolumn{1}{c|}{5} & \multicolumn{1}{c|}{6} & \\
-\hline
-bn\_8 & 83.3 & 90.0 & 93.3 & 96.7 & 90.0 & 96.7 & 91.7 \\
-\hline
-bn\_16 & 96.7 & 90.0 & 86.7 & 83.3 & 83.3 & 83.3 & 87.2 \\
-\hline
-bn\_SA\_8 & 86.7 & 90.0 & 93.3 & 80.0 & 93.3 & 83.3 & 87.8 \\
-\hline
-bn\_SA\_16 & 93.3 & 93.3 & 96.7 & 96.7 & 83.3 & 80.0 & 90.6 \\
-\hline
-bn\_SA\_32 & 90.0 & 86.7 & 100.0 & 96.7 & 83.3 & 76.7 & 88.9 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_norm & 86.7 & 93.3 & 93.3 & 100.0 & 93.3 & 90.0 & 92.8 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_deltas\_norm & 86.7 & 73.3 & 80.0 & 66.7 & 66.7 & 76.7 & 75.0 \\
-\hline
-mfcc\_25\_10\_ham\_norm & 93.3 & 96.7 & 93.3 & 96.7 & 86.7 & 90.0 & 92.8 \\
-\hline
-mfcc\_25\_10\_ham\_deltas\_norm & 93.3 & 73.3 & 76.7 & 86.7 & 83.3 & 86.7 & 83.3 \\
-\hline
-ste\_10\_10\_norm & 53.3 & 20.0 & 50.0 & 36.7 & 36.7 & 53.3 & 41.7 \\
-\hline
-ste\_sti\_stzcr\_10\_10\_norm & 96.7 & 66.7 & 76.7 & 86.7 & 66.7 & 73.3 & 77.8 \\
-\hline
-sti\_10\_10\_norm & 53.3 & 50.0 & 56.7 & 53.3 & 46.7 & 56.7 & 52.8 \\
-\hline
-stzcr\_10\_10\_norm & 53.3 & 50.0 & 50.0 & 46.7 & 30.0 & 56.7 & 47.8 \\
-\hline
-\end{tabular}}
-\caption{Pøesnost klasifikace v rámci jednoho øeèníka pro neuronovou sí.}
-\label{tab:nn_single_speaker}
-\end{table}
-
-\subsection{Pøesnost klasifikace v rámci jednoho øeèníka vùèi ostatním}
-Stejnì jako pøi klasifikaci v rámci jednoho øeèníka dosahuje nejlepší vısledkù metoda DTW (tabulka \ref{tab:dtw_all_test_per_speaker}) s vyuitím pøíznakù vygenerovanıch neuronovou sítí. Nejvyšší pøesnosti dosahuje bottleneck o 8 a 16 neuronech vytvoøenı natrénováním neuronové sítì nad pùvodní datovou sadou. 
-
-\begin{table}[H]
-\centering
-\resizebox{0.85\textwidth}{!}{\begin{tabular}{|l|r|r|r|r|r|r|r|}
-\cline{2-8}
-\multicolumn{1}{c}{} & \multicolumn{7}{|c|}{Pøesnost klasifikace [\%]} \\
-\hline
-\multicolumn{1}{|c|}{\multirow{2}{*}{Typ pøíznakù}} & \multicolumn{6}{|c|}{Øeèník} & \multicolumn{1}{c|}{\multirow{2}{*}{Prùmìr}} \\
-\cline{2-7}
- & \multicolumn{1}{c|}{1} & \multicolumn{1}{c|}{2} & \multicolumn{1}{c|}{3} & \multicolumn{1}{c|}{4} & \multicolumn{1}{c|}{5} & \multicolumn{1}{c|}{6} & \\
-\hline
-bn\_8 & 86.1 & 85.0 & 88.9 & 89.4 & 83.3 & 95.6 & 88.1 \\
-\hline
-bn\_16 & 90.6 & 87.8 & 86.1 & 90.0 & 86.1 & 92.2 & 88.8 \\
-\hline
-bn\_SA\_8 & 85.6 & 71.7 & 80.0 & 67.8 & 80.0 & 81.7 & 77.8 \\
-\hline
-bn\_SA\_16 & 86.7 & 81.1 & 85.6 & 80.0 & 87.2 & 81.1 & 83.6 \\
-\hline
-bn\_SA\_32 & 77.8 & 76.7 & 78.9 & 80.0 & 83.9 & 87.2 & 80.7 \\
-\hline
-log\_fb\_en\_25\_10\_ham & 68.9 & 70.6 & 82.8 & 70.6 & 77.8 & 82.8 & 75.6 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_norm & 67.8 & 70.6 & 74.4 & 72.2 & 76.1 & 78.9 & 73.3 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_deltas & 61.1 & 66.7 & 77.8 & 65.0 & 71.1 & 72.2 & 69.0 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_deltas\_norm & 49.4 & 52.8 & 58.3 & 53.9 & 57.2 & 55.0 & 54.4 \\
-\hline
-mfcc\_25\_10\_ham & 70.6 & 72.8 & 81.7 & 72.8 & 75.6 & 87.2 & 76.8 \\
-\hline
-mfcc\_25\_10\_ham\_norm & 59.4 & 63.3 & 66.7 & 59.4 & 56.1 & 73.9 & 63.1 \\
-\hline
-mfcc\_25\_10\_ham\_deltas & 67.8 & 68.9 & 80.0 & 70.0 & 74.4 & 83.3 & 74.1 \\
-\hline
-mfcc\_25\_10\_ham\_deltas\_norm & 47.8 & 46.7 & 52.2 & 42.8 & 48.3 & 47.2 & 47.5 \\
-\hline
-ste\_10\_10 & 18.3 & 16.1 & 22.8 & 22.8 & 18.9 & 23.3 & 20.4 \\
-\hline
-ste\_10\_10\_norm & 28.3 & 22.8 & 25.6 & 29.4 & 22.2 & 27.2 & 25.9 \\
-\hline
-ste\_sti\_stzcr\_10\_10 & 18.3 & 16.1 & 22.8 & 22.8 & 18.9 & 23.3 & 20.4 \\
-\hline
-ste\_sti\_stzcr\_10\_10\_norm & 70.0 & 60.6 & 65.6 & 60.6 & 59.4 & 66.7 & 63.8 \\
-\hline
-ste\_sti\_stzcr\_10\_10\_norm\_all & 70.0 & 60.6 & 68.3 & 65.6 & 61.7 & 64.4 & 65.1 \\
-\hline
-sti\_10\_10 & 20.6 & 30.6 & 26.1 & 38.9 & 30.0 & 39.4 & 30.9 \\
-\hline
-sti\_10\_10\_norm & 34.4 & 33.3 & 40.6 & 41.1 & 36.1 & 47.2 & 38.8 \\
-\hline
-stzcr\_10\_10 & 52.2 & 49.4 & 48.3 & 41.7 & 54.4 & 56.1 & 50.4 \\
-\hline
-stzcr\_10\_10\_norm & 50.6 & 47.8 & 49.4 & 44.4 & 47.8 & 51.1 & 48.5 \\
-\hline
-\end{tabular}}
-\caption{Pøesnost klasifikace v rámci jednoho øeèníka vùèi ostatním pro DTW.}
-\label{tab:dtw_all_test_per_speaker}
-\end{table}
-
-Porovnáním tabulek \ref{tab:dtw_all_test_per_speaker}, \ref{tab:svm_all_test_per_speaker} a \ref{tab:nn_all_test_per_speaker} je patrné, e pøíznaky ve frekvenèní oblasti nejhùøe klasifikuje SVM a pøíznaky v èasové oblasti neuronová sí. Normalizace a aplikace dynamickıch koeficientù má na pøesnost klasifikace obdobnı vliv jako v pøípadì klasifikace v~rámci jednoho øeèníka.
-
-\begin{table}[H]
-\centering
-\resizebox{0.85\textwidth}{!}{\begin{tabular}{|l|r|r|r|r|r|r|r|}
-\cline{2-8}
-\multicolumn{1}{c}{} & \multicolumn{7}{|c|}{Pøesnost klasifikace [\%]} \\
-\hline
-\multicolumn{1}{|c|}{\multirow{2}{*}{Typ pøíznakù}} & \multicolumn{6}{|c|}{Øeèník} & \multicolumn{1}{c|}{\multirow{2}{*}{Prùmìr}} \\
-\cline{2-7}
- & \multicolumn{1}{c|}{1} & \multicolumn{1}{c|}{2} & \multicolumn{1}{c|}{3} & \multicolumn{1}{c|}{4} & \multicolumn{1}{c|}{5} & \multicolumn{1}{c|}{6} & \\
-\hline
-bn\_8 & 81.1 & 80.0 & 83.9 & 82.2 & 82.8 & 93.9 & 84.0 \\
-\hline
-bn\_16 & 86.1 & 78.3 & 81.1 & 82.2 & 82.2 & 89.9 & 83.2 \\
-\hline
-bn\_SA\_8 & 80.6 & 60.0 & 75.6 & 60.0 & 70.0 & 77.8 & 70.7 \\
-\hline
-bn\_SA\_16 & 75.0 & 60.6 & 71.1 & 73.3 & 75.0 & 77.8 & 72.1 \\
-\hline
-bn\_SA\_32 & 68.9 & 58.3 & 69.4 & 69.4 & 62.8 & 70.0 & 66.5 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_norm & 62.2 & 65.0 & 64.4 & 62.2 & 65.6 & 66.7 & 64.4 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_deltas\_norm & 39.4 & 37.2 & 13.3 & 18.3 & 20.0 & 27.8 & 26.0 \\
-\hline
-mfcc\_25\_10\_ham\_norm & 50.6 & 46.7 & 43.3 & 41.1 & 35.0 & 53.3 & 45.0 \\
-\hline
-mfcc\_25\_10\_ham\_deltas\_norm & 37.2 & 35.0 & 15.0 & 21.1 & 18.9 & 24.4 & 25.3 \\
-\hline
-ste\_10\_10\_norm & 28.3 & 23.9 & 28.9 & 27.2 & 21.1 & 27.2 & 26.1 \\
-\hline
-ste\_sti\_stzcr\_10\_10\_norm & 66.7 & 56.7 & 59.4 & 48.3 & 55.6 & 60.6 & 57.9 \\
-\hline
-sti\_10\_10\_norm & 36.7 & 33.3 & 35.6 & 37.2 & 33.3 & 43.9 & 36.7 \\
-\hline
-stzcr\_10\_10\_norm & 50.6 & 47.2 & 44.4 & 42.8 & 46.1 & 48.9 & 46.7 \\
-\hline
-\end{tabular}}
-\caption{Pøesnost klasifikace v rámci jednoho øeèníka vùèi ostatním pro SVM.}
-\label{tab:svm_all_test_per_speaker}
-\end{table}
-
-\begin{table}[H]
-\centering
-\resizebox{0.85\textwidth}{!}{\begin{tabular}{|l|r|r|r|r|r|r|r|}
-\cline{2-8}
-\multicolumn{1}{c}{} & \multicolumn{7}{|c|}{Pøesnost klasifikace [\%]} \\
-\hline
-\multicolumn{1}{|c|}{\multirow{2}{*}{Typ pøíznakù}} & \multicolumn{6}{|c|}{Øeèník} & \multicolumn{1}{c|}{\multirow{2}{*}{Prùmìr}} \\
-\cline{2-7}
- & \multicolumn{1}{c|}{1} & \multicolumn{1}{c|}{2} & \multicolumn{1}{c|}{3} & \multicolumn{1}{c|}{4} & \multicolumn{1}{c|}{5} & \multicolumn{1}{c|}{6} & \\
-\hline
-bn\_8 & 77.2 & 80.6 & 83.9 & 88.3 & 78.9 & 88.3 & 82.9 \\
-\hline
-bn\_16 & 85.0  & 88.9 & 78.9 & 89.4 & 82.8 & 83.9 & 84.8 \\
-\hline
-bn\_SA\_8 & 76.1 & 70.6 & 81.7 & 72.2 & 82.2 & 77.8 & 76.8 \\
-\hline
-bn\_SA\_16 & 74.4 & 80.6 & 78.9 & 75.6 & 87.8 & 76.1 & 78.9 \\
-\hline
-bn\_SA\_32 & 70.0  & 77.2 & 78.3 & 87.8 & 82.8 & 73.9 & 78.3 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_norm & 70.0 & 74.4 & 80.0 & 74.4 & 80.0 & 85.6 & 77.4 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_deltas\_norm & 57.8 & 49.4 & 53.3 & 57.2 & 42.2 & 48.9 & 51.5 \\
-\hline
-mfcc\_25\_10\_ham\_norm & 68.3 & 72.8 & 68.3 & 66.7 & 68.9 & 78.3 & 70.6 \\
-\hline
-mfcc\_25\_10\_ham\_deltas\_norm & 63.9 & 58.9 & 63.9 & 54.4 & 62.8 & 67.2 & 61.9 \\
-\hline
-ste\_10\_10\_norm & 23.3 & 19.4 & 26.1 & 28.3 & 22.2 & 25.6 & 24.2 \\
-\hline
-ste\_sti\_stzcr\_10\_10\_norm & 56.7 & 46.7 & 64.4 & 58.3 & 58.3 & 66.1 & 58.4 \\
-\hline
-sti\_10\_10\_norm & 27.2 & 33.9 & 30.0 & 33.9 & 27.8 & 35.6 & 31.4 \\
-\hline
-stzcr\_10\_10\_norm & 45.6 & 40.6 & 45.6 & 45.6 & 40.6 & 44.4 & 43.7 \\
-\hline
-\end{tabular}}
-\caption{Pøesnost klasifikace v rámci jednoho øeèníka vùèi ostatním pro neuronovou sí.}
-\label{tab:nn_all_test_per_speaker}
-\end{table}
-
-\subsection{Pøesnost klasifikace mezi všemi øeèníky}
-Pøi klasifikaci mezi všemi øeèníky (tabulka \ref{tab:all_speakers}) navzájem dosahují opìt nejlepších vısledkù bottleneck pøíznaky a to zejména 8 neuronovı natrénovanı nad pùvodní datovou sadou a~16 neuronovı natrénovanı nad rozšíøenou sadou. Velmi vysokıch pøesností také dosahují pøíznaky ve frekvenèní oblasti a kombinace pøíznakù v èasové oblasti.
-
-Jak ji bylo zmínìno v teoretické èásti, krátkodobá energie je silnì ovlivòována vıkyvy v amplitudì akustického signálu, zatímco krátkodobá intenzita tento problém nemá. Všimnìme si tedy, e krátkodobá intenzita dosahuje témìø dvakrát vìtší pøesnosti ne krátkodobá energie.
-
-\begin{table}[H]
-\centering
-\resizebox{0.6\textwidth}{!}{\begin{tabular}{|l|r|r|r|}
-\cline{2-4}
-\multicolumn{1}{c}{} & \multicolumn{3}{|c|}{Prùmìrná pøesnost [\%]} \\
-\hline
-\multicolumn{1}{|c|}{Typ pøíznakù} & \multicolumn{1}{c|}{DTW} & \multicolumn{1}{c|}{SVM} & \multicolumn{1}{c|}{NN} \\
-\hline
-bn\_8 & 98.9 & 94.4 & 98.9 \\
-\hline
-bn\_16 & 96.7 & 92.2 & 95.6 \\
-\hline
-bn\_SA\_8 & 90.6 & 76.7 & 91.1 \\
-\hline
-bn\_SA\_16 & 98.9 & 73.9 & 92.8 \\
-\hline
-bn\_SA\_32 & 94.4 & 75.0 & 91.1 \\
-\hline
-log\_fb\_en\_25\_10\_ham & 90.6 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-log\_fb\_en\_25\_10\_ham\_norm & 92.8 & 74.4 & 91.1 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_deltas & 86.1 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-log\_fb\_en\_25\_10\_ham\_deltas\_norm & 73.3 & 30.0  & 10.0 \\
-\hline
-mfcc\_25\_10\_ham & 91.7 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-mfcc\_25\_10\_ham\_norm & 90.6 & 52.8 & 65.0 \\
-\hline
-mfcc\_25\_10\_ham\_deltas & 89.4 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-mfcc\_25\_10\_ham\_deltas\_norm & 74.4 & 33.3 & 10.0 \\
-\hline
-ste\_10\_10 & 32.8 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-ste\_10\_10\_norm & 36.1 & 29.4 & 52.2 \\
-\hline
-ste\_sti\_stzcr\_10\_10 & 32.8 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-ste\_sti\_stzcr\_10\_10\_norm & 82.2 & 76.1 & 77.2 \\
-\hline
-ste\_sti\_stzcr\_10\_10\_norm\_all & 85.6 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-sti\_10\_10 & 60.6 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-sti\_10\_10\_norm & 62.2 & 46.1 & 57.2 \\
-\hline
-stzcr\_10\_10 & 63.9 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-stzcr\_10\_10\_norm & 56.7 & 53.3 & 58.9 \\
-\hline
-\end{tabular}}
-\caption{Pøesnost klasifikace mezi všemi øeèníky.}
-\label{tab:all_speakers}
-\end{table}
-
-Pøesnost klasifikátoru pro pøíznaky v èasové a frekvenèní oblasti SVM je vıraznì horší ne pøesnost DTW. Neuronová sí se zdá bıt velice robustní pro normalizované logaritmované energie banky filtrù, nicménì pro pøíznaky s dynamickımi koeficienty se nepodaøilo sí s danou strukturou úspìšnì natrénovat a pøesnost je pouhıch 10\%. Pøíznaky generované pomocí neuronové sítì s bottleneck vrstvou o 8 neuronech nad pùvodní datovou sadou se zdají bıt nezávislé na klasifikaèní metodì a dosahují velmi vysokıch pøesností. Z hlediska vıpoèetních nárokù je ovšem vhodnìjší volit pouze metodu DTW, jeliko klasifikátor SVM i neuronová sí vyuívají pøedpoèítané DTW vzdálenosti. 
-
-% ZÁVÌR
-\newpage
-\section{Závìr}
 Cílem této práce bylo porovnat rùzné typy pøíznakù pro úlohu klasifikace izolovanıch slov. V první èástí práce byly pøedstaveny metody zpracování akustického signálu vèetnì jednotlivıch typù pøíznakù a byly odvozeny klasifikaèní algoritmy. Ve druhé èásti pak byly pøedstaveny testované parametrizace pøíznakù a navrené algoritmy vyuité ke klasifikaci.
-
-\begin{table}[H]
-\centering
-\resizebox{0.95\textwidth}{!}{\begin{tabular}{|l|r|r|r||r|r|r||r|r|r|}
-\cline{2-10}
-\multicolumn{1}{c}{} & \multicolumn{9}{|c|}{Prùmìrná pøesnost klasifikace [\%]} \\
-\hline
-\multicolumn{1}{|c|}{\multirow{2}{*}{Typ pøíznakù}} & \multicolumn{3}{|c||}{DTW} & \multicolumn{3}{|c||}{SVM} & \multicolumn{3}{|c|}{NN} \\
-\cline{2-10}
- & \multicolumn{1}{c|}{1to1} & \multicolumn{1}{c|}{AlltoAll} & \multicolumn{1}{c||}{Rozdíl} & \multicolumn{1}{c|}{1to1} & \multicolumn{1}{c|}{AlltoAll} & \multicolumn{1}{c||}{Rozdíl} & \multicolumn{1}{c|}{1to1} & \multicolumn{1}{c|}{AlltoAll} & \multicolumn{1}{c|}{Rozdíl} \\
-\hline
-bn\_8 & 95.0 & 98.9 & 3.9 & 89.4 & 94.4 & 5 & 91.7 & 98.9 & 7.2 \\
-\hline
-bn\_16 & 92.8 & 96.7 & 3.9 & 88.3 & 92.2 & 3.9 & 87.2 & 95.6 & 8.4 \\
-\hline
-bn\_SA\_8 & 86.7 & 90.6 & 3.9 & 80.0 & 76.7 & -3.3 & 87.8 & 91.1 & 3.3 \\
-\hline
-bn\_SA\_16 & 91.1 & 98.9 & 7.8 & 80.6 & 73.9 & -6.7 & 90.6 & 92.8 & 2.2 \\
-\hline
-bn\_SA\_32 & 91.1 & 94.4 & 3.3 & 77.8 & 75.0 & -2.8 & 88.9 & 91.1 & 2.2 \\
-\hline
-log\_fb\_en\_25\_10\_ham & 88.9 & 90.6 & 1.7 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c||}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-log\_fb\_en\_25\_10\_ham\_norm & 87.8 & 92.8 & 5.0 & 82.8 & 74.4 & -8.4 & 92.8 & 91.1 & -1.7 \\
-\hline
-log\_fb\_en\_25\_10\_ham\_deltas & 85.0 & 86.1 & 1.1 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c||}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-log\_fb\_en\_25\_10\_ham\_deltas\_norm & 69.4 & 73.3 & 3.9 & 33.9 & 30.0 & -3.9 & 75.0 & 10.0 & -65.0 \\
-\hline
-mfcc\_25\_10\_ham & 90.6 & 91.7 & 1.1 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c||}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-mfcc\_25\_10\_ham\_norm & 90.0 & 90.6 & 0.6 & 70.6 & 52.8 & -17.8 & 92.8 & 65.0 & -27.8 \\
-\hline
-mfcc\_25\_10\_ham\_deltas & 87.8 & 89.4 & 1.6 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c||}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-mfcc\_25\_10\_ham\_deltas\_norm & 70.0 & 74.4 & 4.4 & 38.3 & 33.3 & -5 & 83.3 & 10.0 & -73.3 \\
-\hline
-ste\_10\_10 & 38.3 & 32.8 & -5.5 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c||}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-ste\_10\_10\_norm & 48.9 & 36.1 & -12.8 & 47.8 & 29.4 & -18.4 & 41.7 & 52.2 & 10.5 \\
-\hline
-ste\_sti\_stzcr\_10\_10 & 38.3 & 32.8 & -5.5 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c||}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-ste\_sti\_stzcr\_10\_10\_norm & 81.1 & 82.2 & 1.1 & 73.3 & 76.1 & 2.8 & 77.8 & 77.2 & -0.6 \\
-\hline
-sti\_10\_10 & 57.2 & 60.6 & 3.4 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c||}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-sti\_10\_10\_norm & 62.2 & 62.2 & 0.0 & 56.1 & 46.1 & -10.0 & 52.8 & 57.2 & 4.4 \\
-\hline
-stzcr\_10\_10 & 61.7 & 63.9 & 2.2 & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c||}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} & \multicolumn{1}{c|}{-} \\
-\hline
-stzcr\_10\_10\_norm & 56.1 & 56.7 & 0.6 & 52.8 & 53.3 & 0.5 & 47.8 & 58.9 & 11.1 \\ 
-\hline
-\end{tabular}}
-\caption{Porovnání prùmìrné pøesnosti klasifikace  v rámci jednoho øeèníka (\textit{1to1}) a~mezi všemi øeèníky (\textit{AlltoAll}).}
-\label{tab:mean}
-\end{table}
 
 Porovnáním prùmìrnıch pøesností klasifikace (tabulka \ref{tab:mean}) se ukázalo, e nejpøesnìjším a nejrobustnìjším pøíznakem (nezávislı na øeèníkovi) je pøíznak vygenerovanı neuronovou sítí s bottleneck vrstvou. Velice dobrıch vısledkù také dosahovaly pøíznaky zaloené na logaritmované energii banky filtrù klasifikovanıch jak pomocí metody DTW, tak pomocí neuronové sítì.
 
