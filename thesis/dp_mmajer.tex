@@ -120,7 +120,13 @@ Neuronová sí je algoritmus, kterı je schopen aproximovat i silnì nelineární fun
 Základním rozdílem mezi bìnou optimalizací a optimalizací v neuronovıch sítí je, e optimalizace v neuronovıch sítích a ve strojovém uèení obecnì probíhá nepøímo. To znamená, e aèkoliv optimalizujeme zvolenou metriku $ P $, která v jistém smyslu kvantifikuje vıkon algoritmu na dané úloze, minimalizujeme jinou cenovou funkci $ J(\boldsymbol{\theta}) $ za úèelem minimalizace metriky $ P $. V bìném optimalizaèním problému bychom minimalizovali pøímo cenovou funkci $ J(\boldsymbol{\theta}) $ za úèelem její minimalizace \cite{dl, karpathy, bishop}.
 
 \subsection{Rozpoznávání øeèi pomocí neuronovıch sítí}
-\textbf{TODO}
+Ve zpracování øeèi jsou neuronové sítì vyuívány témìø ve všech jejích oblastech a to zejména v rozpoznávání øeèi a její syntéze, kde postupnì nahradily klasické statistické modely. Rozpoznávání øeèi je úloha, jejím cílem je získat pøepis mluvené øeèi v textové podobì. V závislosti na aplikaci systému rozpoznávání øeèi a dalších omezujících podmínkách (doba odezvy, vıpoèetní nároènost) se pak nabízí dva pøístupy modelování øeèi - modelování po jednotlivıch fonémech èi po celıch slovech.
+
+K rozpoznávání øeèi se nejèastìji vyuívá rekurentní neuronová sí, která je schopná vyuívat kontextu v øeèi, èi hluboká dopøedná sí. Vhodné architektury sítí jako Seq2Seq èi rekurentní neuronová sí se ztrátovou funkcí CTC pak umoòují pøímı pøepis mluvené øeèi do textové podoby bez potøeby dekódování, jako tomu bylo napøíklad u skrytıch markovovıch modelù. V posledních letech se ovšem také zaèaly k rozpoznávání øeèi vyuívat konvoluèní neuronové sítì a to buï s vyuitím 1D konvoluce nebo 2D konvoluce, kdy se sí uèí ze spektrogramù a jsou tedy voleny podobné architektury jako pøi zpracování obrazu.
+
+Mezi další zajímavá vyuití neuronovıch sítí ve zpracování øeèi patøí napøíklad syntéza øeèi, pøeklad mluvené øeèi, verifikace øeèníka èi detekce klíèovıch frází. Neuronové sítì se také bìnì vyuívají ke kompresi pøíznakového vektoru (mùe bıt i rùzné délky) do pøíznakové vektoru o niší pevnì dané délce. K tomu se vyuívá tzv. bottleneck vrstva, která má vıraznì niší poèet jednotek ne její sousední vrstvy a po natrénování sítì slouí jako vıstupní vrstva. Tuto metodu komprese pøíznakového vektoru lze napøíklad vyuít pro rychlou detekci klíèovıch frází v kombinaci s algoritmem DTW.
+
+Tato práce se vìnuje rozpoznávání øeèi po fonémech s vyuitím jak dopøednıch, tak rekurentních neuronovıch sítí s dekódováním i pøímım pøepisem.
 
 \subsection{Cenová funkce}
 Jedním ze zásadních aspektù pøi návrhu neuronovıch sítí je vıbìr cenové funkce. Vıbìr cenové funkce závisí na dané úloze a poadovaném vıstupu. Cenovou funkci definujeme stejnım zpùsobem jako u ostatních parametrickıch modelù, které generují hustotu pravdìpodobnosti $ p(\boldsymbol{y} \mid \boldsymbol{x} ; \boldsymbol{\theta}) $ a pøi trénování vyuívají principu maximální vìrohodnosti. Vìtšinou tedy cenovou funkci definujeme jako vzájemnou entropii mezi trénovacími daty a predikcemi modelu
@@ -784,7 +790,7 @@ Jako regularizaèní metody byly vyuity zanesení šumu do trénovacích dat a pøedèa
 % VYHODNOCENÍ
 \newpage
 \section{Experimenty a vyhodnocení}
-Nejprve byly provedeny experimenty nad datovou sadou ŠkodaAuto a její parametrizací LFE. Nejlepší nastavení jednotlivıch architektur pak bylo testováno nad zbylımi parametrizacemi jak na datové sadì ŠkodaAuto, tak na datové sadì SpeechDat-E. Byly uvaovány tøi metriky, na které se dále budeme odkazovat tuènì uvedenımi názvy:
+Nejprve byly provedeny experimenty nad datovou sadou ŠkodaAuto a její parametrizací LFE. Nejlepší nastavení jednotlivıch architektur pak bylo testováno nad zbylımi parametrizacemi jak na datové sadì ŠkodaAuto, tak na datové sadì SpeechDat-E. Byly uvaovány tøi metriky (všechny na testovací sadì), na které se dále budeme odkazovat tuènì uvedenımi názvy:
 \begin{itemize}
 \item \textbf{pøesnost modelu [\%]} - pøesnost klasifikace modelu vyhodnocována po jednotlivıch segmentech nahrávek
 \begin{equation}
@@ -812,10 +818,18 @@ Zároveò je tøeba rozlišit tøi dùvody, proè se sí nepodaøilo natrénovat:
 \begin{enumerate}
 \item sí se nepodaøilo natrénovat kvùli vysoké vıpoèetní a èasové nároènosti (napø. pro datovou sadu SpeechDat-E s parametrizací LFE $ \Delta\Delta $ trvala jedna epocha trénování dopøedné sítì pøes 45 hodin ),
 \item sí se nepodaøilo natrénovat kvùli jevùm jako je exploze èi vymizení gradientu (napø. sítì GRU pro datovou sadu ŠkodaAuto s parametrizací LFE),
-\item sí se nepodaøilo natrénovat kvùli neznámé chybì v knihovnì Keras, kdy bìhem jedné epochy dojde k vıraznému poklesu pøesnosti - pravdìpodobnì numerická nestabilita (napø. sítì LSTM a GRU pro datovou sadu SpeechDat-E s parametrizacemi LFE a LFE $ \Delta\Delta $ ).
+\item sí se nepodaøilo natrénovat kvùli neznámé chybì v knihovnì Keras, kdy bìhem jedné epochy dojde k vıraznému poklesu pøesnosti - pravdìpodobnì se jedná o numerickou nestabilitu (napø. sítì LSTM a GRU pro datovou sadu SpeechDat-E s parametrizacemi LFE).
 \end{enumerate}
 
 \subsection{Experimenty nad datovou sadou ŠkodaAuto}
+První testovanou architekturou byla dopøedná sí, která na rozdíl od rekurentních sítí nemùe implicitnì vyuívat kontextu v datech. Proto bylo k aktuálnì klasifikovanému segmentu pøidáno $ n $ pøedešlıch segmentù zleva (levı kontext - minulost) a $ m $ následujících segmentù zprava (pravı kontext - budoucnost). Z tabulky \ref{tab:sa_lfe_dopredna} je patrné, e èím vìtší kontext má model k dispozici, tím je model a dekódování pøesnìjší. Aèkoliv nejlepších vısledkù dosahuje model s levım kontextem $ n = 20 $ a pravım kontextem $ m = 10 $, k dalším experimentùm byl vyuit model s levım kontextem $ n = 10 $ a pravım kontextem $ m = 5 $, kterı byl vybrán na základì nìkolika kritérií:
+\begin{itemize}
+\item vyuívá kontextu o srovnatelné délce (15) s délkou sekvence zvolenou pro vybrané rekurentní sítì (20),
+\item dosahuje relativnì vysoké pøesnosti,
+\item  vyuívá niší poèet parametrù (rychlejší trénování a spravedlivìjší srovnání s vybranımi rekurentními sítìmi, které vyuívají 100000 - 500000 parametrù).
+\end{itemize} 
+
+Jeliko cílem práce je porovnat vybrané architektury a ne ladìní parametrù a natrénování jedné sítì za úèelem co nejvyšší pøesnosti, trénování dopøednıch sítí bylo omezeno na 150 epoch. Lze pøedpokládat, e s vyšším poètem epoch by bylo moné dosáhnout ještì lepších vısledkù.
 
 \begin{table}[H]
 \centering
@@ -836,9 +850,13 @@ Zároveò je tøeba rozlišit tøi dùvody, proè se sí nepodaøilo natrénovat:
 \label{tab:sa_lfe_dopredna}
 \end{table}
 
+Jak pro sí LSTM, tak pro sí GRU, bylo testováno nìkolik rùznıch kombinací poètu bunìk v jednotlivıch vrstvách a délek vstupní sekvence. U všech sítí s délkou vstupní sekvence 20 a 30 segmentù, kromì sítì s délkou vstupní sekvence 20 a 100 buòkami v jednotlivıch vrstvách, docházelo k silnému overfittingu ji od tøetí epochy a sítì byly vyhodnoceny jako nevhodné kvùli nízké schopnosti generalizace (viz. tabulka \ref{tab:sa_lfe_lstm}). Pro další experimenty tedy byla zvolena sí, která obsahuje 100 bunìk v kadé vrstvì a pøijímá vstupní sekvenci o délce 20 segmentù. Tím byl zároveò  splnìn poadavek na malou sí, která by mohla bıt vyuita pro predikci v reálném èase i na mobilních zaøízeních. 
+
+I experimenty se sítìmi GRU potvrdily, e vıše zmínìné parametry sítí, které trpìly overfittingem, nejsou pro tuto úlohu a datovou sadu vhodné.  Sítì GRU s tìmito parametry se nepodaøilo natrénovat z dùvodu saturace gradientu (viz. tabulka \ref{tab:sa_lfe_gru}). To zároveò ukazuje na jednu z pøedností LSTM vrstev a to, e u nich nemùe dojít k saturaci gradientu pøi zpracování dlouhıch sekvencí. Stejnì jako pro sí LSTM tedy byla zvolena sí GRU se 100 buòkami v kadé vrstvì, která pøijímá vstupní sekvenci o délce 20 segmentù. Díky sjednocení komponent v GRU buòce zmínìného v teoretické èásti si mùeme všimnout, e sítì GRU mají vıraznì niší poèet parametrù oproti odpovídajícím LSTM sítím.
+
 \begin{table}[H]
 \centering
-\begin{tabular}{ |c|c|c|c|c|c|c| }
+\resizebox{0.9\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c|c| }
 \hline
 \makecell{poèet \\ bunìk} & \makecell{délka \\ sekvence} & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
 \hline
@@ -866,14 +884,14 @@ Zároveò je tøeba rozlišit tøi dùvody, proè se sí nepodaøilo natrénovat:
 \hline
 250 & 30 & 82.70**	 & 80.93 & 75.24 & 26 & 804040 \\
 \hline
-\end{tabular}
+\end{tabular}}
 \caption{Vısledky experimentù pro LSTM sí pro parametrizaci LFE nad datovou sadou ŠkodaAuto.}
 \label{tab:sa_lfe_lstm}
 \end{table}
 
 \begin{table}[H]
 \centering
-\begin{tabular}{ |c|c|c|c|c|c|c| }
+\resizebox{0.9\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c|c| }
 \hline
 \makecell{poèet \\ bunìk} & \makecell{délka \\ sekvence} & \makecell{pøesnost \\ modelu [\%]} & \makecell{fonémù \\ správnì [\%]} & \makecell{pøesnost \\ dekódování [\%]} & \makecell{poèet \\ epoch} & \makecell{poèet \\ parametrù} \\
 \hline
@@ -901,10 +919,12 @@ Zároveò je tøeba rozlišit tøi dùvody, proè se sí nepodaøilo natrénovat:
 \hline
 250 & 30 & 49.97***$ ^{2} $ & 48.87 & 43.43 & 12 & 605540 \\
 \hline
-\end{tabular}
+\end{tabular}}
 \caption{Vısledky experimentù pro GRU sí pro parametrizaci LFE nad datovou sadou ŠkodaAuto.}
 \label{tab:sa_lfe_gru}
 \end{table}
+
+Dále byly provedeny experimenty s LSTM sítí, které vyuívají metodu CTC. Obousmìrná CTC LSTM sí, která pøi klasifikaci vyuívá celou délku sekvence, dosahovala velmi vysoké pøesnosti jak na trénovací, tak na validaèní a testovací sadì (viz. tabulka \ref{tab:sa_lfe_ctclstm}). Z obdobnıch dùvodù jako u dopøedné sítì nebyla pro další experimenty zvolena sít dosahující nejvyšší pøesnosti, ale sí se 100 buòkami v kadé dopøedné i zpìtné LSTM vrstvì.
 
 \begin{table}[H]
 \centering
@@ -924,6 +944,12 @@ Zároveò je tøeba rozlišit tøi dùvody, proè se sí nepodaøilo natrénovat:
 \caption{Vısledky experimentù pro obousmìrnou CTC LSTM sí pro parametrizaci LFE nad datovou sadou ŠkodaAuto.}
 \label{tab:sa_lfe_ctclstm}
 \end{table}
+
+Sí, která k zahájení predikce vyaduje celou sekvenci, je pro úèely predikce v reálném èase nevhodná. Proto byly provedeny experimenty se sítìmi vyuívající metodu CTC, které k predikci vyuívají pouze kratší sekvence (úseky z celé sekvence). Byly uvaovány dvì varianty - sí s obyèejnımi LSTM vrstvami a sí s obousmìrnımi LSTM vrstvami. Zde ji byly provedeny experimenty pouze pro dvì nejlepší nastavení sítì LSTM a to buï s pùvodní trénovací datovou sadou nebo s rozšíøenou datovou sadou. Rozdílem mezi tìmito trénovacími sadami je, e jednotlivé trénovací sekvence v pùvodní datové sadì na sebe navazují a jejich zøetìzením lze získat celou sekvenci, zatímco v rozšíøené trénovací sadì dochází k 50\% pøesahu mezi jednotlivımi trénovacími sekvencemi, tj. pro trénovací sekvence o délce $ m $ segmentù je posledních $ \frac{m}{2} $ segmentù trénovací sekvence stejnıch, jako prvních $ \frac{m}{2} $ segmentù následující trénovací sekvence). Tímto rozšíøením získá sí vìtší mnoství trénovacích dat a je schopna pøesnìjší klasifikace.
+
+Z tabulek \ref{tab:sa_lfe_batchctclstm}) a \ref{tab:sa_lfe_batchbictclstm} je patrné, e pøesnost obousmìrné sítì vdy pøevyšuje pøesnost sítì obyèejné, ovšem za cenu dvojnásobného poètu trénovatelnıch parametrù.
+
+Pro obì architektury bylo zvoleno 100 bunìk v kadé vrstvì (pro obousmìrnou sí 100 bunìk v kadé dopøedné i zpìtné vrstvì), délka vstupní sekvence 20 a trénování pomocí rozšíøené trénovací sady. 
 
 \begin{table}[H]
 \centering
@@ -989,6 +1015,10 @@ obousmìrná dávková CTC LSTM & 100 & 20 (pøesah 10) \\
 \caption{Nejlepší nastavení jednotlivıch architektur získané experimenty.}
 \label{tab:architektury}
 \end{table}
+
+Modely se zvolenım nastavením pak byly natrénovány pro všechny parametrizace nad datovou sadou ŠkodaAuto. Na vısledcích pro jednotlivé parametrizace (viz. tabulky \ref{tab:sa_lfe} a \ref{tab:sa_mfccdd}) je moné pozorovat jasnı trend, co se pøesnosti jednotlivıch architektur tıèe. Nejvyšší pøesnosti dosáhla obousmìrná CTC LSTM sí a to pøes 90\% pro všechny parametrizace. Druhé nejvyšší pøesnosti pak stabilnì dosahovala dopøedná sí, která se pohybovala okolo pøesnosti 80\%. Ukázalo se, e sí LSTM ve vìtšinì pøípadech dosahuje lepších vısledkù ne sí GRU a po dalším odlazení architektury by mohla konkurovat dopøedné síti. Obousmìrná dávková CTC LSTM sí pak dle pøedpokladù dosahuje vyšší pøesnosti ne obyèejná dávková CTC LSTM sí, jeliko vyuívá kontext i z takto krátkıch sekvencí. S rostoucí délkou sekvence pak lze oèekávat vyšší pøesnost blíící se k pøesnosti obousmìrné CTC LSTM sítì - délku sekvence je tedy vhodné volit na základì poadované pøesnosti rozpoznání fonémù a na základì omezení jako je napøíklad doba odezvy (kompromis mezi delší nebo kratší délkou sekvence).
+
+Pro velké mnoství trénovanıch modelù byly experimenty provedeny vdy jednou, tudí není známá støední hodnota a standardní odchylka pøesností jednotlivıch architektur nad danımi parametrizacemi. Nicménì na základì vısledkù jak na datové sadì ŠkodaAuto, tak datové sadì SpeechDat-E, lze pøedpokládat, e vıše zmínìné závìry jsou reprezentativní a vyšší poèet experimentù by je pouze potvrdil.
 
 \begin{table}[H]
 \centering
@@ -1091,6 +1121,9 @@ dávková CTC LSTM & -* & 87.02 & 70.80 & 73 & 141341 \\
 \end{table}
 
 \subsection{Experimenty nad datovou sadou SpeechDat-E}
+Aèkoliv jsou vısledné pøesnosti nad parametrizacemi datové ŠkodaAuto pomìrnì vysoké, jedná se o malou datovou sadu, kterou se vhodnì zvolené architektury mohou pomìrnì snadno nauèit. Proto byly provedeny stejné experimenty i nad parametrizacemi komplexnìjší datové sady SpeechDat-E. Z tabulek \ref{tab:se_lfe} a \ref{tab:se_mfccdd} je na první pohled patrné, e pøesnost všech sítí je niší a to o 5-15\%. Vıše zmínìné závìry jsou ovšem stále platné i pro tuto datovou sadu.
+
+Pro parametrizaci LFE se bohuel nepodaøilo natrénovat sítì LSTM a GRU kvùli neznámé a dosud neopravené chybì v knihovnì Keras. Trénovaní tìchto modelù bylo spuštìno vícekrát, nicménì vdy došlo k chybì døíve, ne byl model natrénován do takové míry, aby bylo moné reprezentativnì vyhodnotit jeho pøesnost. Pro parametrizaci LFE a LFE + $ \Delta\Delta $ se nepodaøilo natrénovat sítì LSTM, GRU a dopøednou sí kvùli vysoké èasové nároènosti (a dva dny na jednu epochu).
 
 \begin{table}[H]
 \centering
@@ -1192,7 +1225,10 @@ dávková CTC LSTM & -* & 75.07 & 63.81 & 91 & 142250 \\
 \label{tab:se_mfccdd}
 \end{table}
 
+\newpage
 \subsection{Porovnání vısledku nad ŠkodaAuto a SpeechDat-E}
+Pro snadnìjší srovnání jednotlivıch architektur nad všemi parametrizacemi obou datovıch sad byly pøesnosti architektur a jejich pøesnosti dekódování shrnuty do tabulek \ref{tab:sa} a \ref{tab:se}.
+
 \begin{table}[H]
 \centering
 \resizebox{0.95\textwidth}{!}{\begin{tabular}{ |c|c|c|c|c|c|c|c|c| }
@@ -1214,7 +1250,7 @@ dávková CTC LSTM & - & - & - & - & 63.04 & 68.58 & 65.28 & 70.80 \\
 \makecell{obousmìrná \\ dávková CTC LSTM} & - & - & - & - & 72.31 & 72.74 & 72.19 & 75.19 \\
 \hline
 \end{tabular}}
-\caption{Vısledky experimentù pro datovou sadou ŠkodaAuto.}
+\caption{Vısledky experimentù pro datovou sadu ŠkodaAuto.}
 \label{tab:sa}
 \end{table}
 
@@ -1239,13 +1275,14 @@ dávková CTC LSTM & - & - & - & - & 58.32 & 60.87 & 60.05 & 63.81 \\
 \makecell{obousmìrná \\ dávková CTC LSTM} & - & - & - & - & 62.42 & 66.81 & 63.42 & 67.87 \\
 \hline
 \end{tabular}}
-\caption{Vısledky experimentù pro datovou sadou SpeechDat-E.}
+\caption{Vısledky experimentù pro datovou sadu SpeechDat-E.}
 \label{tab:se}
 \end{table}
 
 % ZÁVÌR
 \newpage
 \section{Závìr}
+Cílem této práce bylo porovnat rùzné architektury neuronovıch sítí pro úlohu klasifikace fonémù.  V první èásti práce byly pøedstaveny dopøedné a rekurentní neuronové sítì a bìnì vyuívané optimalizaèní algoritmy. Zároveò byla pøedstavena metoda CTC, která umoòuje pøímı pøepis fonémù do vısledné podoby bez potøeby dalšího zpracování vıstupù sítì. Ve druhé èásti pak byly pøedstaveny navrené architektury a byla porovnána jejich pøesnost na ètyøech rùznıch parametrizacích dvou datovıch sad. Pøi návrhu architektur bylo zároveò zohlednìno jejich pøípadné pouití pro rozpoznávání v reálném èase, a proto byly voleny pøedevším sítì o dvou vrstvách s nízkım poètem parametrù.
 
 \begin{table}[H]
 \centering
@@ -1272,19 +1309,9 @@ dávková CTC LSTM & 63.04 & 68.58 & 65.28 & 70.80 & 58.32 & 60.87 & 60.05 & 63.81
 \label{tab:sa_se}
 \end{table}
 
-..
+Porovnání pøesností rozpoznání se ukázalo (shrnuto v tabulce \ref{tab:sa_se}), e nejpøesnìjší architekturou je sí, vyuívající obousmìrné LSTM vrstvy a metodu CTC, která dosáhla pøesnosti pøes 90\% na jednodušší datové sadì ŠkodaAuto a pøes 80\% na komplexnìjší datové sadì SpeechDat-E. Tato sí ovšem k rozpoznání vyuívala informaci z celé nahrávky a pro vyuití v reálném èase není vhodná. Pomìrnì dobrıch vısledkù ovšem také dosahovala dopøedná sí s pyramidovou strukturou a rekurentní sí obsahující dvì LSTM vrstvy. Obdobná verze této rekurentní sítì, která vyuívala metodu CTC dosahovala vıraznì niších vısledkù, nicménì pro rozpoznávání v reálném èase má pomìrnì velkı potenciál omezenı pouze vıkonem zaøízení.
 
-..
-
-..
-
-Cílem této práce bylo porovnat rùzné typy pøíznakù pro úlohu klasifikace izolovanıch slov. V první èástí práce byly pøedstaveny metody zpracování akustického signálu vèetnì jednotlivıch typù pøíznakù a byly odvozeny klasifikaèní algoritmy. Ve druhé èásti pak byly pøedstaveny testované parametrizace pøíznakù a navrené algoritmy vyuité ke klasifikaci.
-
-Porovnáním prùmìrnıch pøesností klasifikace (tabulka \ref{tab:mean}) se ukázalo, e nejpøesnìjším a nejrobustnìjším pøíznakem (nezávislı na øeèníkovi) je pøíznak vygenerovanı neuronovou sítí s bottleneck vrstvou. Velice dobrıch vısledkù také dosahovaly pøíznaky zaloené na logaritmované energii banky filtrù klasifikovanıch jak pomocí metody DTW, tak pomocí neuronové sítì.
-
-Mezi nejménì pøesné typy pøíznakù pak patøily pøíznaky v èasové oblasti. Ukázalo se ovšem, e zkombinováním jednotlivıch pøíznakù v èasové oblasti lze vytvoøit pøíznak s~pomìrnì vysokou informaèní hodnotou. Aèkoliv se èekalo, e pøíznaky v èasové oblasti budou silnì závislé na øeèníkovi a pøi klasifikaci mezi všemi øeèníky dojde k poklesu pøesnosti, došlo k této situaci pouze pro krátkodobou energii u metod DTW a SVM a pro krátkodobou intenzitu u SVM. U ostatních pøíznakù došlo naopak k navıšení pøesnosti.
-
-Pro další zlepšení dosaenıch vısledkù by bylo vhodné zamìøit se na pøíznaky generované neuronovou sítí a pokusit se optimalizovat její strukturu. Dalším krokem by pak bylo otestování rekurentních neuronovıch sítí (zejména typu LSTM), které v dnešní dobì pro podobné úlohy dosahují velice dobrıch vısledkù. Pro vyuití v praxi by pak bylo potøeba tento systém propojit se systémem pro detekci hlasové aktivity (voice activity detection).
+Pro další zlepšení dosaenıch vısledkù by bylo vhodné zamìøit se na sít vyuívající LSTM vrstvy a na její obousmìrnou obdobu vyuívající metodu CTC a optimalizovat topologii tìchto architektur. Na základì podkladù danıch touto prací a vızkumem Alexe Gravese \cite{graves}, kterı ji øešil vliv poètu vrstev na pøesnost rozpoznání fonémù pro sí vyuívající celou sekvenci, se jako další postup jeví otestování vlivu délky vstupní sekvence spolu s hloubku sítì a šíøkou jednotlivıch vrstev na pøesnost rozpoznání. Zároveò je tøeba najít jistı kompromis mezi velikostí sítì a délkou vstupní sekvence tak, aby byla dosaena dostateèná pøesnost rozpoznání a zároveò byla zaruèena odezva sítì v reálném èase.
 
 % SEZNAM OBRÁZKÙ A TABULEK
 \newpage
