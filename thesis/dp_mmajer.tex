@@ -75,7 +75,7 @@
 \section*{Prohlášení}
 \noindent Pøedkládám tímto k posouzení a obhajobì diplomovou práci zpracovanou na závìr studia na Fakultì aplikovanıch vìd Západoèeské univerzity v Plzni. \\[12pt]
 \noindent Prohlašuji, e jsem diplomovou práci vypracoval samostatnì a vıhradnì s pouitím odborné literatury a pramenù, jejich úplnı seznam je její souèástí. \\[24pt]
-\noindent V Plzni dne 20. dubna 2018
+\noindent V Plzni dne 25. bøezna 2018
 \hfill
 $ \dots \dots \dots \dots \dots \dots \dots $
 \thispagestyle{empty}
@@ -88,12 +88,12 @@ Tímto bych rád podìkoval vedoucímu diplomové práce, Ing. Luboši Šmídlovi, Ph.D.,
 \newpage
 
 \section*{Anotace}
-\noindent Tato práce se zabıvá klasifikací izolovanıch slov pomocí neuronovıch sítí, klasifikátoru SVM a klasifikátoru zaloeném na algoritmu Dynamic Time Warping s ohledem na nízkou vıpoèetní nároènost. V první èásti jsou pøedstaveny pøíznaky v èasové a frekvenèní oblasti a odvozeny vyuité klasifikaèní algoritmy. Ve druhé èásti jsou uvedeny zvolené parametrizace testovanıch pøíznakù a struktura navrenıch klasifikaèních algoritmù. V závìru práce je pak vyhodnocena pøesnost klasifikace jednotlivıch metod pro zvolené parametrizace pøíznakù. \\[12pt]
-\noindent \textbf{Klíèová slova:} zpracování akustického signálu, extrakce pøíznakù, detekce klíèovıch frází, dynamic time warping, support vector machine, neuronová sí
+\noindent Tato práce se zabıvá klasifikací fonémù pomocí rùznıch architektur neuronovıch sítí. V první èásti práci je pøedstavena obecná teorie dopøednıch a rekurentních neuronovıch sítí a následnì metoda CTC (connectionist temporal classification). Ve druhé èásti je pak vyhodnocena pøesnost rozpoznání šesti navrenıch architektur nad ètyømi parametrizacemi pro dvì datové sady o rùzné velikosti. Ukázalo se, e rekurentní neuronová sí vyuívající dvì obousmìrné LSTM vrstvy a metodu CTC dosahuje velmi vysoké pøesnosti, ale pouze díky vyuití informace z celé nahrávky. Proto byla testována i její varianta s omezenou délkou vstupní sekvence, která pro tuto úlohu rovnì ukázala velkı potenciál a mohla by bıt vyuita pro rozpoznávání v reálném èase.\\[12pt]
+\noindent \textbf{Klíèová slova:} rozpoznání fonémù, dopøedná neuronová sí, rekurentní neuronová sí, long short-term memory, gated recurrent unit, connectionist temporal classification
 
 \section*{Abstract}
-\noindent This thesis focuses on low computational cost isolated word recognition using neural networks, SVM classifier and Dynamic Time Warping based classifier. First part of the thesis introduces features in time and frequency domain and used classification techniques are derived. Parameterizations of tested features and structure of proposed classification algorithms are described in the second part of the thesis. Classification accuracy results of proposed methods for feature parameterizations are presented at the end of the thesis. \\[12pt]
-\noindent \textbf{Keywords:} acoustic signal processing, feature extraction, keyword spotting, dynamic time warping, support vector machine, neural network
+\noindent This thesis focuses on the phoneme recognition using various architectures of neural networks. The first part introduces theory of feedforward and recurrent neural networks followed by the method CTC (connectionist temporal classification). The second part then presents comparison of accuracy of recognition between six architectures on four parametrizations generated from two datasets of various size. It was shown that the recurrent neural network using two bidirectional LSTM layers combined with CTC achieved high accuracy although only due to using information from the whole recording. Therefore its alternative version which used a limited length of the input sequence was tested and also showed large potential and could be possibly used for recognition in real-time.\\[12pt]
+\noindent \textbf{Keywords:} phoneme recognition, feedforward neural network, recurrent neural network, long short-term memory, gated recurrent unit, connectionist temporal classification 
 \thispagestyle{empty}
 \newpage
 
@@ -1282,7 +1282,7 @@ dávková CTC LSTM & - & - & - & - & 58.32 & 60.87 & 60.05 & 63.81 \\
 % ZÁVÌR
 \newpage
 \section{Závìr}
-Cílem této práce bylo porovnat rùzné architektury neuronovıch sítí pro úlohu klasifikace fonémù.  V první èásti práce byly pøedstaveny dopøedné a rekurentní neuronové sítì a bìnì vyuívané optimalizaèní algoritmy. Zároveò byla pøedstavena metoda CTC, která umoòuje pøímı pøepis fonémù do vısledné podoby bez potøeby dalšího zpracování vıstupù sítì. Ve druhé èásti pak byly pøedstaveny navrené architektury a byla porovnána jejich pøesnost na ètyøech rùznıch parametrizacích dvou datovıch sad. Pøi návrhu architektur bylo zároveò zohlednìno jejich pøípadné pouití pro rozpoznávání v reálném èase, a proto byly voleny pøedevším sítì o dvou vrstvách s nízkım poètem parametrù.
+Cílem této práce bylo porovnat rùzné architektury neuronovıch sítí pro úlohu klasifikace fonémù.  V první èásti práce byly pøedstaveny dopøedné a rekurentní neuronové sítì a bìnì vyuívané optimalizaèní algoritmy. Zároveò byla odvozena metoda CTC, která umoòuje pøímı pøepis fonémù do vısledné podoby bez potøeby dalšího zpracování vıstupù sítì. Ve druhé èásti pak byly pøedstaveny navrené architektury a byla porovnána jejich pøesnost na ètyøech rùznıch parametrizacích dvou datovıch sad. Pøi návrhu architektur bylo zároveò zohlednìno jejich pøípadné pouití pro rozpoznávání v reálném èase, a proto byly voleny pøedevším sítì o dvou vrstvách s nízkım poètem parametrù.
 
 \begin{table}[H]
 \centering
@@ -1294,7 +1294,7 @@ architektura & LFE & \makecell{LFE \\ $ \Delta\Delta$} & MFCC &  \makecell{MFCC 
 \hline
 dopøedná & 79.99 & 80.15 & 79.63 & 81.06 & 68.65 & - & 68.92 & 69.88 \\
 \hline
-LSTM & 76.45 & 78.17 & 67.10 & 79.56 & - & - & 62.87 & 68.8 \\
+LSTM & 76.45 & 78.17 & 67.10 & 79.56 & - & - & 62.87 & 68.80 \\
 \hline
 GRU & 72.84 & 73.49 & 73.12 & 77.65 & - & - & 59.86 & 65.53 \\
 \hline
@@ -1309,7 +1309,7 @@ dávková CTC LSTM & 63.04 & 68.58 & 65.28 & 70.80 & 58.32 & 60.87 & 60.05 & 63.81
 \label{tab:sa_se}
 \end{table}
 
-Porovnání pøesností rozpoznání se ukázalo (shrnuto v tabulce \ref{tab:sa_se}), e nejpøesnìjší architekturou je sí, vyuívající obousmìrné LSTM vrstvy a metodu CTC, která dosáhla pøesnosti pøes 90\% na jednodušší datové sadì ŠkodaAuto a pøes 80\% na komplexnìjší datové sadì SpeechDat-E. Tato sí ovšem k rozpoznání vyuívala informaci z celé nahrávky a pro vyuití v reálném èase není vhodná. Pomìrnì dobrıch vısledkù ovšem také dosahovala dopøedná sí s pyramidovou strukturou a rekurentní sí obsahující dvì LSTM vrstvy. Obdobná verze této rekurentní sítì, která vyuívala metodu CTC dosahovala vıraznì niších vısledkù, nicménì pro rozpoznávání v reálném èase má pomìrnì velkı potenciál omezenı pouze vıkonem zaøízení.
+Porovnáním pøesností rozpoznání se ukázalo (shrnuto v tabulce \ref{tab:sa_se}), e nejpøesnìjší architekturou je sí vyuívající obousmìrné LSTM vrstvy a metodu CTC, která dosáhla pøesnosti pøes 90\% na jednodušší datové sadì ŠkodaAuto a pøes 80\% na komplexnìjší datové sadì SpeechDat-E. Tato sí ovšem k rozpoznání vyuívala informaci z celé nahrávky a pro vyuití v reálném èase není vhodná. Pomìrnì dobrıch vısledkù ovšem také dosahovala dopøedná sí s pyramidovou strukturou a rekurentní sí obsahující dvì LSTM vrstvy. Obdobná verze této rekurentní sítì, která vyuívala metodu CTC dosahovala obdobnıch vısledkù a pro rozpoznávání v reálném èase má pomìrnì velkı potenciál omezenı pouze vıkonem zaøízení.
 
 Pro další zlepšení dosaenıch vısledkù by bylo vhodné zamìøit se na sít vyuívající LSTM vrstvy a na její obousmìrnou obdobu vyuívající metodu CTC a optimalizovat topologii tìchto architektur. Na základì podkladù danıch touto prací a vızkumem Alexe Gravese \cite{graves}, kterı ji øešil vliv poètu vrstev na pøesnost rozpoznání fonémù pro sí vyuívající celou sekvenci, se jako další postup jeví otestování vlivu délky vstupní sekvence spolu s hloubku sítì a šíøkou jednotlivıch vrstev na pøesnost rozpoznání. Zároveò je tøeba najít jistı kompromis mezi velikostí sítì a délkou vstupní sekvence tak, aby byla dosaena dostateèná pøesnost rozpoznání a zároveò byla zaruèena odezva sítì v reálném èase.
 
