@@ -88,11 +88,11 @@ Tímto bych rád podìkoval vedoucímu diplomové práce, Ing. Luboši Šmídlovi, Ph.D.,
 \newpage
 
 \section*{Anotace}
-\noindent Tato práce se zabıvá klasifikací fonémù pomocí rùznıch architektur neuronovıch sítí. V první èásti práci je pøedstavena obecná teorie dopøednıch a rekurentních neuronovıch sítí a následnì metoda CTC (connectionist temporal classification). Ve druhé èásti je pak vyhodnocena pøesnost rozpoznání šesti navrenıch architektur nad ètyømi parametrizacemi pro dvì datové sady o rùzné velikosti. Ukázalo se, e rekurentní neuronová sí vyuívající dvì obousmìrné LSTM vrstvy a metodu CTC dosahuje velmi vysoké pøesnosti, ale pouze díky vyuití informace z celé nahrávky. Proto byla testována i její varianta s omezenou délkou vstupní sekvence, která pro tuto úlohu rovnì ukázala velkı potenciál a mohla by bıt vyuita pro rozpoznávání v reálném èase.\\[12pt]
+\noindent Tato práce se zabıvá klasifikací fonémù pomocí rùznıch architektur neuronovıch sítí. V~první èásti práci je pøedstavena obecná teorie dopøednıch a rekurentních neuronovıch sítí a následnì metoda CTC (connectionist temporal classification). Ve druhé èásti je pak vyhodnocena pøesnost rozpoznání šesti navrenıch architektur nad ètyømi parametrizacemi pro dvì datové sady o rùzné velikosti. Ukázalo se, e rekurentní neuronová sí vyuívající dvì obousmìrné LSTM vrstvy a metodu CTC dosahuje velmi vysoké pøesnosti, ale pouze díky vyuití informace z celé nahrávky. Proto byla testována i její varianta s~omezenou délkou vstupní sekvence, která pro tuto úlohu rovnì ukázala velkı potenciál a mohla by bıt vyuita pro rozpoznávání v reálném èase.\\[12pt]
 \noindent \textbf{Klíèová slova:} rozpoznání fonémù, dopøedná neuronová sí, rekurentní neuronová sí, long short-term memory, gated recurrent unit, connectionist temporal classification
 
 \section*{Abstract}
-\noindent This thesis focuses on the phoneme recognition using various architectures of neural networks. The first part introduces theory of feedforward and recurrent neural networks followed by the method CTC (connectionist temporal classification). The second part then presents comparison of accuracy of recognition between six architectures on four parametrizations generated from two datasets of various size. It was shown that the recurrent neural network using two bidirectional LSTM layers combined with CTC achieved high accuracy although only due to using information from the whole recording. Therefore its alternative version which used a limited length of the input sequence was tested and also showed large potential and could be possibly used for recognition in real-time.\\[12pt]
+\noindent This thesis focuses on the phoneme recognition using various architectures of neural networks. The first part introduces theory of feedforward and recurrent neural networks followed by the introduction of the method CTC (connectionist temporal classification). The second part then presents comparison of accuracy of recognition between six architectures on four parametrizations generated from two datasets of various size. It was shown that the recurrent neural network using two bidirectional LSTM layers combined with CTC achieved high accuracy although only due to using information from the whole recording. Therefore its alternative version which used a limited length of the input sequence was tested and also showed large potential and could be possibly used for recognition in real-time.\\[12pt]
 \noindent \textbf{Keywords:} phoneme recognition, feedforward neural network, recurrent neural network, long short-term memory, gated recurrent unit, connectionist temporal classification 
 \thispagestyle{empty}
 \newpage
@@ -107,7 +107,7 @@ Tímto bych rád podìkoval vedoucímu diplomové práce, Ing. Luboši Šmídlovi, Ph.D.,
 \section{Úvod}
 Neuronové sítì byly vyvinuty ji v polovinì minulého století, ale kvùli nedostateèné vıpoèetní kapacitì nemohly bıt plnì vyuity pro øešení reálnıch problémù. A v posledních letech, kdy došlo k vıznamnému vıvoji v oblasti hardwaru jak pro poèítaèe, tak i pro mobilní a vloená zaøízení, zaèaly bıt plnì vyuívány a to zejména pro komplexní úlohy v oblasti zpracování obrazu a hlasu, kde stabilnì pøekonávají ostatní algoritmy strojového uèení. Vıvoj vıkonnıch grafickıch karet a optimalizovanıch knihoven pak umonil rychlé trénování tìchto modelù na velkém mnoství dat a díky vıkonnım èipùm lze provádìt predikci v reálném èase i na mobilních zaøízeních.
 
-Tato práce se vìnuje vyuití neuronovıch sítí pro zpracování hlasu a to zejména úloze klasifikace fonémù s vyuitím základních metod zpracování akustického signálu pøedstavenıch v \cite{bp}. Ve zpracování hlasu jsou bìnì vyuívány jak sítì dopøedné, tak i rekurentní, které byly vytvoøeny pro klasifikaci èasovıch øad èi sekvencí a jsou schopny vyuívat kontextu. Pro trénování neuronovıch sítí je potøeba velké mnoství dat, aby byla zajištìna robustnost a schopnost generalizace s tím, e v úloze klasifikace fonémù jsou tato data ve formì zvukovıch nahrávek a odpovídajících pøepisù neboli transkripcí. 
+Tato práce se vìnuje vyuití neuronovıch sítí pro zpracování hlasu a to zejména úloze klasifikace fonémù s vyuitím základních metod zpracování akustického signálu pøedstavenıch v \cite{bp}. Ve zpracování hlasu jsou bìnì vyuívány jak sítì dopøedné, tak i~rekurentní, které byly vytvoøeny pro klasifikaci èasovıch øad èi sekvencí a jsou schopny vyuívat kontextu. Pro trénování neuronovıch sítí je potøeba velké mnoství dat, aby byla zajištìna robustnost a schopnost generalizace s tím, e v úloze klasifikace fonémù jsou tato data ve formì zvukovıch nahrávek a odpovídajících pøepisù neboli transkripcí. 
 
 Cílem práce je porovnat rùzné architektury neuronovıch sítí, které by mohly bıt vyuity pro pøepis mluvené øeèi do textové podoby (speech-to-text) v reálném èase. Za tímto úèelem byly voleny pøedevším jednodušší sítì s nízkım poètem parametrù. 
 
@@ -115,14 +115,14 @@ V první èásti práce je uvedena obecná teorie neuronovıch sítí a optimalizaèních 
 
 \newpage
 \section{Neuronové sítì}
-Neuronová sí je algoritmus, kterı je schopen aproximovat i silnì nelineární funkce a zároveò je schopen dosáhnout vysoké míry statistické generalizace. Tento parametrickı model bıvá zpravidla sloen z nìkolika vrstev reprezentovanımi vektory, jejich dimenze udává šíøku modelu. Prvky tìchto vektorù, jednotky èi perceptrony, pracují paralelnì a reprezentují funkce zobrazující vstupní vektor na skalár. Cílem je natrénovat parametry tohoto modelu tak, aby dokázal splnit zadanou úlohu s minimální chybou. Jedná se tedy o optimalizaèní úlohu.
+Neuronová sí je algoritmus, kterı je schopen aproximovat i silnì nelineární funkce a~zároveò je schopen dosáhnout vysoké míry statistické generalizace. Tento parametrickı model bıvá zpravidla sloen z nìkolika vrstev reprezentovanıch vektory, jejich dimenze udává šíøku modelu. Prvky tìchto vektorù, jednotky èi perceptrony, pracují paralelnì a~reprezentují funkce zobrazující vstupní vektor na skalár. Cílem je natrénovat parametry tohoto modelu tak, aby dokázal splnit zadanou úlohu s minimální chybou. Jedná se tedy o optimalizaèní úlohu.
 
 Základním rozdílem mezi bìnou optimalizací a optimalizací v neuronovıch sítí je, e optimalizace v neuronovıch sítích a ve strojovém uèení obecnì probíhá nepøímo. To znamená, e aèkoliv optimalizujeme zvolenou metriku $ P $, která v jistém smyslu kvantifikuje vıkon algoritmu na dané úloze, minimalizujeme jinou cenovou funkci $ J(\boldsymbol{\theta}) $ za úèelem minimalizace metriky $ P $. V bìném optimalizaèním problému bychom minimalizovali pøímo cenovou funkci $ J(\boldsymbol{\theta}) $ za úèelem její minimalizace \cite{dl, karpathy, bishop}.
 
 \subsection{Rozpoznávání øeèi pomocí neuronovıch sítí}
-Ve zpracování øeèi jsou neuronové sítì vyuívány témìø ve všech jejích oblastech a to zejména v rozpoznávání øeèi a její syntéze, kde postupnì nahradily klasické statistické modely. Rozpoznávání øeèi je úloha, jejím cílem je získat pøepis mluvené øeèi v textové podobì. V závislosti na aplikaci systému rozpoznávání øeèi a dalších omezujících podmínkách (doba odezvy, vıpoèetní nároènost) se pak nabízí dva pøístupy modelování øeèi - modelování po jednotlivıch fonémech èi po celıch slovech.
+Ve zpracování øeèi jsou neuronové sítì vyuívány témìø ve všech jejích oblastech a~to zejména v rozpoznávání øeèi a její syntéze, kde postupnì nahradily klasické statistické modely. Rozpoznávání øeèi je úloha, jejím cílem je získat pøepis mluvené øeèi v~textové podobì. V závislosti na aplikaci systému rozpoznávání øeèi a dalších omezujících podmínkách (doba odezvy, vıpoèetní nároènost) se pak nabízí dva pøístupy modelování øeèi - modelování po jednotlivıch fonémech èi po celıch slovech.
 
-K rozpoznávání øeèi se nejèastìji vyuívá rekurentní neuronová sí, která je schopná vyuívat kontextu v øeèi, èi hluboká dopøedná sí. Vhodné architektury sítí jako Seq2Seq èi rekurentní neuronová sí se ztrátovou funkcí CTC pak umoòují pøímı pøepis mluvené øeèi do textové podoby bez potøeby dekódování, jako tomu bylo napøíklad u skrytıch markovovıch modelù. V posledních letech se ovšem také zaèaly k rozpoznávání øeèi vyuívat konvoluèní neuronové sítì a to buï s vyuitím 1D konvoluce nebo 2D konvoluce, kdy se sí uèí ze spektrogramù a jsou tedy voleny podobné architektury jako pøi zpracování obrazu.
+K rozpoznávání øeèi se nejèastìji vyuívá rekurentní neuronová sí, která je schopná vyuívat kontextu v øeèi, èi hluboká dopøedná sí. Vhodné architektury sítí jako Seq2Seq èi rekurentní neuronová sí se ztrátovou funkcí CTC pak umoòují pøímı pøepis mluvené øeèi do textové podoby bez potøeby dekódování vıstupu modelu, jako tomu bylo napøíklad u skrytıch markovovıch modelù. V posledních letech se ovšem také zaèaly k rozpoznávání øeèi vyuívat konvoluèní neuronové sítì a to buï s vyuitím 1D konvoluce nebo 2D konvoluce, kdy se sí uèí ze spektrogramù a jsou tedy voleny podobné architektury jako pøi zpracování obrazu.
 
 Mezi další zajímavá vyuití neuronovıch sítí ve zpracování øeèi patøí napøíklad syntéza øeèi, pøeklad mluvené øeèi, verifikace øeèníka èi detekce klíèovıch frází. Neuronové sítì se také bìnì vyuívají ke kompresi pøíznakového vektoru (mùe bıt i rùzné délky) do pøíznakové vektoru o niší pevnì dané délce. K tomu se vyuívá tzv. bottleneck vrstva, která má vıraznì niší poèet jednotek ne její sousední vrstvy a po natrénování sítì slouí jako vıstupní vrstva. Tuto metodu komprese pøíznakového vektoru lze napøíklad vyuít pro rychlou detekci klíèovıch frází v kombinaci s algoritmem DTW.
 
@@ -136,7 +136,7 @@ J(\boldsymbol{\theta}) = -\mathbb{E}_{\boldsymbol{x}, \boldsymbol{y} \sim \hat{p
 Pøedpis cenové funkce se liší model od modelu v závislosti na tvaru $ \log p_{model} $ a kromì definice ceny také mùe obsahovat regularizaèní prvky. Vıhodou vyuití principu maximální vìrohodnosti je, e specifikací modelu $ p(\boldsymbol{y} \mid \boldsymbol{x}) $ zároveò definujeme cenovou funkci $ \log p(\boldsymbol{y} \mid \boldsymbol{x}) $ \cite{dl, bishop}.
 
 \subsection{Dopøedné neuronové sítì}
-Dopøedné neuronové sítì, obèas také nazıvané vícevrstvé perceptrony, jsou základním typem neuronovıch sítí. Jejich cílem je aproximovat urèitou funkci $ f^{*} $, napø. klasifikátor $ \boldsymbol{y} = f^{*}(\boldsymbol{x}) $ zobrazuje vstup $ \boldsymbol{y} $ na vıstupní tøídu $ \boldsymbol{x} $. Dopøedná neuronová sí tedy definuje zobrazení $ \boldsymbol{y} = f^{*}(\boldsymbol{x} ; \boldsymbol{\theta}) $ a uèí se optimální hodnoty parametrù $ \boldsymbol{\theta} $ pøi kterıch by mìla bıt dosaena nejlepší aproximace funkce.
+Dopøedné neuronové sítì, obèas také nazıvané vícevrstvé perceptrony, jsou základním typem neuronovıch sítí. Jejich cílem je aproximovat urèitou funkci $ f^{*} $, napø. klasifikátor $ \boldsymbol{y} = f^{*}(\boldsymbol{x}) $ zobrazuje vstup $ \boldsymbol{y} $ na vıstupní tøídu $ \boldsymbol{x} $. Dopøedná neuronová sí tedy definuje zobrazení $ \boldsymbol{y} = f^{*}(\boldsymbol{x} ; \boldsymbol{\theta}) $ a uèí se optimální hodnoty parametrù $ \boldsymbol{\theta} $, pøi kterıch by mìla bıt dosaena nejlepší aproximace funkce.
 
 Jak název napovídá, tok informací smìøuje od vstupu $ \boldsymbol{x} $ pøes nìkolik po sobì jdoucích vıpoèetních vrstev definujících $ f $ a k vıstupu $ \boldsymbol{y} $. Jedná se tedy o sloení nìkolika rùznıch funkcí do øetìzové struktury. Takto definovanı model lze také popsat jako orientovanı acyklickı graf, kterı urèuje závislosti mezi funkcemi. Mìjme napøíklad sí sloenou ze tøí funkcí $ f^{(1)} $, $ f^{(2)} $ a $ f^{(3)} $ spojenıch do øady $ f( \boldsymbol{x}) = f^{(3)}(f^{(2)}(f^{(1)}(\boldsymbol{x}))) $. V tomto pøípadì nazıváme  $ f^{(1)} $ první skrytou vrstvou, $ f^{(2)} $ druhou skrytou vrstvou a $ f^{(3)} $ vıstupní vrstvou. Celková délka tohoto øetìzce pak udává hloubku modelu \cite{dl}.
 
@@ -160,7 +160,7 @@ Pro takto definovanou øetìzovou architekturu je pak hlavním problémem urèení hlo
 \subsubsection{Vıstupní jednotky}
 Reprezentace vıstupu je úzce spojena s danou úlohou a tím i s vıbìrem cenové funkce. Pøedpokládejme, e dopøedná neuronová sí poskytuje vıstupní vrstvì soubor skrytıch pøíznakù  $ \boldsymbol{h} = f(\boldsymbol{x} ; \boldsymbol{\theta}) $, tj. vıstup poslední skryté vrstvy. Cílem vıstupní vrstvy je pak provést urèitou transformaci tìchto pøíznakù, aby sí plnila úlohu, pro kterou byla navrena. Tato transformace je provedena pouitím aktivaèní funkce $ g(\boldsymbol{h}) $. Aèkoliv existuje mnoho aktivaèních funkcí, které lze ve vıstupní vrstvì vyuít, zde se zamìøíme pouze na aktivaèní funkci softmax, která je vyuívána v experimentech provedenıch v rámci této práce.
 
-Aktivaèní funkce softmax je vyuívána pro úlohy, kde je tøeba reprezentovat vıstup jako hustotu pravdìpodobnosti diskrétní promìnné s $ n $ monımi hodnotami (vıstupními tøídami). K odvození aktivaèní funkce softmax vyuijeme znalosti o úloze binární klasifikaci, pøi které predikujeme hodnotu
+Aktivaèní funkce softmax je vyuívána pro úlohy, kde je tøeba reprezentovat vıstup jako hustotu pravdìpodobnosti diskrétní promìnné s $ n $ monımi hodnotami (vıstupními tøídami). K odvození aktivaèní funkce softmax vyuijeme znalosti o úloze binární klasifikace, pøi které predikujeme hodnotu
 \begin{equation}
 \hat{\boldsymbol{y}} = P(\boldsymbol{y} = 1 \mid \boldsymbol{x}),
 \end{equation}
@@ -186,7 +186,7 @@ softmax(\boldsymbol{z}(\boldsymbol{x} ; \boldsymbol{\theta}))_{i} \approx \dfrac
 \subsubsection{Skryté jednotky}
 Jak název napovídá, skryté jednotky jsou jednotky skryté vrstvy, jejich vstupem je vektor $ \boldsymbol{x} $, kterı je transformován na $ \boldsymbol{z} = \boldsymbol{W}^{\top} \boldsymbol{x} + \boldsymbol{b} $. Na takto transformovanı vstup je pak po prvcích aplikována nelineární aktivaèní funkce  $ g(\boldsymbol{z}) $. Volba aktivaèních funkcí skrytıch vrstev vyaduje mnoho experimentù a vyhodnocení pøesnosti modelu na validaèní datové sadì. V dnešní dobì se pro dopøedné neuronové sítì vìtšinou volí jednotky s aktivaèní funkcí ReLU (z anglického "rectified linear unit") èi její modifikace, pro sítì rekurentní jsou pak voleny funkce hyperbolickı tangens a hard sigmoid.
 \begin{itemize}
-\item \textbf{ReLU} - tyto jednotky vyuívají aktivaèní funkci $ g(\boldsymbol{z}) = \max\{0, \boldsymbol{z}\} $. Jedná se tedy o lineární jednotky s prahem v bodì nula - levá polovina jejich definièního je rovna nule. To zaruèuje rychlı vıpoèet a vysokou hodnotu gradientu, kdykoliv je jednotka aktivní. Zásadním nedostatkem je, e tyto jednotky se pomocí gradientních metod nemohou uèit z pozorování, které mají aktivaèní hodnotu rovnou nule. Existuje proto nìkolik modifikací, které zajistí, e jednotky budou mít gradient všude (napø. Leaky ReLU, PReLU, Maxout).
+\item \textbf{ReLU} - tyto jednotky vyuívají aktivaèní funkci $ g(\boldsymbol{z}) = \max\{0, \boldsymbol{z}\} $. Jedná se tedy o lineární jednotky s prahem v bodì nula - levá polovina jejich definièního oboru je rovna nule. To zaruèuje rychlı vıpoèet a vysokou hodnotu gradientu, kdykoliv je jednotka aktivní. Zásadním nedostatkem je, e tyto jednotky se pomocí gradientních metod nemohou uèit z pozorování, které mají aktivaèní hodnotu rovnou nule. Existuje proto nìkolik modifikací, které zajistí, e jednotky budou mít gradient všude (napø. Leaky ReLU, PReLU, Maxout).
 \item \textbf{sigmoid} a \textbf{tanh} - tyto jednotky vyuívají logistickou funkci (sigmoid) $ g(\boldsymbol{z}) = \sigma (\boldsymbol{z}) $, resp. hyperbolickı tangens $ \tanh (\boldsymbol{z}) = 2\sigma (2\boldsymbol{z}) - 1 $. Hlavním nedostatkem sigmoidální funkce je její citlivost a náchylnost k saturaci, kdy mùe dojít k tzv. explozi èi vymizení gradientu a sí nebude schopná se uèit.
 \item \textbf{hard sigmoid} - tyto jednotky vyuívají aktivaèní funkci $ g(\boldsymbol{z}) = \max(0, \min(1, \frac{\boldsymbol{z} + 1}{2}) $. Jedná se o lineární aproximaci funkce sigmoid a díky své vıpoèetní nenároènosti jsou vyuívány v sítích typu LSTM \cite{dl, karpathy}.
 \end{itemize}
@@ -211,7 +211,7 @@ Zapíšeme-li rovnici \eqref{eq:chain} vektorovì, získáme tvar
 kde $ \dfrac{\partial \boldsymbol{y}}{\partial \boldsymbol{x}} \in \mathbb{R}^{n \times m} $ je Jakobián $ \boldsymbol{x} $.
 Toto pravidlo lze dále snadno rozšíøit i na tensory, jen jsou v neuronovıch sítích èasto vyuívány (podrobnìji v \cite{dl, chain}).
 
-Pøedpokládejme sí o hloubce $ l $, kde kadé vrstvì náleí váhová matice $ \boldsymbol{W}^{(i)} $, $ i \in \{ 1, \ldots, l \} $ a prahovı vektor $ \boldsymbol{b}^{(i)} $. Ztrátová funkce $ L(\boldsymbol{y}, \hat{\boldsymbol{y}}) $ závisí na skuteèné hodnotì $ \boldsymbol{y} $ a na vıstupu sítì $ \boldsymbol{\hat{y}} $, kterı sí vygeneruje pro vstup $ \boldsymbol{x} $. Celková cena $ J $ pro zjednodušení odpovídá pøímo ztrátové funkci $ L $ a neobsahuje ádnou regularizaèní sloku.
+Pøedpokládejme sí o hloubce $ l $, kde kadé vrstvì náleí váhová matice $ \boldsymbol{W}^{(i)} $, $ i \in \{ 1, \ldots, l \} $ a prahovı vektor $ \boldsymbol{b}^{(i)} $. Ztrátová funkce $ L(\boldsymbol{y}, \hat{\boldsymbol{y}}) $ závisí na skuteèné hodnotì $ \boldsymbol{y} $ a~na vıstupu sítì $ \boldsymbol{\hat{y}} $, kterı sí vygeneruje pro vstup $ \boldsymbol{x} $. Celková cena $ J $ pro zjednodušení odpovídá pøímo ztrátové funkci $ L $ a neobsahuje ádnou regularizaèní sloku.
 \\[12pt]
 \begin{algorithm}[H]
 \setstretch{1.25}
@@ -257,7 +257,7 @@ Rekurentní neuronové sítì (dále jen RNN z anglického "recurrent neural networks"
     \label{fig:rnn_general}
 \end{figure}
 
-Sdílení parametrù je zajištìno "rozvinutím" rekurentního vıpoètu do grafu s opakující se strukturou. Prvek sekvence v kadém èasovém kroku je tedy zpracováván stejnou sítí. Pro jednoduchost pøedpokládejme, e RNN pracuje se sekvencí obsahující vektory $ \boldsymbol{x}^{(t)} $, $ t = 1, \ldots, \tau $ a model je ve tvaru
+Sdílení parametrù je zajištìno "rozvinutím" \ rekurentního vıpoètu do grafu s opakující se strukturou. Prvek sekvence v kadém èasovém kroku je tedy zpracováván stejnou sítí. Pro jednoduchost pøedpokládejme, e RNN pracuje se sekvencí obsahující vektory $ \boldsymbol{x}^{(t)} $, $ t = 1, \ldots, \tau $ a model je ve tvaru
 \begin{equation}\label{eq:unfold}
 \boldsymbol{s}^{(t)} = f(\boldsymbol{s}^{(t-1)}; \boldsymbol{\theta}),
 \end{equation}
@@ -280,7 +280,7 @@ Základní rovnici RNN získáme pøidáním závislosti na externím vstupu  $ \boldsymb
 \end{equation}
 kde $ \boldsymbol{h} $ je stav skrytıch jednotek. Pøi trénování sítì na danou úlohu se pak sí uèí vyuívat $ \boldsymbol{h}^{(t)} $ jako zobrazení relevantních informací z minulıch èasovıch krokù od vstupu a po $ t $. Toto zobrazení je ztrátové, jeliko se jedná o zobrazení sekvence o promìnné délce $ (\boldsymbol{x}^{(t)}, \boldsymbol{x}^{(t-1)}, \ldots, \boldsymbol{x}^{(2)}, \boldsymbol{x}^{(1)}) $ na vektor pevnì dané délky $ \boldsymbol{h}^{(t)} $.
 
-Definujme si tedy rovnice pro dopøedné šíøení základní RNN s aktivaèní funkcí hyperbolickı tangens ve skryté vrstvì. Sí je urèena ke klasifikaci $ n $ tøíd, kde vıstup $ \boldsymbol{o} $ reprezentuje nenormalizované pravdìpodobnosti jednotlivıch tøíd vıstupní diskrétní promìnné a aplikací operace softmax je pak získán vıslednı vektor $ \hat{\boldsymbol{y}} $ normalizovanıch pravdìpodobností nad vıstupem. Dopøedné šíøení vyaduje specifikaci poèáteèního stavu $ \boldsymbol{h}^{(0)} $, poté jsou pro kadı èasovı krok $ t = 1, \ldots, \tau $ vypoèteny následující rovnice
+Definujme si tedy rovnice pro dopøedné šíøení základní RNN s aktivaèní funkcí hyperbolickı tangens ve skryté vrstvì. Sí je urèena ke klasifikaci $ n $ tøíd, kde vıstup $ \boldsymbol{o} $ reprezentuje nenormalizované pravdìpodobnosti jednotlivıch tøíd vıstupní diskrétní promìnné a~aplikací operace softmax je pak získán vıslednı vektor $ \hat{\boldsymbol{y}} $ normalizovanıch pravdìpodobností nad vıstupem. Dopøedné šíøení vyaduje specifikaci poèáteèního stavu $ \boldsymbol{h}^{(0)} $, poté jsou pro kadı èasovı krok $ t = 1, \ldots, \tau $ vypoèteny následující rovnice
 \begin{align}
 \boldsymbol{a}^{(t)} &= \boldsymbol{b} + \boldsymbol{W} \boldsymbol{h}^{(t-1)} + \boldsymbol{U} \boldsymbol{x}^{(t)} , \\
 \boldsymbol{h}^{(t)} &= \tanh(\boldsymbol{a}^{(t)}) , \\
@@ -350,7 +350,7 @@ Algoritmus 4: Postup trénování obousmìrné rekurentní neuronové sítì.
 \end{center}
 
 \subsubsection{LSTM}
-Rekurentní sítì jsou velice náchylné na problém vymizení èi saturace gradientu. K tìmto problémùm dochází zejména pøi modelování dlouhodobıch závislostí, kdy jsou pøi vıpoètu váhy násobeny nìkolikrát samy sebou a v závislosti na jejich øádu mohou nabıvat velmi malıch èi velmi velkıch hodnot. To má pak za následek trvalou deaktivaci nìkterıch neuronù èi neschopnost sítì se uèit. Tento problém øeší sítì LSTM (z anglického "long short-term memory") a jejich modifikace GRU  (z anglického "gated reccurent unit").
+Rekurentní sítì jsou velice náchylné na problém vymizení èi saturace gradientu. K~tìmto problémùm dochází zejména pøi modelování dlouhodobıch závislostí, kdy jsou pøi vıpoètu váhy násobeny nìkolikrát samy sebou a v závislosti na jejich øádu mohou nabıvat velmi malıch èi velmi velkıch hodnot. To má pak za následek trvalou deaktivaci nìkterıch neuronù èi neschopnost sítì se uèit. Tento problém øeší sítì LSTM (z anglického "long short-term memory").
 
 LSTM sítì, na rozdíl od bìnıch RNN, nejsou tvoøeny jednotkami, ale buòkami, které kromì vnìjší rekurence obsahují i rekurenci vnitøní (smyèky). Kadá buòka má stejnı vstup a vıstup jako obyèejná rekurentní jednotka, ale má více parametrù díky systému jednotek opatøenıch bránou, které øídí tok informací stavem buòky. Jedná se o vstupní bránu, zapomínací bránu a vıstupní bránu, které urèují, jaké vstupní informace mají bıt vpuštìny do stavu buòky, jaké informace ze stavu buòky odstranit a jaké informace ze stavu buòky mají bıt vypuštìny na její vıstup.
 
@@ -358,7 +358,7 @@ Nejdùleitìjší komponentou LSTM je stavová jednotka $ \boldsymbol{s}_{i}^{(t)} $
 \begin{equation}
 \boldsymbol{f}_{i}^{(t)} = \sigma \left( \boldsymbol{b}_{i}^{f} + \sum_{j} \boldsymbol{U}_{i,j}^{f} \boldsymbol{x}_{j}^{(t)} + \sum_{j} \boldsymbol{W}_{i,j}^{f} h_{j}^{(t-1)}  \right),
 \end{equation}
-kde $ \boldsymbol{x}^{(t)} $ je vstupní vektor v èase $ t $, $ \boldsymbol{h}^{(t)} $ vektor skryté vrstvy obsahující vıstupy všech LSTM buòek, $ \boldsymbol{b}^{f} $, $ \boldsymbol{U}^{f} $ a $ \boldsymbol{W}^{f} $ jsou popoøadì prahovı vektor, váhová matice vstupu a rekurentní váhová matice zapomínací brány.  Stav buòky se pak øídí pravidlem
+kde $ \boldsymbol{x}^{(t)} $ je vstupní vektor v èase $ t $, $ \boldsymbol{h}^{(t)} $ vektor skryté vrstvy obsahující vıstupy všech LSTM buòek, $ \boldsymbol{b}^{f} $, $ \boldsymbol{U}^{f} $ a $ \boldsymbol{W}^{f} $ jsou popoøadì prahovı vektor, váhová matice vstupu a~rekurentní váhová matice zapomínací brány.  Stav buòky se pak øídí pravidlem
 \begin{equation}
 \boldsymbol{s}_{i}^{(t)} = \boldsymbol{f}_{i}^{(t)} \boldsymbol{s}_{i}^{(t-1)} + \boldsymbol{g}_{i}^{(t)} \sigma \left( \boldsymbol{b}_{i} + \sum_{j} \boldsymbol{U}_{i,j} \boldsymbol{x}_{j}^{(t)} + \sum_{j} \boldsymbol{W}_{i,j} \boldsymbol{h}_{j}^{(t-1)}  \right),
 \end{equation}
@@ -381,7 +381,7 @@ kde $ \boldsymbol{b}^{o} $, $ \boldsymbol{U}^{o} $ a $ \boldsymbol{W}^{o} $ jsou
 \end{figure}
 
 \subsubsection{GRU}
-Sítì GRU dále zjednodušují LSTM architekturu ponecháním pouze nezbytnıch komponent. Vıstup buòky a stav buòky je slouèen do jednoho stavu, kterı je øízen jednotkou vzniklou slouèením jednotky s vstupní bránou a zapomínací bránou. Rovnice dopøedného šíøení má tedy tvar
+Sítì GRU (z anglického "gated recurrent unit") dále zjednodušují LSTM architekturu ponecháním pouze nezbytnıch komponent. Vıstup buòky a stav buòky je slouèen do jednoho stavu, kterı je øízen jednotkou vzniklou slouèením jednotky s vstupní bránou a zapomínací bránou. Rovnice dopøedného šíøení má tedy tvar
 \begin{equation}
 \boldsymbol{h}_{i}^{(t)} = \boldsymbol{u}_{i}^{(t-1)} \boldsymbol{h}_{i}^{(t-1)} + (1 - \boldsymbol{u}_{i}^{(t-1)}) \sigma \left( \boldsymbol{b}_{i} + \sum_{j} \boldsymbol{U}_{i,j} \boldsymbol{x}_{j}^{(t-1)} + \sum_{j} \boldsymbol{W}_{i,j} r_{j}^{(t-1)} \boldsymbol{h}_{j}^{(t-1)}  \right) ,
 \end{equation}
@@ -425,7 +425,7 @@ kde $ p_{data} $ je mnoina trénovacích dat o velikost $ m $ a $ L(\boldsymbol{x
 \begin{equation}
 \nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) = \dfrac{1}{m} \sum_{i=1}^{m} \nabla_{\boldsymbol{\theta}} L(\boldsymbol{x}^{i}, \boldsymbol{y}^{i}, \boldsymbol{\theta}),
 \end{equation}
-jeho komplexita je $ O(m) $. Stochastickı gradientní sestup nahlíí na gradient jako na støední hodnotu a tudí se pøedpokládá, e mùe bıt aproximován menšími soubory pozorování náhodnì vybíranımi z datové sady, tzv. dávky. V optimalizaèním kroku je tedy náhodnì vybrána dávka pozorování $ \boldsymbol{b} = \{ x^{1}, \ldots, x^{m'} \} $, kde $ m' $ se volí jako malé èíslo v závislosti na vıpoèetní kapacitì a velikosti $ m $ úplné datové sady. Pøi trénování modelu na grafické kartì (GPU) je vhodné volit velikost dávky jako mocninu dvou a to v rozmezí 8 a 256, aby mohly bıt plnì vyuity vektorizované operace GPU. Menší dávky mohou mít zároveò regularizaèní efekt díky šumu, kterı vnášejí do uèícího se procesu. Odhad gradientu je pak vypoèten s vyuitím dávky $ \boldsymbol{b} $
+jeho komplexita je $ O(m) $. Stochastickı gradientní sestup nahlíí na gradient jako na støední hodnotu a tudí se pøedpokládá, e mùe bıt aproximován menšími soubory pozorování náhodnì vybíranımi z datové sady, tzv. dávky. V optimalizaèním kroku je tedy náhodnì vybrána dávka pozorování $ \boldsymbol{b} = \{ x^{1}, \ldots, x^{m'} \} $, kde $ m' $ se volí jako malé èíslo v~závislosti na vıpoèetní kapacitì a velikosti $ m $ úplné datové sady. Pøi trénování modelu na grafické kartì (GPU) je vhodné volit velikost dávky jako mocninu dvou a to v rozmezí 8 a 256, aby mohly bıt plnì vyuity vektorizované operace GPU. Menší dávky mohou mít zároveò regularizaèní efekt díky šumu, kterı vnášejí do uèícího se procesu. Odhad gradientu je pak vypoèten s vyuitím dávky $ \boldsymbol{b} $
 \begin{equation}
 g = \dfrac{1}{m'} \nabla_{\boldsymbol{\theta}} \sum_{i=1}^{m'} L(\boldsymbol{x}^{i}, \boldsymbol{y}^{i}, \boldsymbol{\theta}).
 \end{equation}
@@ -436,10 +436,10 @@ Zmìna parametrù je pak dána dle pravidla
 Pro pevnì danou velikost modelu tedy vıpoèetní cena nezávisí na velikosti datové sady $ m $  \cite{dl,ruder}.
 
 \subsection{Další modifikace gradientního sestupu}
-Jedním z nejvìtších problémù pøi vyuití gradientního sestupu a gradientního stochastického sestupu je vıbìr konstanty uèení $ \epsilon $. Vysoká hodnota $ \epsilon $ mùe zpùsobit fluktuaci okolo lokálního minima nebo dokonce divergenci optimalizaèního procesu a nízká hodnota $ \epsilon $ mùe mít za následek vırazné zpomalení uèení. Konstanta uèení se tedy v praxi dynamicky mìní v závislosti na poètu epoch $ k $, tedy $ \epsilon_{k} $. Dalším bìnım problémem je uvíznutí v mìlkém lokálním minimu èi sedlovém bodì, co znemoní další uèení. Bylo tedy vytvoøeno nìkolik modifikací základních gradientních algoritmù, které tyto problémy do jisté míry øeší \cite{dl, ruder}.
+Jedním z nejvìtších problémù pøi vyuití gradientního sestupu a gradientního stochastického sestupu je vıbìr konstanty uèení $ \epsilon $. Vysoká hodnota $ \epsilon $ mùe zpùsobit fluktuaci okolo lokálního minima nebo dokonce divergenci optimalizaèního procesu a nízká hodnota $ \epsilon $ mùe mít za následek vırazné zpomalení uèení. Konstanta uèení se tedy v~praxi dynamicky mìní v závislosti na poètu epoch $ k $, tedy $ \epsilon_{k} $. Dalším bìnım problémem je uvíznutí v mìlkém lokálním minimu èi sedlovém bodì, co znemoní další uèení. Bylo tedy vytvoøeno nìkolik modifikací základních gradientních algoritmù, které tyto problémy do jisté míry øeší \cite{dl, ruder}.
 
 \subsubsection{Moment}
-Moment byl navren za úèelem zrychlení trénování a to pøedevším pøi optimalizace ztrátovıch funkcí, které
+Moment byl navren za úèelem zrychlení trénování a to pøedevším pøi optimalizaci ztrátovıch funkcí, které
 mají mnoho mìlkıch lokálních minim nebo v pøípadech, kdy jsou gradienty znaènì zašumìné. Algoritmus momentu vyuívá plovoucí prùmìr minulıch gradientù s exponenciálním zapomínáním a pokraèuje v jejich smìru.
 
 Tento algoritmus zavádí parametr $ \alpha $, kterı udává, jakou rychlostí mají bıt minulé gradienty zapomínány. Pravidlo pro zmìnu parametrù pak vypadá následovnì
@@ -455,12 +455,12 @@ Dalším variantou je Nesterovùv moment, kterı dále rozšiøuje algoritmus momentu. 
 \boldsymbol{v} &\leftarrow \alpha \boldsymbol{v} - \epsilon \nabla_{\boldsymbol{\theta}} \left( \dfrac{1}{m} \sum_{i=1}^{m} L(f(\boldsymbol{x}^{(i)}; \boldsymbol{\theta} + \alpha \boldsymbol{v}), \boldsymbol{y}^{(i)}) \right), \\
 \boldsymbol{\theta} &\leftarrow \boldsymbol{\theta} + \boldsymbol{v},
 \end{align}
-kde parametry $ \alpha $ a $ \epsilon $ odpovídají stejnım parametrùm jako u algoritmu momentu. Hlavním rozdílem oproti algoritmu momentu je, e gradient je vyhodnocen a po aplikaci minulıch gradientù. Nejprve je tedy proveden krok ve smìru akumulovanıch minulıch gradientù a následnì je provedena korekce \cite{dl, karpathy, ruder, nesterov}.
+kde parametry $ \alpha $ a $ \epsilon $ odpovídají stejnım parametrùm jako u algoritmu momentu. Hlavním rozdílem oproti algoritmu momentu je, e gradient je vyhodnocen a po aplikaci minulıch gradientù. Nejprve je tedy proveden krok ve smìru akumulovanıch minulıch gradientù a~následnì je provedena korekce \cite{dl, karpathy, ruder, nesterov}.
 
 \subsection{ADAM}
 Cenová funkce bıvá èasto citlivá na urèité smìry v prostoru parametrù a naopak necitlivá na smìry jiné. Moment tento problém do urèité míry øeší, ale za cenu zavedení nového parametru, kterı je tøeba správnì nastavit. ADAM je adaptivní metoda, která tento problém øeší tím, e zavede vlastní konstantu uèení pro kadı parametr a tyto konstanty pak automaticky v prùbìhu uèení adaptuje.
 
-ADAM pouívá ke zmìnì parametrù plovoucí prùmìr (první centrální moment) gradientù s exponenciálním zapomínáním $ r $ a druhı necentrální moment $ v $. Poèáteèní hodnota obou momentù je nastavena na nulu a zejména v prvních krocích algoritmu je potøeba momenty opravit korekèním faktorem. Parametry $ \beta_{1} $ a $ \beta_{2} $ udávají rychlost zapomínání a $ \delta $ je malá konstanta  \cite{dl, karpathy, ruder, adam}.
+ADAM pouívá ke zmìnì parametrù plovoucí prùmìr (první centrální moment) gradientù s exponenciálním zapomínáním $ r $ a druhı necentrální moment $ v $. Poèáteèní hodnota obou momentù je nastavena na nulu a zejména v prvních krocích algoritmu je potøeba momenty opravit korekèním faktorem. Parametry $ \beta_{1} $ a $ \beta_{2} $ udávají rychlost zapomínání a~$ \delta $ je malá konstanta  \cite{dl, karpathy, ruder, adam}.
 \\[12pt]
 \begin{algorithm}[H]
 \setstretch{1.25}
@@ -507,10 +507,10 @@ Bìhem optimalizace parametrù èasto dochází ke dvìma neádoucím jevùm:
 \end{figure}
 
 
-Oba tyto jevy lze ovlivnit pomocí tzv. kapacity modelu nebo pomocí regularizaèních metod. Modely s nízkou kapacitou jsou náchylné na underfitting a naopak modely s vysokou kapacitou jsou náchylné na overfitting. Kapacita modelu je vìtšinou dána pøímo zvolenou architekturou, kde sníením poètu parametrù sítì omezíme poèet volnıch stupòù volnosti a tím lze získat vyšší generalizaci \cite{dl, karpathy}.
+Oba tyto jevy lze ovlivnit pomocí tzv. kapacity modelu nebo pomocí regularizaèních metod. Modely s nízkou kapacitou jsou náchylné na underfitting a naopak modely s~vysokou kapacitou jsou náchylné na overfitting. Kapacita modelu je vìtšinou dána pøímo zvolenou architekturou, kde sníením poètu parametrù sítì omezíme poèet volnıch stupòù volnosti a tím lze získat vyšší generalizaci \cite{dl, karpathy}.
 
 \subsection{Regularizace}
-Regularizace umoòuje navıšit generalizaci modelu bez toho, aby byla ovlivnìna kapacita modelu - nevyadují zmìnu architektury modelu. Jedná se o modifikaci uèícího se algoritmu, která sniuje generalizaèní chybu, ale zároveò nesniuje chybu trénovací \cite{dl}.
+Regularizace umoòuje navıšit generalizaci modelu bez toho, aby byla ovlivnìna kapacita modelu - nevyaduje zmìnu architektury modelu. Jedná se o modifikaci uèícího se algoritmu, která sniuje generalizaèní chybu, ale zároveò nesniuje chybu trénovací \cite{dl}.
 
 \subsubsection{Penalizace velikosti parametrù}
 Populární metodou pro regularizaci jsou penalizaèní metody a to zejména L1 a L2 penalizace. Tyto penalizaèní metody nepøímo omezují kapacitu modelu pøidáním penalizace $ \Omega(\boldsymbol{\theta}) $, která odpovídá normì parametrù, k cenové funkci $ J $. Regularizovaná cenová funkce pak vypadá následovnì
@@ -520,12 +520,12 @@ Populární metodou pro regularizaci jsou penalizaèní metody a to zejména L1 a L2 
 kde síla regularizace je øízena parametrem $ \alpha $ (s vyšší hodnotou regularizace roste). Trénovací algoritmus pak minimalizuje jak pùvodní cenovou funkci $ J $, tak i zvolenou metriku velikosti parametrù $  \Omega(\boldsymbol{\theta}) $. V pøípadì neuronovıch sítí jsou regularizovány pouze váhy a prahy jsou ponechány bez regularizace  \cite{dl, karpathy}.
 
 \subsubsection{Zanesení šumu}
-Další metodou regularizace, která neovlivòuje model samotnı, je augmentace trénovacích dat ve formì aditivního šumu. Aèkoliv neuronové sítì nejsou obecnì robustní vùèi šumu, vìtšinu klasifikaèních i regresních úloh jsou schopny øešit i pokud jsou vstupní data zatíeny malım náhodnım šumem. Trénovací pozorování jsou tedy vdy pøed vstupem do modelu zatíena novım náhodnım šumem, kterı vede k vyšší generalizaci vısledného modelu \cite{dl}.
+Další metodou regularizace, která neovlivòuje model samotnı, je augmentace trénovacích dat ve formì aditivního šumu. Aèkoliv neuronové sítì nejsou obecnì robustní vùèi šumu, vìtšinu klasifikaèních i regresních úloh jsou schopny øešit i pokud jsou vstupní data zatíena malım náhodnım šumem. Trénovací pozorování jsou tedy vdy pøed vstupem do modelu zatíena novım náhodnım šumem, kterı vede k vyšší generalizaci vısledného modelu \cite{dl}.
 
 \subsubsection{Pøedèasné ukonèení}
 Pøi trénování velkıch modelù s dostateènì velkou reprezentaèní kapacitou èasto dochází k jevu, kdy chyba na trénovací sadì pomalu bìhem èasu klesá, zatímco chyba na validaèní sadì pomalu roste. Vrátíme-li se k nastavení parametrù v èase s nejniší validaèní chybou, mùeme získat lepší model s niší chybou i na testovací sadì.
 
-Algoritmus pøedèasného ukonèení (early stopping) je snadno implementovatelnı a vıpoèetnì nenároènı. Pokadé, kdy dojde k poklesu chyby na validaèní sadì, uloíme si kopii parametrù modelu. Jakmile trénování modelu skonèí, vrátíme se k nejlepšímu souboru parametrù místo ponechání souboru parametrù z poslední trénovací iterace. Trénování je pøedèasnì ukonèeno, pokud ádná zmìna parametrù nevede k niší chybì na validaèní sadì, ne které bylo dosaeno s aktuálnì nejlepším souborem parametrù, pro pøedem danı poèet trénovacích iterací.
+Algoritmus pøedèasného ukonèení (early stopping) je snadno implementovatelnı a~vıpoèetnì nenároènı. Pokadé, kdy dojde k poklesu chyby na validaèní sadì, uloíme si kopii parametrù modelu. Jakmile trénování modelu skonèí, vrátíme se k nejlepšímu souboru parametrù místo ponechání souboru parametrù z poslední trénovací iterace. Trénování je pøedèasnì ukonèeno, pokud ádná zmìna parametrù nevede k niší chybì na validaèní sadì, ne které bylo dosaeno s aktuálnì nejlepším souborem parametrù, pro pøedem danı poèet trénovacích iterací.
 
 Tato forma regularizace nevyaduje témìø ádné zmìny trénovacího procesu èi modifikaci cenové funkce. Tento algoritmus lze vyuít buï samostatnì nebo spolu s libovolnou regularizaèní metodou \cite{dl}.
 
@@ -541,7 +541,7 @@ Dropout je vıpoèetnì nenároènou metodou regularizace, která nejlépe funguje pro 
 
 Pravdìpodobnost, e v masce na danou pozici bude vybrána hodnota 1, je dána pøedem zvolenım parametrem. Vìtšinou se volí pravdìpodobnost 0.8, e bude pøi trénování vyuita vstupní jednotka, a pravdìpodobnost 0.5, e bude vyuita skrytá jednotka.
 
-Maskováním se do uèícího procesu vnáší jistá forma šumu, která má za následek adaptivní poškození informaèního obsahu na vstupu sítì a na vstupu skrytıch jednotek. Tím je zamezeno tomu, aby se urèitá jednotka zamìøila na rozpoznávání jednoho signifikantního pøíznaku, zatímco jiná jednotka by byla témìø nevyuita. Vylouèením náhodnıch jednotek z uèícího se procesu jsou tak jednotky donuceny "rozdìlit" si informace mezi sebou.
+Maskováním se do uèícího procesu vnáší jistá forma šumu, která má za následek adaptivní poškození informaèního obsahu na vstupu sítì a na vstupu skrytıch jednotek. Tím je zamezeno tomu, aby se urèitá jednotka zamìøila na rozpoznávání jednoho signifikantního pøíznaku, zatímco jiná jednotka by byla témìø nevyuita. Vylouèením náhodnıch jednotek z uèícího se procesu jsou tak jednotky donuceny "rozdìlit" \ si informace mezi sebou.
 
 Dropout opìt mùe bıt vyuit spolu s ostatními metodami regularizace \cite{dl, karpathy, dropout}.
 
@@ -549,7 +549,7 @@ Dropout opìt mùe bıt vyuit spolu s ostatními metodami regularizace \cite{dl, k
 \section{CTC}
 Tato práce se vìnuje úloze klasifikace fonémù, jejím cílem je pro danou zvukovou nahrávku získat odpovídající sekvenci fonému. Zvuková nahrávka je tedy rozdìlena na malé segmenty a tìmto segmentùm jsou pak pøiøazeny fonémy, které se v jednotlivıch segmentech vyskytují (více v \cite{bp}). K tomuto oznaèkování segmentù se vìtšinou vyuívají pøedtrénované modely, které ovšem vyadují jisté pøedpoklady, mohou bıt náchylné vùèi šumu a vısledné oznaèkování mùe bıt nepøesné, jeliko ne vdy lze pøesnì urèit hranici mezi jednotlivımi fonémy.
 
-Bìnì vyuívané cenové funkce jsou ovšem definovány pro jednotlivé prvky trénovací sekvence (segmenty) a umoòují pouze klasifikaci nezávislıch fonému. To znamená, e takto definované cenové funkce je moné vyuít pouze pro nezávislou predikci fonémù v jednotlivıch segmentech, kdy vıstupní sekvence má stejnou délku jako vstupní sekvence. K získání vısledné sekvence fonémù je tøeba vıstupy sítì dále zpracovat pomocí dekodéru (napø. pro vstupní sekvenci o dvanácti segmentech: $ aahahhoohooj \rightarrow  ahoj $).
+Bìnì vyuívané cenové funkce jsou ovšem definovány pro jednotlivé prvky trénovací sekvence (segmenty) a umoòují pouze klasifikaci nezávislıch fonémù. To znamená, e takto definované cenové funkce je moné vyuít pouze pro nezávislou predikci fonémù v~jednotlivıch segmentech, kdy vıstupní sekvence má stejnou délku jako vstupní sekvence. K získání vısledné sekvence fonémù je tøeba vıstupy sítì dále zpracovat pomocí dekodéru (napø. pro vstupní sekvenci o dvanácti segmentech: $ aahahhoohooj \rightarrow  ahoj $).
 
 V této kapitole si uvedeme metodu CTC (z anglického "connectionist temporal classification"), díky které lze vyuít rekurentní neuronové sítì pøímo k predikci vısledné sekvence fonémù bez potøeby dalšího zpracování vıstupu sítì \cite{bp, distill, ctc}.
 
@@ -561,7 +561,7 @@ Cílem je natrénovat klasifikátor $ h: \mathcal{X} \mapsto \mathcal{Z} $ za vyui
 
 \subsection{Reprezentace vıstupu}
 Aby bylo moné vyuít RNN spolu s CTC, je tøeba vhodnì zvolit reprezentaci vıstupu sítì. Vyuijeme-li aktivaèní funkci softmax pro vıstupní jednotky, mùeme transformovat vıstupy sítì do tvaru podmínìné hustoty pravdìpodobnosti nad danou abecedou znaèek a vyuít sí jako klasifikátor, kdy vstupní sekvence klasifikujeme vıbìrem nejvíce pravdìpodobného znaèkování. Vıstupní vrstva zároveò musí obsahovat
-o jednu jednotku více, ne je poèet znaèek v $ L $. Aktivace prvních $ |L| $ jednotek je interpretována jako pravdìpodobnost pozorování odpovídajících znaèek a aktivace $ |L| + 1 $ jednotky je interpretována jako pravdìpodobnost pozorování prázdné znaèky. Prázdná znaèka umoòuje zobrazit více prvkù vstupní sekvence na jednu znaèku èi ignorovat prvky sekvence, které odpovídají tichu, a z vısledné sekvence je odstranìn. Celkovou pravdìpodobnost libovolného znaèkování pak mùeme vyèíslit seètením pravdìpodobností jeho rùznıch zarovnání.
+o jednu jednotku více, ne je poèet znaèek v $ L $. Aktivace prvních $ |L| $ jednotek je interpretována jako pravdìpodobnost pozorování odpovídajících znaèek a aktivace $ |L| + 1 $ jednotky je interpretována jako pravdìpodobnost pozorování prázdné znaèky. Prázdná znaèka umoòuje zobrazit více prvkù vstupní sekvence na jednu znaèku èi ignorovat prvky sekvence, které odpovídají tichu, a z vısledné sekvence je odstranìna. Celkovou pravdìpodobnost libovolného znaèkování pak mùeme vyèíslit seètením pravdìpodobností jeho rùznıch zarovnání.
 
 Mìjme tedy RNN s $ m $ vstupními jednotkami, $ n $ vıstupními jednotkami a váhovım vektorem $ \boldsymbol{w} $, která slouí jako zobrazení $ \mathcal{N}_{\boldsymbol{w}}: (\mathbb{R}^{m})^{T} \mapsto (\mathbb{R}^{n})^{T} $. Dále mìjme vıstupní sekvenci sítì $ \boldsymbol{y} = \mathcal{N}_{\boldsymbol{w}}(\boldsymbol{x}) $, její prvky $ \boldsymbol{y}_{k}^{(t)} $ odpovídají aktivaci vıstupní jednotky $ k $ v èase $ t $ a lze je interpretovat jako pravdìpodobnost pozorování znaèky $ k $ v èase $ t $. Hustota pravdìpodobnosti znaèkování nad mnoinou $ L^{'T} $ sekvencí délky $ T $ nad abecedou $ L^{'} = L \cup \{ \textit{prázdná znaèka} \} $,  je pak
 \begin{equation}
@@ -569,7 +569,7 @@ p(\boldsymbol{\pi} \mid \boldsymbol{x}) = \prod _{t=1}^{T} \boldsymbol{y}_{\bold
 \end{equation}
 kde $ \boldsymbol{\pi} $ budeme nazıvat cestami a odpovídají prvkùm $ L^{'T} $.
 
-Dále definujme zobrazení $ \mathcal{B}: L^{'T} \mapsto L^{\leq T} $, kde $ L^{\leq T} $ je mnoina všech monıch znaèkování, tj. mnoina vıstupních sekvencí o délce menší èí rovné $ T $ nad pùvodní abecedou znaèek $ L $. Toto zobrazení získáme odstranìním opakujících se znaèek a prázdnıch znaèek ze získanıch cest (napø. $ \mathcal{B}(aa-ab-) = \mathcal{B}(a-a-bb) = aab $) a vyuijeme ho k získání podmínìné pravdìpodobnosti daného znaèkování $ \boldsymbol{l} \in L^{\leq T} $ \cite{distill, ctc}
+Dále definujme zobrazení $ \mathcal{B}: L^{'T} \mapsto L^{\leq T} $, kde $ L^{\leq T} $ je mnoina všech monıch znaèkování, tj. mnoina vıstupních sekvencí o délce menší èí rovné $ T $ nad pùvodní abecedou znaèek $ L $. Toto zobrazení získáme odstranìním opakujících se znaèek a prázdnıch znaèek ze získanıch cest (napø. $ \mathcal{B}(aa-ab-) = \mathcal{B}(a-a-bb) = aab $) a vyuijeme ho k~získání podmínìné pravdìpodobnosti daného znaèkování $ \boldsymbol{l} \in L^{\leq T} $ \cite{distill, ctc}
 \begin{equation}
 p(\boldsymbol{l} \mid \boldsymbol{x}) = \sum_{\boldsymbol{\pi} \in \mathcal{B}^{-1}(\boldsymbol{l})} p(\boldsymbol{\pi} \mid \boldsymbol{x}),
 \end{equation}
@@ -588,7 +588,7 @@ h(\boldsymbol{x}) &\approx \mathcal{B}(\boldsymbol{\pi}^{*}) , \\
 \end{align}
 Dekódování nejlepší cesty lze snadno najít zøetìzením vıstupu s nejvyšší aktivaèní hodnotou v kadém èasovém kroku. Není ovšem zaruèeno, e tato metoda nalezne nejlepší moné znaèkování.
 
-Druhá metoda vyuívá sluèování cest, které procházejí stejnou sekvencí znaèek, a zaruèuje nalezení nejlepšího znaèkování. Je však vıpoèetnì nároèná a aby tato metoda byla upoèitatelná, je tøeba vyuít další heuristiky (napø. BEAM proøezávání, které umoní kompromis mezi rychlostí vıpoètu a pøesností).
+Druhá metoda vyuívá sluèování cest, které procházejí stejnou sekvencí znaèek, a~zaruèuje nalezení nejlepšího znaèkování. Je však vıpoèetnì nároèná a aby tato metoda byla upoèitatelná, je tøeba vyuít další heuristiky (napø. BEAM proøezávání, které umoní kompromis mezi rychlostí vıpoètu a pøesností).
 
 Obì tyto metody mohou bıt zároveò obohaceny o jazykovı model
 \begin{equation}
@@ -603,7 +603,7 @@ Mìjme sekvenci $ \boldsymbol{q} $ délky $ r $, kde $ \boldsymbol{q}_{1:p} $ a $ 
 \begin{equation}
 \alpha_{t}(s) = \sum_{\substack{\boldsymbol{\pi} \in N^{T}: \\ \mathcal{B}(\boldsymbol{\pi}_{1:t}) = \boldsymbol{l}_{1:s}}} \prod_{t^{'}=1}^{t} \boldsymbol{y}_{\boldsymbol{\pi}_{t^{'}}}^{(t)^{'}} ,
 \end{equation}
-kde $ \alpha_{t}(s) $ mùe bıt rekurzivnì spoètena z $ \alpha_{t-1}(s) $ a $ \alpha_{t-1}(s-1) $. Aby bylo moné vyuít prázdné znaèky ve vıstupní cestì, je tøeba upravit znaèkování $ \boldsymbol{l} $ na $ \boldsymbol{l}^{'}  $ vloením prázdné znaèky na zaèátek a konec sekvence a mezi kadé dvì znaèky. Délka $ \boldsymbol{l}^{'}  $ je tedy $ 2 |\boldsymbol{l}| + 1  $. Pøi vıpoètu pravdìpodobnosti znaèkování $ \boldsymbol{l}^{'}  $ umoníme pøechody mezi prázdnımi a neprázdnımi znaèkami a také mezi kadım párem unikátních neprázdnıch znaèek. Zároveò musí všechny sekvence zaèínat buï prázdnou znaèkou $ b $ nebo prvním znaèkou v $ l $. Tìmito omezeními získáme inicializaèní hodnoty algoritmus
+kde $ \alpha_{t}(s) $ mùe bıt rekurzivnì spoètena z $ \alpha_{t-1}(s) $ a $ \alpha_{t-1}(s-1) $. Aby bylo moné vyuít prázdné znaèky ve vıstupní cestì, je tøeba upravit znaèkování $ \boldsymbol{l} $ na $ \boldsymbol{l}^{'}  $ vloením prázdné znaèky na zaèátek a konec sekvence a mezi kadé dvì znaèky. Délka $ \boldsymbol{l}^{'}  $ je tedy $ 2 |\boldsymbol{l}| + 1  $. Pøi vıpoètu pravdìpodobnosti znaèkování $ \boldsymbol{l}^{'}  $ umoníme pøechody mezi prázdnımi a neprázdnımi znaèkami a také mezi kadım párem unikátních neprázdnıch znaèek. Zároveò musí všechny sekvence zaèínat buï prázdnou znaèkou $ b $ nebo prvním znaèkou v~$ l $. Tìmito omezeními získáme inicializaèní hodnoty algoritmus
 \begin{align}
 \alpha_{1}(1) &= \boldsymbol{y}_{b}^{(1)} , \\
 \alpha_{1}(2) &= \boldsymbol{y}_{\boldsymbol{l}_{1}}^{(1)} , \\
@@ -649,7 +649,7 @@ Dosazením pøeškálovanıch promìnnıch do vzorcù a jejich úpravou (podrobnìji v \ci
 \begin{equation}
 \dfrac{\partial O^{ML} (\{ \boldsymbol{x}, \boldsymbol{z} \},\mathcal{N}_{\boldsymbol{w}})}{\partial \boldsymbol{u}_{k}^{(t)}} = \boldsymbol{y}_{k}^{(t)} - \dfrac{1}{\boldsymbol{y}_{k}^{(t)} Z_{(t)}} \sum_{s \in lab(\boldsymbol{z}, k)} \hat{\alpha}_{t}(s) \hat{\beta}_{t}(s) ,
 \end{equation}
-kde $ \boldsymbol{u}_{k}^{(t)} $ jsou nenormalizované pravdìpodobnosti na vıstupu sítì, $ lab(\boldsymbol{z}, k) = lab(\boldsymbol{l}, k) = \{ s : \boldsymbol{l}_{s}^{'} = k \} $ je mnoina pozic, na kterıch se ve znaèkování $ \boldsymbol{l} $ vyskytuje znaèka $ k $, a kde \cite{distill, ctc}
+kde $ \boldsymbol{u}_{k}^{(t)} $ jsou nenormalizované pravdìpodobnosti na vıstupu sítì, $ lab(\boldsymbol{z}, k) = lab(\boldsymbol{l}, k) = \{ s : \boldsymbol{l}_{s}^{'} = k \} $ je mnoina pozic, na kterıch se ve znaèkování $ \boldsymbol{l} $ vyskytuje znaèka $ k $, a~kde \cite{distill, ctc}
 \begin{equation}
 Z_{t} = \sum_{s=1}^{|\boldsymbol{l}^{'}|} \dfrac{\hat{\alpha}_{t}(s) \hat{\beta}_{t}(s)}{\boldsymbol{y}_{\boldsymbol{l}_{s}^{'}}^{(t)} } .
 \end{equation}
@@ -657,10 +657,10 @@ Z_{t} = \sum_{s=1}^{|\boldsymbol{l}^{'}|} \dfrac{\hat{\alpha}_{t}(s) \hat{\beta}
 % PRAKTICKÁ ÈÁST
 \newpage
 \section{Klasifikace fonémù}
-V této práci bylo porovnáno šest architektur neuronovıch sítí pro úlohu klasifikace fonémù. Experimenty byly provedeny nad dvìma datovımi sady pro ètyøi rùzné parametrizace pøíznakù. K implementaci byl vyuit programovací jazyk Python 3.4 spolu s knihovnami pro neuronové sítì Tensorflow a Keras (kód dostupnı na \cite{repo}). Sítì byly trénovány na grafické kartì Nvidia Tesla K20m s pamìtí 5GB a knihovnami CUDA 8.0 a CuDNN 6.0.
+V této práci bylo porovnáno šest architektur neuronovıch sítí pro úlohu klasifikace fonémù. Experimenty byly provedeny nad dvìma datovımi sady pro ètyøi rùzné parametrizace pøíznakù. K implementaci byl vyuit programovací jazyk Python 3.4 spolu s~knihovnami pro neuronové sítì Tensorflow a Keras (kód dostupnı na \cite{repo}). Sítì byly trénovány na grafické kartì Nvidia Tesla K20m s pamìtí 5GB a knihovnami CUDA 8.0 a CuDNN 6.0.
 
 \subsection{Pøedzpracování dat}
-Architektury byly testovány na dvou datovıch sadách, ŠkodaAuto a SpeechDat-E, které obsahují èeské nahrávky se vzorkovací frekvencí 8 kHz. Obì tyto sady byly dále rozdìleny na sadu trénovací (75\%), validaèní (12.5\%) a testovací (12.5\%) tak, aby kadı øeèník byl v právì jedné sadì. Základní informace o datovıch sadách jsou uvedeny v tabulce \ref{tab:datasety}.
+Architektury byly testovány na dvou datovıch sadách, ŠkodaAuto a SpeechDat-E, které obsahují èeské nahrávky se vzorkovací frekvencí 8 kHz. Obì tyto sady byly dále rozdìleny na sadu trénovací (75\%), validaèní (12.5\%) a testovací (12.5\%) tak, aby kadı øeèník byl v právì jedné sadì. Základní informace o datovıch sadách jsou uvedeny v~tabulce \ref{tab:datasety}.
 
 \begin{table}[H]
 \centering
@@ -687,10 +687,10 @@ Pro obì datové sady pak byly spoèteny ètyøi parametrizace pøíznakù \cite{bp}, na
 \begin{itemize}
 \item \textbf{LFE} - logaritmované energie banky filtrù, pro vıpoèet vyuito 40 filtrù,
 \item \textbf{LFE} $ \Delta\Delta $ - logaritmované energie banky filtrù, pro vıpoèet vyuito 40 filtrù, vypoèteny delta a delta-delta koeficienty, 
-\item \textbf{MFCC} - mel-frekvenèní kepstrální koeficienty, pro vıpoèet vyuito 40 filtrù, ponecháno 13 koeficientù,
-\item \textbf{MFCC} $ \Delta\Delta $ - mel-frekvenèní kepstrální koeficienty, pro vıpoèet vyuito 40 filtrù, ponecháno 13 koeficientù, vypoèteny delta a delta-delta koeficienty.
+\item \textbf{MFCC} - mel-frekvenèní kepstrální koeficienty, pro vıpoèet vyuito 26 filtrù, ponecháno 13 koeficientù,
+\item \textbf{MFCC} $ \Delta\Delta $ - mel-frekvenèní kepstrální koeficienty, pro vıpoèet vyuito 26 filtrù, ponecháno 13 koeficientù, vypoèteny delta a delta-delta koeficienty.
 \end{itemize}
-Všechny parametrizace byly vygenerovány s vyuitím Hammingova okénka o délce 25ms s posunem 10ms (jednotlivé segmenty se pøekrıvají), a 512 bodové FFT.
+Všechny parametrizace byly vygenerovány s vyuitím Hammingova okénka o délce 25ms s posunem 10ms (jednotlivé segmenty se pøekrıvají) a 512 bodové FFT.
 
 Takto spoètené pøíznaky pak byly po sloupcích normalizovány tak, aby mìly nulovou støední hodnotu a jednotkovı rozptyl. K tomu byla vyuita Z-score normalizace, která pøetransformuje vstupní data $ \boldsymbol{x} $ na data $ \boldsymbol{z} $ dle vzorce
 \begin{equation}
@@ -811,14 +811,14 @@ kde $ C_{f} $ je poèet správnì klasifikovanıch fonémù, $ I $ je poèet navíc vlo
 Pro sítì vyuívající metodu CTC nebyla sledována pøesnost modelu, ale pouze pøesnost dekódování. Bìhem trénování modelù pak docházelo ke tøem jevùm
 \begin{enumerate}
 \item pøedèasné ukonèení z dùvodu stagnace uèícího se procesu, tj. chyba na validaèní sadì se po dobu 10 epoch témìø nezmìnila (*),
-\item pøedèasné ukonèení z dùvodu overfittingu, tj. chyba na validaèní sadì zaèala rùst a trénování bylo ukonèeno (**),
+\item pøedèasné ukonèení z dùvodu overfittingu, tj. chyba na validaèní sadì zaèala rùst a~trénování bylo ukonèeno (**),
 \item sí se nepodaøilo natrénovat (***).
 \end{enumerate}
 Zároveò je tøeba rozlišit tøi dùvody, proè se sí nepodaøilo natrénovat:
 \begin{enumerate}
 \item sí se nepodaøilo natrénovat kvùli vysoké vıpoèetní a èasové nároènosti (napø. pro datovou sadu SpeechDat-E s parametrizací LFE $ \Delta\Delta $ trvala jedna epocha trénování dopøedné sítì pøes 45 hodin ),
 \item sí se nepodaøilo natrénovat kvùli jevùm jako je exploze èi vymizení gradientu (napø. sítì GRU pro datovou sadu ŠkodaAuto s parametrizací LFE),
-\item sí se nepodaøilo natrénovat kvùli neznámé chybì v knihovnì Keras, kdy bìhem jedné epochy dojde k vıraznému poklesu pøesnosti - pravdìpodobnì se jedná o numerickou nestabilitu (napø. sítì LSTM a GRU pro datovou sadu SpeechDat-E s parametrizacemi LFE).
+\item sí se nepodaøilo natrénovat kvùli neznámé chybì v knihovnì Keras, kdy bìhem jedné epochy dojde k vıraznému poklesu pøesnosti - pravdìpodobnì se jedná o~numerickou nestabilitu (napø. sítì LSTM a GRU pro datovou sadu SpeechDat-E s~parametrizacemi LFE).
 \end{enumerate}
 
 \subsection{Experimenty nad datovou sadou ŠkodaAuto}
@@ -826,10 +826,10 @@ První testovanou architekturou byla dopøedná sí, která na rozdíl od rekurentníc
 \begin{itemize}
 \item vyuívá kontextu o srovnatelné délce (15) s délkou sekvence zvolenou pro vybrané rekurentní sítì (20),
 \item dosahuje relativnì vysoké pøesnosti,
-\item  vyuívá niší poèet parametrù (rychlejší trénování a spravedlivìjší srovnání s vybranımi rekurentními sítìmi, které vyuívají 100000 - 500000 parametrù).
+\item  vyuívá niší poèet parametrù (rychlejší trénování a "spravedlivìjší" \ srovnání s vybranımi rekurentními sítìmi, které vyuívají 100000 - 500000 parametrù).
 \end{itemize} 
 
-Jeliko cílem práce je porovnat vybrané architektury a ne ladìní parametrù a natrénování jedné sítì za úèelem co nejvyšší pøesnosti, trénování dopøednıch sítí bylo omezeno na 150 epoch. Lze pøedpokládat, e s vyšším poètem epoch by bylo moné dosáhnout ještì lepších vısledkù.
+Jeliko cílem práce je porovnat vybrané architektury a ne optimalizace topologie a~natrénování jedné sítì za úèelem co nejvyšší pøesnosti, trénování dopøednıch sítí bylo omezeno na 150 epoch. Lze pøedpokládat, e s vyšším poètem epoch by bylo moné dosáhnout ještì lepších vısledkù.
 
 \begin{table}[H]
 \centering
@@ -924,7 +924,7 @@ I experimenty se sítìmi GRU potvrdily, e vıše zmínìné parametry sítí, které trp
 \label{tab:sa_lfe_gru}
 \end{table}
 
-Dále byly provedeny experimenty s LSTM sítí, které vyuívají metodu CTC. Obousmìrná CTC LSTM sí, která pøi klasifikaci vyuívá celou délku sekvence, dosahovala velmi vysoké pøesnosti jak na trénovací, tak na validaèní a testovací sadì (viz. tabulka \ref{tab:sa_lfe_ctclstm}). Z obdobnıch dùvodù jako u dopøedné sítì nebyla pro další experimenty zvolena sít dosahující nejvyšší pøesnosti, ale sí se 100 buòkami v kadé dopøedné i zpìtné LSTM vrstvì.
+Dále byly provedeny experimenty s LSTM sítìmi, které vyuívají metodu CTC. Obousmìrná CTC LSTM sí, která pøi klasifikaci vyuívá celou délku sekvence, dosahovala velmi vysoké pøesnosti jak na trénovací, tak na validaèní a testovací sadì (viz. tabulka \ref{tab:sa_lfe_ctclstm}). Z obdobnıch dùvodù jako u dopøedné sítì nebyla pro další experimenty zvolena sít dosahující nejvyšší pøesnosti, ale sí se 100 buòkami v kadé dopøedné i zpìtné LSTM vrstvì.
 
 \begin{table}[H]
 \centering
@@ -945,9 +945,9 @@ Dále byly provedeny experimenty s LSTM sítí, které vyuívají metodu CTC. Obousmì
 \label{tab:sa_lfe_ctclstm}
 \end{table}
 
-Sí, která k zahájení predikce vyaduje celou sekvenci, je pro úèely predikce v reálném èase nevhodná. Proto byly provedeny experimenty se sítìmi vyuívající metodu CTC, které k predikci vyuívají pouze kratší sekvence (úseky z celé sekvence). Byly uvaovány dvì varianty - sí s obyèejnımi LSTM vrstvami a sí s obousmìrnımi LSTM vrstvami. Zde ji byly provedeny experimenty pouze pro dvì nejlepší nastavení sítì LSTM a to buï s pùvodní trénovací datovou sadou nebo s rozšíøenou datovou sadou. Rozdílem mezi tìmito trénovacími sadami je, e jednotlivé trénovací sekvence v pùvodní datové sadì na sebe navazují a jejich zøetìzením lze získat celou sekvenci, zatímco v rozšíøené trénovací sadì dochází k 50\% pøesahu mezi jednotlivımi trénovacími sekvencemi, tj. pro trénovací sekvence o délce $ m $ segmentù je posledních $ \frac{m}{2} $ segmentù trénovací sekvence stejnıch, jako prvních $ \frac{m}{2} $ segmentù následující trénovací sekvence). Tímto rozšíøením získá sí vìtší mnoství trénovacích dat a je schopna pøesnìjší klasifikace.
+Sí, která k zahájení predikce vyaduje celou sekvenci, je pro úèely predikce v reálném èase nevhodná. Proto byly provedeny experimenty se sítìmi vyuívající metodu CTC, které k predikci vyuívají pouze kratší sekvence (úseky z celé sekvence). Byly uvaovány dvì varianty - sí s obyèejnımi LSTM vrstvami a sí s obousmìrnımi LSTM vrstvami. Zde ji byly provedeny experimenty pouze pro dvì nejlepší nastavení sítì LSTM a to buï s~pùvodní trénovací datovou sadou nebo s rozšíøenou datovou sadou. Rozdílem mezi tìmito trénovacími sadami je, e jednotlivé trénovací sekvence v pùvodní datové sadì na sebe navazují a jejich zøetìzením lze získat celou sekvenci, zatímco v rozšíøené trénovací sadì dochází k 50\% pøesahu mezi jednotlivımi trénovacími sekvencemi, tj. pro trénovací sekvence o délce $ m $ segmentù je posledních $ \frac{m}{2} $ segmentù trénovací sekvence stejnıch, jako prvních $ \frac{m}{2} $ segmentù následující trénovací sekvence). Tímto rozšíøením získá sí vìtší mnoství trénovacích dat a je schopna pøesnìjší klasifikace.
 
-Z tabulek \ref{tab:sa_lfe_batchctclstm}) a \ref{tab:sa_lfe_batchbictclstm} je patrné, e pøesnost obousmìrné sítì vdy pøevyšuje pøesnost sítì obyèejné, ovšem za cenu dvojnásobného poètu trénovatelnıch parametrù.
+Z tabulek \ref{tab:sa_lfe_batchctclstm} a \ref{tab:sa_lfe_batchbictclstm} je patrné, e pøesnost obousmìrné sítì vdy pøevyšuje pøesnost sítì obyèejné, ovšem za cenu dvojnásobného poètu trénovatelnıch parametrù.
 
 Pro obì architektury bylo zvoleno 100 bunìk v kadé vrstvì (pro obousmìrnou sí 100 bunìk v kadé dopøedné i zpìtné vrstvì), délka vstupní sekvence 20 a trénování pomocí rozšíøené trénovací sady. 
 
@@ -1121,7 +1121,7 @@ dávková CTC LSTM & -* & 87.02 & 70.80 & 73 & 141341 \\
 \end{table}
 
 \subsection{Experimenty nad datovou sadou SpeechDat-E}
-Aèkoliv jsou vısledné pøesnosti nad parametrizacemi datové ŠkodaAuto pomìrnì vysoké, jedná se o malou datovou sadu, kterou se vhodnì zvolené architektury mohou pomìrnì snadno nauèit. Proto byly provedeny stejné experimenty i nad parametrizacemi komplexnìjší datové sady SpeechDat-E. Z tabulek \ref{tab:se_lfe} a \ref{tab:se_mfccdd} je na první pohled patrné, e pøesnost všech sítí je niší a to o 5-15\%. Vıše zmínìné závìry jsou ovšem stále platné i pro tuto datovou sadu.
+Aèkoliv jsou vısledné pøesnosti nad parametrizacemi datové sady ŠkodaAuto pomìrnì vysoké, jedná se o malou datovou sadu, kterou se vhodnì zvolené architektury mohou pomìrnì snadno nauèit. Proto byly provedeny stejné experimenty i nad parametrizacemi komplexnìjší datové sady SpeechDat-E. Z tabulek \ref{tab:se_lfe} a \ref{tab:se_mfccdd} je na první pohled patrné, e pøesnost všech sítí je niší a to o 5 a 15\%. Vıše zmínìné závìry jsou ovšem stále platné i~pro tuto datovou sadu.
 
 Pro parametrizaci LFE se bohuel nepodaøilo natrénovat sítì LSTM a GRU kvùli neznámé a dosud neopravené chybì v knihovnì Keras. Trénovaní tìchto modelù bylo spuštìno vícekrát, nicménì vdy došlo k chybì døíve, ne byl model natrénován do takové míry, aby bylo moné reprezentativnì vyhodnotit jeho pøesnost. Pro parametrizaci LFE a LFE + $ \Delta\Delta $ se nepodaøilo natrénovat sítì LSTM, GRU a dopøednou sí kvùli vysoké èasové nároènosti (a dva dny na jednu epochu).
 
@@ -1305,11 +1305,11 @@ dávková CTC LSTM & 63.04 & 68.58 & 65.28 & 70.80 & 58.32 & 60.87 & 60.05 & 63.81
 \makecell{obousmìrná \\ dávková CTC LSTM} & 72.31 & 72.74 & 72.19 & 75.19 & 62.42 & 66.81 & 63.42 & 67.87 \\
 \hline
 \end{tabular}}
-\caption{Porovnání pøesnosti dekódování [\%] mezi datovou sadou ŠkodaAuto a SpeechDat-E.}
+\caption{Porovnání pøesnosti dekódování [\%] mezi datovou sadou ŠkodaAuto a~SpeechDat-E.}
 \label{tab:sa_se}
 \end{table}
 
-Porovnáním pøesností rozpoznání se ukázalo (shrnuto v tabulce \ref{tab:sa_se}), e nejpøesnìjší architekturou je sí vyuívající obousmìrné LSTM vrstvy a metodu CTC, která dosáhla pøesnosti pøes 90\% na jednodušší datové sadì ŠkodaAuto a pøes 80\% na komplexnìjší datové sadì SpeechDat-E. Tato sí ovšem k rozpoznání vyuívala informaci z celé nahrávky a pro vyuití v reálném èase není vhodná. Pomìrnì dobrıch vısledkù ovšem také dosahovala dopøedná sí s pyramidovou strukturou a rekurentní sí obsahující dvì LSTM vrstvy. Obdobná verze této rekurentní sítì, která vyuívala metodu CTC dosahovala obdobnıch vısledkù a pro rozpoznávání v reálném èase má pomìrnì velkı potenciál omezenı pouze vıkonem zaøízení.
+Porovnáním pøesností rozpoznání se ukázalo (shrnuto v tabulce \ref{tab:sa_se}), e nejpøesnìjší architekturou je sí vyuívající obousmìrné LSTM vrstvy a metodu CTC, která dosáhla pøesnosti pøes 90\% na jednodušší datové sadì ŠkodaAuto a pøes 80\% na komplexnìjší datové sadì SpeechDat-E. Tato sí ovšem k rozpoznání vyuívala informaci z celé nahrávky a pro vyuití v reálném èase není vhodná. Pomìrnì dobrıch vısledkù ovšem také dosahovala dopøedná sí s pyramidovou strukturou a rekurentní sí obsahující dvì LSTM vrstvy. Obousmìrná verze této rekurentní sítì, která vyuívala metodu CTC dosahovala obdobnıch vısledkù a pro rozpoznávání v reálném èase má pomìrnì velkı potenciál omezenı pouze vıkonem zaøízení.
 
 Pro další zlepšení dosaenıch vısledkù by bylo vhodné zamìøit se na sít vyuívající LSTM vrstvy a na její obousmìrnou obdobu vyuívající metodu CTC a optimalizovat topologii tìchto architektur. Na základì podkladù danıch touto prací a vızkumem Alexe Gravese \cite{graves}, kterı ji øešil vliv poètu vrstev na pøesnost rozpoznání fonémù pro sí vyuívající celou sekvenci, se jako další postup jeví otestování vlivu délky vstupní sekvence spolu s hloubku sítì a šíøkou jednotlivıch vrstev na pøesnost rozpoznání. Zároveò je tøeba najít jistı kompromis mezi velikostí sítì a délkou vstupní sekvence tak, aby byla dosaena dostateèná pøesnost rozpoznání a zároveò byla zaruèena odezva sítì v reálném èase.
 
