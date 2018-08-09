@@ -1,4 +1,4 @@
-# Thesis - Phoneme Classification
+# Master's Thesis - Phoneme Classification
 
 Phoneme classification using multiple methods:
 * Feed-forward neural network + Viterbi decoding
